@@ -16,4 +16,8 @@ Voici la liste des différents fichiers proposés dans QChimie :
       <td><b>ELEMENTS.PAS</b></td>
       <td>Cette commande permet d'afficher le tableau des éléments chimiques ou un élément chimique.</td>
   </tr>
+  <tr>
+      <td><b>FINDELEM.PAS</b></td>
+      <td>Cette commande permet de détecter les éléments chimiquies mentionné dans un texte.</td>
+  </tr>
  </table>
