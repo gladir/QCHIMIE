@@ -1,6 +1,8 @@
 # QChimie
 Liste de commandes écrite en Pascal sur la chimie.
 
+![image](https://user-images.githubusercontent.com/11842176/173241903-be1d3f65-5db1-4675-b16a-ba13d25c9800.png)
+
 <h2>Liste des fichiers</h3>
 
 Voici la liste des différents fichiers proposés dans QChimie :
