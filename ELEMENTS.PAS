@@ -979,7 +979,8 @@ Const
  );
 
 Var
- Groupe,Periode,I,J:Integer;
+ ShowASCII128:Boolean;
+ YPos,CurrPos,Groupe,Periode,I,J:Integer;
  Found:Boolean;
  S:String;
 
@@ -1032,6 +1033,218 @@ Begin
  End;
 End;
 
+Function DuplicateString(C:Char;Num:Integer):String;
+Var
+ I:Byte;
+ S:String;
+Begin
+ S:='';
+ For I:=1 to Num do S:=S+C;
+ DuplicateString:=S;
+End;
+
+Procedure Box(X1,Y1,X2,Y2,Couleur:Byte);Begin
+ Window(X1,Y1,X2,Y2);
+ TextBackground((Couleur shr 4)and 15);
+ TextColor(Couleur and 15);
+ ClrScr;
+ Window(1,1,80,25);
+End;
+
+Procedure FrameEmpty(X1,Y1,X2,Y2,Couleur:Byte);
+Var
+ I:Byte;
+ ChrHori,ChrVert:Char;
+ Chr218,Chr192,Chr191,Chr217:Char;
+Begin
+ TextBackground((Couleur shr 4)and 15);
+ TextColor(Couleur and 15);
+ If(ShowASCII128)Then Begin
+  ChrHori:='-';
+  ChrVert:='|';
+  Chr218:='+';
+  Chr192:='+';
+  Chr191:='+';
+  Chr217:='+';
+ End
+  Else
+ Begin
+  ChrHori:=#$C4;
+  ChrVert:=#$B3;
+  Chr218:=#218;
+  Chr192:=#192;
+  Chr191:=#191;
+  Chr217:=#217;
+ End;
+ For I:=Y1+1 to Y2-1 do Begin
+  GotoXY(X1,I);
+  Write(ChrVert);
+  GotoXY(X2,I);
+  Write(ChrVert);
+ End;
+ GotoXY(X1+1,Y1);
+ Write(DuplicateString(ChrHori,X2-X1-1));
+ GotoXY(X1+1,Y2);
+ Write(DuplicateString(ChrHori,X2-X1-1));
+ GotoXY(X1,Y1);
+ Write(Chr218);
+ GotoXY(X1,Y2);
+ Write(Chr192);
+ GotoXY(X2,Y1);
+ Write(Chr191);
+ GotoxY(X2,Y2);
+ Write(Chr217);
+End;
+
+Procedure ShowElement(Y,P:Byte);Begin
+ GotoXY(2,2+(Y shl 2)-4);
+ Write(PadRight(Copy(ElementsChimiques[P-1].ElementName,1,4),4));
+ GotoXY(2,3+(Y shl 2)-4);
+ Write(' ',ElementsChimiques[P-1].NumeroAtomique:3);
+ GotoXY(2,4+(Y shl 2)-4);
+ Write(PadRight(' '+ElementsChimiques[P-1].SymboleChimique,4));
+ GotoXY(2,5+(Y shl 2)-4);
+ Str(ElementsChimiques[P-1].MasseAtomique:1:2,S);
+ Write(Copy(S,1,4));
+End;
+
+Procedure ShowDetail(P:Byte);Begin
+ Box(8,2,79,21,$1F);
+ GotoXY(8,2);
+ Write('Nom : ',ElementsChimiques[P-1].ElementName);
+ GotoXY(8,3);
+ Write('Groupe : ',ElementsChimiques[P-1].Groupe);
+ GotoXY(8,4);
+ Write('Periode : ',ElementsChimiques[P-1].Periode);
+ GotoXY(8,5);
+ Write('Numero atomique : ',ElementsChimiques[P-1].NumeroAtomique);
+ GotoXY(8,6);
+ Write('Symbole chimique : ',ElementsChimiques[P-1].SymboleChimique);
+ GotoXY(8,7);
+ Write('Masse atomique : ',ElementsChimiques[P-1].MasseAtomique:1:4);
+ GotoXY(8,8);
+ Write('Categorie : ');
+ Case ElementsChimiques[P-1].Categorie of
+  NonClasses:WriteLn('Non classes');
+  Alcalins:WriteLn('Alcalins');
+  Alcalinoterreux:WriteLn('Alcalinoterreux');
+  Lanthanides:WriteLn('Lanthanides');
+  Actinides:WriteLn('Actinides');
+  MetauxDeTransition:WriteLn('Metaux de transition');
+  MetauxPauvres:WriteLn('Metaux pauvres');
+  Metalloides:WriteLn('Metalloides');
+  AutresNonMetaux:WriteLn('Autres non metaux');
+  Halogenes:WriteLn('Halogenes');
+  GazNobles:WriteLn('Gaz nobles');
+ End;
+ GotoXY(8,9);
+ Write('Etat a 0 Celcius et 101,3 kPa : ');
+ Case ElementsChimiques[P-1].Etat of
+  Gaz:WriteLn('Gaz');
+  Liquide:WriteLn('Liquide');
+  Solide:WriteLn('Solide');
+ End;
+End;
+
+Procedure SelectColor;Begin
+ TextColor(14);
+ TextBackground(0);
+End;
+
+Procedure UnselectColor;Begin
+ TextColor(7);
+ TextBackground(1);
+End;
+
+Procedure UpdateList;
+Var
+ I:Integer;
+Begin
+ For I:=1 to 5 do Begin
+  ShowElement(I,CurrPos-YPos+I);
+ End;
+End;
+
+Procedure InitGUI;
+Var
+ I:Integer;
+Begin
+ YPos:=1;
+ CurrPos:=1;
+ ClrScr;
+ Box(1,1,6,22,$1F);
+ FrameEmpty(1,1,6,22,$1F);
+ Box(7,1,80,22,$1F);
+ FrameEmpty(7,1,80,22,$1F);
+ For I:=1 to 5 do Begin
+  If(CurrPos=I)Then SelectColor
+               Else UnselectColor;
+  ShowElement(I,I);
+ End;
+ ShowDetail(1);
+End;
+
+Procedure RunGUI;
+Var
+ K:Char;
+Begin
+ Repeat
+  GotoXY(2,2+(YPos shl 2)-4);
+  K:=ReadKey;
+  Case K of
+   #0:Begin
+    K:=ReadKey;
+    Case K of
+     #71:Begin { Home }
+      YPos:=1;CurrPos:=1;
+      UpdateList;
+      SelectColor;
+      ShowElement(YPos,CurrPos);
+     End;
+     #72:Begin { Up }
+      If CurrPos>1Then Begin
+       UnselectColor;
+       ShowElement(YPos,CurrPos);
+       Dec(CurrPos);
+       If YPos>1 Then Dec(YPos)
+                 Else UpdateList;
+       SelectColor;
+       ShowElement(YPos,CurrPos);
+      End;
+      ShowDetail(CurrPos);
+     End;
+     #79:Begin { End }
+      YPos:=5;CurrPos:=High(ElementsChimiques)+1;
+      UpdateList;
+      SelectColor;
+      ShowElement(YPos,CurrPos);
+     End;
+     #80:Begin { Down }
+      If CurrPos<High(ElementsChimiques)+1 Then Begin
+       UnselectColor;
+       ShowElement(YPos,CurrPos);
+       Inc(CurrPos);
+       If YPos<5 Then Inc(YPos)
+                 Else UpdateList;
+       SelectColor;
+       ShowElement(YPos,CurrPos);
+      End;
+      ShowDetail(CurrPos);
+     End;
+    End;
+   End;
+   #27:Begin { ESC }
+   End;
+  End;
+  Until K=#27;
+End;
+
+Procedure DoneGUI;Begin
+ TextBackground(0);
+ TextColor(7);
+ ClrScr;
+End;
+
 BEGIN
  If(ParamStr(1)='/?')or(ParamStr(1)='--help')or(ParamStr(1)='-h')or
    (ParamStr(1)='/h')or(ParamStr(1)='/H')Then Begin
@@ -1039,10 +1252,22 @@ BEGIN
                       'le tableau periodique des elements chimiques.');
   WriteLn;
   WriteLn('Syntaxe : ELEMENTS');
-  WriteLn('Syntaxe : ELEMENTS nomelement');
+  WriteLn('          ELEMENTS nomelement');
+  WriteLn('          ELEMENTS /GUI');
+  WriteLn;
+  WriteLn(' /GUI        Ce parametre permet d''afficher une liste ',
+                        'deroulante d''elements.');
+  WriteLn(' nomelement  Ce parametre permet d''indiquer le nom d''element');
  End
   Else
  If ParamCount>0Then Begin
+  ShowASCII128:=True;
+  If ParamStr(1)='/GUI'Then Begin
+   InitGUI;
+   RunGUI;
+   DoneGUI;
+  End
+   Else
   For I:=1 to ParamCount do Begin
    Found:=False;
    For J:=Low(ElementsChimiques)to High(ElementsChimiques)do Begin
