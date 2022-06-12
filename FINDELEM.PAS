@@ -114,8 +114,8 @@ BEGIN
   WriteLn('FINDELEM : Cette commande permet de detecter les ‚l‚ments ',
                       'chimiques mentionn‚ dans un texte.');
   WriteLn;
-  WriteLn('Syntaxe : FINDCITY "message"');
-  WriteLn('          FINCCITY /FILE:fichier [/LINES]');
+  WriteLn('Syntaxe : FINDELEM "message"');
+  WriteLn('          FINDELEM /FILE:fichier [/LINES]');
   WriteLn;
   WriteLn(' /FILE:  Ce parametre permet d''indiquer le fichier a analyser');
   WriteLn(' /LINES  Ce parametre permet d''afficher le numero de ligne');
