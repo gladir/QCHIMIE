@@ -791,7 +791,7 @@ Const
    Etat:Solide),
   (Groupe:3;
    Periode:7;
-   ElementName:'Carium';
+   ElementName:'Curium';
    NumeroAtomique:96;
    SymboleChimique:'Cm';
    MasseAtomique:247.0;
