@@ -3045,7 +3045,7 @@ BEGIN
  End
   Else
  If ParamStr(1)='--version'Then Begin
-  WriteLn('FORMULA 1.1 - Formula de QCHIMIE');
+  WriteLn('FORMULA 1.2 - Formula de QCHIMIE');
   WriteLn('Licence MIT');
   WriteLn;
   WriteLn('êcrit par Sylvain Maltais');
@@ -3082,6 +3082,10 @@ BEGIN
   If Not(FormulaFound)and(Not BadFormula)Then Begin
    If(FormatData=_HTML)Then Begin
     WriteLn('<table>');
+     WriteLn(' ':8,'<tr>');
+     WriteLn(' ':16,'<th>Nom</th>');
+     WriteLn(' ':16,'<th>Formule</th>');
+     WriteLn(' ':8,'</tr>');
    End;
    For J:=Low(Composes) to High(Composes)do Begin
     If(FormatData=_HTML)Then Begin
