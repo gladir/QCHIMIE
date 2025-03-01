@@ -40,6 +40,12 @@ Par exemple, si vous voulez compiler ELEMENTS.PAS, vous devrez tapez la commande
 
 <pre><b>fpc</b> ELEMENTS.PAS</pre>
 
+<h2>Remarque</h2>
+
+<ul>
+	<li>La commande FORMULA a été bonifié du paramètre /FORMAT:HTML à partir de sa version 1.1.</li>
+</ul>
+
 <h2>Licence</h2>
 <ul>
  <li>Le code source est publié sous la licence <a href="https://github.com/gladir/QCHIMIE/blob/main/LICENSE">MIT</a>.</li>
