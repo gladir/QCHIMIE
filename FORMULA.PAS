@@ -3026,6 +3026,8 @@ Begin
 End;
 
 Var
+ FormulaFound,BadFormula:Boolean;
+ FormatData:(_Console,_HTML);
  I,J:Integer;
 
 BEGIN
@@ -3034,18 +3036,68 @@ BEGIN
   WriteLn('FORMULA: Cette commande permet d''afficher ',
                    'la formule d''un compos‚ chimique.');
   WriteLn;
-  WriteLn('Syntaxe : FORMULA compose');
+  WriteLn('Syntaxe : FORMULA compose [/FORMAT:format]');
+  WriteLn('          FORMULA --version');
   WriteLn;
-  WriteLn(' compose  Ce parametre permet d''indiquer la compos‚ a analyser');
+  WriteLn(' compose      Ce paramŠtre permet d''indiquer la compos‚ a analyser');
+  WriteLn(' /FORMAT:HTML Ce paramŠtre permet de sortir les informations en HTML');
+  WriteLn(' --version    Ce paramŠtre permet de retourner le num‚ro de version');
+ End
+  Else
+ If ParamStr(1)='--version'Then Begin
+  WriteLn('FORMULA 1.1 - Formula de QCHIMIE');
+  WriteLn('Licence MIT');
+  WriteLn;
+  WriteLn('crit par Sylvain Maltais');
  End
   Else
  If ParamCount>0Then Begin
+  FormatData:=_Console;
+  FormulaFound:=False;
+  BadFormula:=False;
+  For I:=1 to ParamCount do Begin
+   If StrToUpper(ParamStr(I))='/FORMAT:HTML'Then FormatData:=_HTML;
+  End;
   For I:=1 to ParamCount do Begin
    For J:=Low(Composes) to High(Composes)do Begin
+    If StrToUpper(ParamStr(I))='/FORMAT:HTML'Then { Skip} Else
     If StrToUpper(ParamStr(I))=StrToUpper(StrPas(Composes[J].Nom))Then Begin
+     FormulaFound:=True;
+     If(FormatData=_HTML)Then Begin
+      WriteLn('<tr>');
+      WriteLn(' ':8,'<td>',Composes[J].Nom,'</td>');
+      WriteLn(' ':8,'<td>',Composes[J].Formula,'</td>');
+      WriteLn('</tr>');
+     End
+      Else
+     Begin
+      WriteLn('Nom :     ',Composes[J].Nom);
+      WriteLn('Formule : ',Composes[J].Formula);
+     End;
+    End
+     Else
+    BadFormula:=True;
+   End;
+  End;
+  If Not(FormulaFound)and(Not BadFormula)Then Begin
+   If(FormatData=_HTML)Then Begin
+    WriteLn('<table>');
+   End;
+   For J:=Low(Composes) to High(Composes)do Begin
+    If(FormatData=_HTML)Then Begin
+     WriteLn(' ':8,'<tr>');
+     WriteLn(' ':16,'<td>',Composes[J].Nom,'</td>');
+     WriteLn(' ':16,'<td>',Composes[J].Formula,'</td>');
+     WriteLn(' ':8,'</tr>');
+    End
+     Else
+    Begin
      WriteLn('Nom :     ',Composes[J].Nom);
      WriteLn('Formule : ',Composes[J].Formula);
     End;
+   End;
+   If(FormatData=_HTML)Then Begin
+    WriteLn('</table>');
    End;
   End;
  End;
