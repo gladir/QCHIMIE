@@ -22,7 +22,7 @@ Voici la liste des différents fichiers proposés dans QChimie :
   </tr>	
   <tr>
       <td><b>FINDELEM.PAS</b></td>
-      <td>Cette commande permet de détecter les éléments chimiquies mentionné dans un texte.</td>
+      <td>Cette commande permet de détecter les éléments chimiques mentionné dans un texte.</td>
   </tr>
  </table>
 
