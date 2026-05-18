@@ -1,5 +1,5 @@
 # QChimie
-Liste de commandes écrite en Pascal sur la chimie.
+Liste de commandes écrite en Pascal (Turbo Pascal ou Free Pascal) sur la chimie.
 
 ![image](https://user-images.githubusercontent.com/11842176/173241903-be1d3f65-5db1-4675-b16a-ba13d25c9800.png)
 
@@ -22,7 +22,7 @@ Voici la liste des différents fichiers proposés dans QChimie :
   </tr>	
   <tr>
       <td><b>FINDELEM.PAS</b></td>
-      <td>Cette commande permet de détecter les éléments chimiquies mentionné dans un texte.</td>
+      <td>Cette commande permet de détecter les éléments chimiques mentionné dans un texte.</td>
   </tr>
  </table>
 
