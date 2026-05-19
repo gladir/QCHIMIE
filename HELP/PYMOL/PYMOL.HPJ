@@ -1,0 +1,128 @@
+; ============================================================
+; PYMOL.HPJ - Projet d'aide Windows pour PYMOL.PAS
+; Clone PyMOL en mode graphique
+; Compilable avec HC.PAS (clone du Microsoft Help Compiler)
+; ============================================================
+
+[OPTIONS]
+TITLE=Aide de PYMOL - Visualiseur moleculaire
+COPYRIGHT=2026 Sylvain Maltais - gladir.com
+COMPRESS=TRUE
+CONTENTS=IDH_INDEX
+WARNING=3
+LANGUAGE=0x40C
+REPORT=ON
+
+[FILES]
+PYMOL.RTF
+
+[MAP]
+IDH_INDEX                  = 1
+
+; ----- Lancement et environnement -----
+IDH_SYNTAXE                = 10
+IDH_OPTIONS                = 11
+IDH_OPTION_HELP            = 12
+IDH_OPTION_FICHIER         = 13
+IDH_RACCOURCIS             = 15
+IDH_INTERFACE              = 16
+
+; ----- Menus -----
+IDH_MENUS                  = 100
+IDH_MENU_FICHIER           = 101
+IDH_MENU_EDITION           = 102
+IDH_MENU_CONSTRUCTION      = 103
+IDH_MENU_SELECTION         = 104
+IDH_MENU_AFFICHAGE         = 105
+IDH_MENU_PARAMETRES        = 106
+IDH_MENU_SCENE             = 107
+IDH_MENU_AIDE              = 108
+
+; ----- Console et commandes -----
+IDH_CONSOLE                = 200
+IDH_COMMANDES              = 201
+IDH_CMD_LOAD               = 210
+IDH_CMD_SAVE               = 211
+IDH_CMD_SHOW               = 212
+IDH_CMD_HIDE               = 213
+IDH_CMD_COLOR              = 214
+IDH_CMD_BGCOLOR            = 215
+IDH_CMD_ROTATE             = 216
+IDH_CMD_ZOOM               = 217
+IDH_CMD_SPIN               = 218
+IDH_CMD_RAY                = 219
+IDH_CMD_SELECT             = 220
+IDH_CMD_RESET              = 221
+IDH_CMD_REINIT             = 222
+IDH_CMD_SET                = 223
+IDH_CMD_GET                = 224
+IDH_CMD_RUN                = 225
+IDH_CMD_QUIT               = 226
+IDH_CMD_HELP               = 227
+IDH_CMD_CLS                = 228
+IDH_CMD_ECHO               = 229
+
+; ----- Modes de rendu -----
+IDH_RENDER                 = 300
+IDH_RENDER_LINES           = 301
+IDH_RENDER_STICKS          = 302
+IDH_RENDER_SPHERES         = 303
+IDH_RENDER_BALLSTICK       = 304
+IDH_RENDER_RIBBON          = 305
+IDH_RENDER_DOTS            = 306
+
+; ----- Parametres (set/get) -----
+IDH_PARAMS                 = 400
+IDH_PARAM_CARTOON          = 401
+IDH_PARAM_RAY              = 402
+IDH_PARAM_SIZES            = 403
+IDH_PARAM_LIGHT            = 404
+IDH_PARAM_MISC             = 405
+
+; ----- Structures secondaires -----
+IDH_SSE                    = 500
+IDH_SSE_HELIX              = 501
+IDH_SSE_SHEET              = 502
+
+; ----- Formats de fichiers -----
+IDH_FORMATS                = 600
+IDH_FORMAT_PDB             = 601
+IDH_FORMAT_MOL             = 602
+IDH_FORMAT_SDF             = 603
+IDH_FORMAT_XYZ             = 604
+IDH_FORMAT_PML             = 605
+IDH_FORMAT_PPM             = 606
+
+; ----- Langage de selection -----
+IDH_SELECT_LANG            = 700
+IDH_SELECT_KEYWORDS        = 701
+IDH_SELECT_OPERATORS       = 702
+
+; ----- Couleurs -----
+IDH_COULEURS               = 800
+IDH_COULEURS_CPK           = 801
+IDH_COULEURS_PAR_CHAINE    = 802
+
+; ----- Interpreteur Python embarque -----
+IDH_PYTHON                 = 900
+IDH_PY_TYPES               = 901
+IDH_PY_OPS                 = 902
+IDH_PY_CTRL                = 903
+IDH_PY_FOR                 = 904
+IDH_PY_WHILE               = 905
+IDH_PY_IMPORT              = 906
+IDH_PY_MODULE_MATH         = 907
+IDH_PY_MODULE_OS           = 908
+IDH_PY_MODULE_TIME         = 909
+IDH_PY_BUILTINS            = 910
+IDH_PY_LIMITS              = 911
+
+; ----- A propos -----
+IDH_APROPOS                = 9000
+
+[CONFIG]
+BrowseButtons()
+CreateButton("up", "Sommaire", "JI(`PYMOL.HLP', `IDH_INDEX')")
+
+[WINDOWS]
+main = "Aide de PYMOL", (100, 100, 700, 550), 0, (255, 255, 192), (192, 192, 255)

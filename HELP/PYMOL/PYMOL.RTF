@@ -1,0 +1,1627 @@
+{\rtf1\ansi\deff0
+{\fonttbl{\f0\fswiss Helvetica;}{\f1\fmodern Courier New;}}
+
+{\footnote # IDH_INDEX}
+{\footnote $ Sommaire de l'aide de PYMOL}
+{\footnote K sommaire;index;accueil;aide;pymol}
+{\footnote + main:001}
+\b\fs28 Aide de PYMOL \par
+\b0\fs20 Visualiseur moleculaire 3D - clone de PyMOL en Pascal \par
+\par
+PYMOL.PAS est un visualiseur de molecules en mode graphique inspire du
+logiciel PyMOL de Schroedinger LLC. L'application est ecrite en un seul
+fichier Pascal compilable avec Free Pascal en mode Turbo Pascal
+({\f1 -Mtp}). Elle reconnait les formats PDB, MOL/SDF et XYZ, et offre
+plusieurs modes de rendu (lignes, batonnets, spheres, ruban) ainsi qu'un
+interpreteur de commandes integre et un mini-interpreteur Python.\par
+\par
+\b Rubriques principales :\b0\par
+\par
+- {\uldb Syntaxe de la ligne de commande}{\v IDH_SYNTAXE} \par
+- {\uldb Interface utilisateur}{\v IDH_INTERFACE} \par
+- {\uldb Barre de menus}{\v IDH_MENUS} \par
+- {\uldb Console et commandes PyMOL}{\v IDH_CONSOLE} \par
+- {\uldb Modes de rendu}{\v IDH_RENDER} \par
+- {\uldb Parametres set / get}{\v IDH_PARAMS} \par
+- {\uldb Structures secondaires (HELIX/SHEET)}{\v IDH_SSE} \par
+- {\uldb Formats de fichiers supportes}{\v IDH_FORMATS} \par
+- {\uldb Langage de selection}{\v IDH_SELECT_LANG} \par
+- {\uldb Couleurs}{\v IDH_COULEURS} \par
+- {\uldb Interpreteur Python embarque}{\v IDH_PYTHON} \par
+- {\uldb Raccourcis clavier}{\v IDH_RACCOURCIS} \par
+- {\uldb A propos de PYMOL}{\v IDH_APROPOS} \par
+\par
+Version : 1.00.\par
+\page
+
+{\footnote # IDH_SYNTAXE}
+{\footnote $ Syntaxe de la ligne de commande}
+{\footnote K syntaxe;ligne de commande;invocation;arguments}
+{\footnote + main:002}
+\b\fs24 Syntaxe \b0\fs20\par
+\par
+{\f1 PYMOL [fichier]}\par
+\par
+\b Exemples :\b0\par
+\par
+{\f1 PYMOL}\par
+   Lance le visualiseur sans molecule chargee.\par
+\par
+{\f1 PYMOL 1CRN.PDB}\par
+   Ouvre le fichier PDB indique au demarrage.\par
+\par
+{\f1 PYMOL benzene.mol}\par
+   Charge un fichier MOL V2000.\par
+\par
+{\f1 PYMOL eau.xyz}\par
+   Charge un fichier XYZ.\par
+\par
+Le format du fichier est detecte d'apres son extension. Voir
+{\uldb Formats de fichiers}{\v IDH_FORMATS}.\par
+\par
+Voir aussi : {\uldb Interface}{\v IDH_INTERFACE},
+{\uldb Console}{\v IDH_CONSOLE}.\par
+\page
+
+{\footnote # IDH_OPTIONS}
+{\footnote $ Options de la ligne de commande}
+{\footnote K options;parametres;flags}
+\b\fs24 Options de la ligne de commande \b0\fs20\par
+\par
+PYMOL.PAS n'utilise actuellement aucun commutateur de ligne de
+commande. Le seul argument facultatif est un nom de fichier
+moleculaire a charger au demarrage (PDB, MOL, SDF, XYZ ou PML).\par
+\par
+Toutes les options de configuration sont reglables apres demarrage
+par la commande {\f1 set} de la console ou par les menus. Voir
+{\uldb Parametres set / get}{\v IDH_PARAMS}.\par
+\page
+
+{\footnote # IDH_OPTION_HELP}
+{\footnote $ Aide en ligne}
+{\footnote K aide;help;-h;--help;-?}
+\b\fs24 Aide en ligne \b0\fs20\par
+\par
+A l'interieur de l'application, la commande {\f1 help} affiche dans
+la console la liste resumee des commandes PyMOL disponibles :\par
+\par
+{\f1 PYMOL> help}\par
+\par
+Pour la documentation detaillee, ouvrir le fichier PYMOL.HLP genere
+a partir de ce projet d'aide.\par
+\par
+Voir : {\uldb Commande help}{\v IDH_CMD_HELP}.\par
+\page
+
+{\footnote # IDH_OPTION_FICHIER}
+{\footnote $ Argument fichier au demarrage}
+{\footnote K fichier;argument;demarrage;chargement}
+\b\fs24 Argument fichier au demarrage \b0\fs20\par
+\par
+Si un nom de fichier est passe en parametre, PYMOL.PAS le charge
+au demarrage en detectant le format par l'extension :\par
+\par
+\b .PDB / .ENT\b0  - Protein Data Bank ASCII\par
+\b .MOL\b0         - MDL Molfile V2000\par
+\b .SDF\b0         - MDL Structure-Data File (V2000 multi-entree)\par
+\b .XYZ\b0         - Format XYZ simple (cartesien)\par
+\b .PML\b0         - Script PyMOL (suite de commandes a executer)\par
+\par
+Voir : {\uldb Formats de fichiers}{\v IDH_FORMATS}.\par
+\page
+
+{\footnote # IDH_INTERFACE}
+{\footnote $ Interface utilisateur}
+{\footnote K interface;ecran;disposition;layout}
+{\footnote + main:003}
+\b\fs24 Interface utilisateur \b0\fs20\par
+\par
+L'ecran de PYMOL.PAS se decompose en quatre zones :\par
+\par
+\b 1. Barre de menus (en haut) \b0\par
+Affichage sur une ou deux lignes selon la largeur de la fenetre.
+Activable par la touche {\f1 Echap} ou en cliquant.\par
+\par
+\b 2. Canevas 3D (au centre) \b0\par
+Zone principale de rendu de la molecule. La souris permet de
+faire tourner (bouton gauche), zoomer (molette) et translater
+(bouton droit) la scene.\par
+\par
+\b 3. Console (en bas) \b0\par
+Zone texte pour entrer des commandes PyMOL ou Python. Bascule
+on/off par la touche {\f1 Tab}.\par
+\par
+\b 4. Barre d'etat (tout en bas) \b0\par
+Affiche le nom du fichier charge, le mode de rendu courant et
+quelques metriques (nombre d'atomes, residus, etc.).\par
+\par
+Voir : {\uldb Barre de menus}{\v IDH_MENUS},
+{\uldb Console}{\v IDH_CONSOLE},
+{\uldb Raccourcis clavier}{\v IDH_RACCOURCIS}.\par
+\page
+
+{\footnote # IDH_MENUS}
+{\footnote $ Barre de menus}
+{\footnote K menus;barre;menu bar}
+{\footnote + main:004}
+\b\fs24 Barre de menus \b0\fs20\par
+\par
+La barre de menus regroupe les commandes les plus frequentes :\par
+\par
+- {\uldb Fichier}{\v IDH_MENU_FICHIER}     Chargement, sauvegarde, scripts \par
+- {\uldb Edition}{\v IDH_MENU_EDITION}     Annuler / refaire, presse-papier, suppressions \par
+- {\uldb Construction}{\v IDH_MENU_CONSTRUCTION}  Fragments, residus, detection de liaisons \par
+- {\uldb Selection}{\v IDH_MENU_SELECTION} Selections rapides \par
+- {\uldb Affichage}{\v IDH_MENU_AFFICHAGE} Modes de rendu et options visuelles \par
+- {\uldb Parametres}{\v IDH_MENU_PARAMETRES} Coloration et fond \par
+- {\uldb Scene}{\v IDH_MENU_SCENE}         Memoriser / rappeler des vues \par
+- {\uldb Aide}{\v IDH_MENU_AIDE}           Aide en ligne, A propos \par
+\par
+Naviguer avec {\f1 Echap}, fleches, {\f1 Entree} ou la souris.\par
+\page
+
+{\footnote # IDH_MENU_FICHIER}
+{\footnote $ Menu Fichier}
+{\footnote K menu fichier;file menu;ouvrir;enregistrer}
+\b\fs24 Menu Fichier \b0\fs20\par
+\par
+\b Ouvrir... \b0 {\f1 Ctrl+O} \par
+\tab Charge un fichier moleculaire (PDB/MOL/SDF/XYZ).\par
+\par
+\b Recharger \b0 {\f1 F3} \par
+\tab Recharge le fichier courant depuis le disque.\par
+\par
+\b Executer script (.PML)... \b0\par
+\tab Execute un script PML contenant une suite de commandes PyMOL.\par
+\par
+\b Enregistrer .PDB... \b0 {\f1 Ctrl+S} \par
+\tab Sauvegarde la molecule au format PDB.\par
+\par
+\b Enregistrer .MOL... \b0\par
+\tab Sauvegarde au format MDL Molfile V2000.\par
+\par
+\b Enregistrer session \b0\par
+\tab Enregistre une session (vue, parametres, selection).\par
+\par
+\b Enregistrer image \b0\par
+\tab Enregistre une capture du canevas au format BMP.\par
+\par
+\b Importer fragment... \b0\par
+\tab Ajoute un fragment moleculaire a la scene courante.\par
+\par
+\b Exporter image PPM... \b0\par
+\tab Exporte le canevas au format Portable Pixmap (PPM).\par
+\par
+\b Reinitialiser \b0 {\f1 Ctrl+R} \par
+\tab Vide la molecule et remet les vues / parametres par defaut.\par
+\par
+\b Quitter \b0 {\f1 Alt+F4} \par
+\tab Termine l'application.\par
+\page
+
+{\footnote # IDH_MENU_EDITION}
+{\footnote $ Menu Edition}
+{\footnote K menu edition;edit menu;annuler;refaire}
+\b\fs24 Menu Edition \b0\fs20\par
+\par
+\b Annuler \b0 {\f1 Ctrl+Z} \par
+\b Refaire \b0 {\f1 Ctrl+Y} \par
+\b Copier  \b0 {\f1 Ctrl+C} \par
+\b Coller  \b0 {\f1 Ctrl+V} \par
+\par
+\b Effacer molecule \b0\par
+\tab Vide la scene de tous les atomes.\par
+\par
+\b Effacer selection \b0 {\f1 Del} \par
+\tab Supprime les atomes selectionnes.\par
+\page
+
+{\footnote # IDH_MENU_CONSTRUCTION}
+{\footnote $ Menu Construction}
+{\footnote K menu construction;build;fragment;residu;liaison}
+\b\fs24 Menu Construction \b0\fs20\par
+\par
+Ajout rapide de fragments moleculaires prebatis :\par
+\par
+\b Fragment H2O \b0     - Molecule d'eau \par
+\b Fragment CH4 \b0     - Methane \par
+\b Fragment NH3 \b0     - Ammoniac \par
+\b Fragment Benzene \b0 - Cycle benzenique C6H6 \par
+\b Residu Glycine \b0   - Acide amine glycine \par
+\b Residu Alanine \b0   - Acide amine alanine \par
+\par
+\b Detecter liaisons \b0\par
+\tab Detecte automatiquement les liaisons d'apres les distances
+inter-atomiques et les rayons covalents.\par
+\par
+\b Effacer hydrogenes \b0\par
+\tab Supprime tous les atomes d'hydrogene de la molecule.\par
+\page
+
+{\footnote # IDH_MENU_SELECTION}
+{\footnote $ Menu Selection}
+{\footnote K menu selection;select menu}
+\b\fs24 Menu Selection \b0\fs20\par
+\par
+\b Tous \b0           {\f1 Ctrl+A} - Selectionner tous les atomes \par
+\b Aucun \b0                  - Vider la selection \par
+\b Inverser \b0               - Inverser la selection \par
+\b Hetero atomes \b0          - Selection des HETATM (eau, ligands...) \par
+\b Eau \b0                    - Toutes les molecules d'eau (HOH, WAT) \par
+\b Proteine \b0               - Tous les acides amines \par
+\b Acides nucleiques \b0      - Nucleotides A, C, G, T, U \par
+\b Squelette (backbone) \b0   - Atomes N, CA, C, O du squelette \par
+\b Chaine laterale \b0        - Tous les atomes hors squelette \par
+\b Hydrogenes \b0             - Tous les atomes H \par
+\par
+Pour des selections plus complexes, utiliser la commande
+{\uldb select}{\v IDH_CMD_SELECT} de la console avec le
+{\uldb langage de selection}{\v IDH_SELECT_LANG}.\par
+\page
+
+{\footnote # IDH_MENU_AFFICHAGE}
+{\footnote $ Menu Affichage}
+{\footnote K menu affichage;display menu;rendu}
+\b\fs24 Menu Affichage \b0\fs20\par
+\par
+\b Lignes \b0            {\f1 L} - Mode {\uldb lignes}{\v IDH_RENDER_LINES} \par
+\b Batonnets \b0         {\f1 S} - Mode {\uldb sticks}{\v IDH_RENDER_STICKS} \par
+\b Spheres (CPK) \b0     {\f1 C} - Mode {\uldb spheres CPK}{\v IDH_RENDER_SPHERES} \par
+\b Boules + batonnets \b0 {\f1 B} - Mode {\uldb ball-and-stick}{\v IDH_RENDER_BALLSTICK} \par
+\b Ruban (cartoon) \b0   {\f1 R} - Mode {\uldb ruban}{\v IDH_RENDER_RIBBON} \par
+\b Points \b0                  - Mode {\uldb dots}{\v IDH_RENDER_DOTS} \par
+\par
+\b Axes \b0              {\f1 A} - Afficher / masquer les axes XYZ \par
+\b Grille \b0            {\f1 G} - Afficher / masquer la grille de fond \par
+\b Boite englobante \b0        - Afficher / masquer la bounding-box \par
+\b Etiquettes selection \b0    - Afficher les labels des atomes selectionnes \par
+\b Hydrogenes \b0        {\f1 H} - Inclure / exclure les H du rendu \par
+\b Console \b0           {\f1 Tab} - Afficher / masquer la console \par
+\page
+
+{\footnote # IDH_MENU_PARAMETRES}
+{\footnote $ Menu Parametres}
+{\footnote K menu parametres;setting;coloration;fond}
+\b\fs24 Menu Parametres \b0\fs20\par
+\par
+\b Couleur CPK \b0           - Coloration standard CPK par element \par
+\b Coloration par chaine \b0 - Une couleur differente par chaine \par
+\b Coloration par residu \b0 - Une couleur differente par residu \par
+\b Coloration unique... \b0  - Couleur uniforme choisie \par
+\par
+\b Fond noir \b0   - Arriere-plan noir (defaut) \par
+\b Fond blanc \b0  - Arriere-plan blanc \par
+\b Fond bleu \b0   - Arriere-plan bleu \par
+\par
+\b Reinitialiser vue \b0 {\f1 Ctrl+Home} - Recentre et recadre. \par
+\par
+Pour les parametres avances (cartoon, transparence, ombre, etc.),
+voir {\uldb Parametres set / get}{\v IDH_PARAMS}.\par
+\page
+
+{\footnote # IDH_MENU_SCENE}
+{\footnote $ Menu Scene}
+{\footnote K menu scene;scene;memoriser;rappeler}
+\b\fs24 Menu Scene \b0\fs20\par
+\par
+PYMOL.PAS gere 4 emplacements de scene memorisant la rotation, le
+zoom et la translation du canevas :\par
+\par
+\b Memoriser scene 1..4 \b0 {\f1 F5 / F6 / F7 / F8} \par
+\b Rappeler scene 1..4 \b0  {\f1 Shift+F5 / F6 / F7 / F8} \par
+\par
+Une scene memorise uniquement la vue, pas les selections ni les
+parametres de rendu. Pour conserver l'integralite de l'etat,
+utiliser \b Enregistrer session \b0 dans le menu Fichier.\par
+\page
+
+{\footnote # IDH_MENU_AIDE}
+{\footnote $ Menu Aide}
+{\footnote K menu aide;help menu;a propos}
+\b\fs24 Menu Aide \b0\fs20\par
+\par
+\b Aide... \b0          {\f1 F1} - Ouvre le present fichier d'aide. \par
+\b Commandes... \b0           - Liste des commandes PyMOL. \par
+\b Raccourcis... \b0          - Liste des raccourcis clavier. \par
+\b A propos de PYMOL \b0      - Voir {\uldb A propos}{\v IDH_APROPOS}. \par
+\page
+
+{\footnote # IDH_CONSOLE}
+{\footnote $ Console PyMOL}
+{\footnote K console;invite;repl;commande}
+{\footnote + main:005}
+\b\fs24 Console PyMOL \b0\fs20\par
+\par
+La console s'affiche en bas de l'ecran et permet de saisir des
+commandes PyMOL. L'invite est {\f1 PYMOL>}.\par
+\par
+\b Touches :\b0\par
+\par
+{\f1 Tab} \tab Affiche / masque la console. \par
+{\f1 Entree} \tab Execute la ligne saisie. \par
+{\f1 Haut / Bas} \tab Parcourt l'historique. \par
+{\f1 Esc} \tab Bascule sur la barre de menus. \par
+{\f1 \\} en fin de ligne \tab Continue la commande sur la ligne suivante. \par
+\par
+\b Niveaux d'interpretation :\b0\par
+\par
+1. Commande PyMOL native (load, show, color, set, etc.). \par
+2. Si non reconnue : interpretee comme expression
+   {\uldb Python}{\v IDH_PYTHON}. \par
+\par
+\b Voir :\b0 {\uldb Liste des commandes}{\v IDH_COMMANDES},
+{\uldb Interpreteur Python embarque}{\v IDH_PYTHON}.\par
+\page
+
+{\footnote # IDH_COMMANDES}
+{\footnote $ Liste des commandes PyMOL}
+{\footnote K commandes;commands;liste}
+\b\fs24 Commandes PyMOL disponibles \b0\fs20\par
+\par
+\b Chargement et sauvegarde :\b0\par
+- {\uldb load}{\v IDH_CMD_LOAD}  - charge un fichier moleculaire \par
+- {\uldb save}{\v IDH_CMD_SAVE}  - sauvegarde la molecule courante \par
+- {\uldb run}{\v IDH_CMD_RUN}   - execute un script PML \par
+- {\uldb @ \b0fichier\b }{\v IDH_CMD_RUN} - idem ({\f1 @script.pml}) \par
+\par
+\b Rendu :\b0\par
+- {\uldb show}{\v IDH_CMD_SHOW}  - active un mode d'affichage \par
+- {\uldb hide}{\v IDH_CMD_HIDE}  - desactive un mode d'affichage \par
+- {\uldb color}{\v IDH_CMD_COLOR} - colore une selection \par
+- {\uldb bg_color}{\v IDH_CMD_BGCOLOR} - couleur d'arriere-plan \par
+- {\uldb ray}{\v IDH_CMD_RAY}   - rendu de qualite (rapide ici) \par
+\par
+\b Vue :\b0\par
+- {\uldb rotate}{\v IDH_CMD_ROTATE} - rotation autour d'un axe \par
+- {\uldb zoom}{\v IDH_CMD_ZOOM}   - recadre la vue \par
+- {\uldb spin}{\v IDH_CMD_SPIN}   - rotation automatique \par
+- {\uldb reset}{\v IDH_CMD_RESET}  - reinitialise la vue \par
+- {\uldb reinitialize}{\v IDH_CMD_REINIT} - reinitialise tout \par
+\par
+\b Selection et parametres :\b0\par
+- {\uldb select}{\v IDH_CMD_SELECT} - cree / met a jour une selection \par
+- {\uldb set}{\v IDH_CMD_SET}    - regle un parametre \par
+- {\uldb get}{\v IDH_CMD_GET}    - affiche un parametre \par
+\par
+\b Divers :\b0\par
+- {\uldb help}{\v IDH_CMD_HELP}  - aide en ligne \par
+- {\uldb echo}{\v IDH_CMD_ECHO}  - affiche un message \par
+- {\uldb cls}{\v IDH_CMD_CLS}    - efface la console \par
+- {\uldb quit}{\v IDH_CMD_QUIT}  - termine l'application \par
+\page
+
+{\footnote # IDH_CMD_LOAD}
+{\footnote $ Commande load}
+{\footnote K load;charger;ouvrir;pdb;mol;xyz}
+\b\fs24 Commande {\f1 load} \b0\fs20\par
+\par
+Charge un fichier moleculaire. Le format est determine d'apres
+l'extension : .PDB / .ENT, .MOL, .SDF, .XYZ.\par
+\par
+\b Syntaxe :\b0\par
+{\f1 load FICHIER}\par
+\par
+\b Exemples :\b0\par
+{\f1 load 1CRN.PDB}\par
+{\f1 load benzene.mol}\par
+{\f1 load eau.xyz}\par
+\par
+Apres chargement, l'application affiche dans la console le nombre
+d'atomes, residus et chaines lus ; pour un PDB protein avec des
+enregistrements HELIX / SHEET, le nombre de residus annotes en
+helice et brin est egalement reporte. Voir
+{\uldb Structures secondaires}{\v IDH_SSE}.\par
+\page
+
+{\footnote # IDH_CMD_SAVE}
+{\footnote $ Commande save}
+{\footnote K save;enregistrer;sauvegarder}
+\b\fs24 Commande {\f1 save} \b0\fs20\par
+\par
+Enregistre la molecule courante sur disque. Format determine par
+l'extension du fichier de sortie.\par
+\par
+\b Syntaxe :\b0\par
+{\f1 save FICHIER}\par
+\par
+\b Exemples :\b0\par
+{\f1 save sortie.pdb}\par
+{\f1 save sortie.mol}\par
+{\f1 save sortie.xyz}\par
+\par
+Voir : {\uldb Formats de fichiers}{\v IDH_FORMATS}.\par
+\page
+
+{\footnote # IDH_CMD_SHOW}
+{\footnote $ Commande show}
+{\footnote K show;afficher;representation;mode}
+\b\fs24 Commande {\f1 show} \b0\fs20\par
+\par
+Active un mode de representation pour la molecule.\par
+\par
+\b Syntaxe :\b0\par
+{\f1 show MODE [SELECTION]}\par
+\par
+\b Modes :\b0\par
+- {\f1 lines}      - {\uldb Lignes}{\v IDH_RENDER_LINES} \par
+- {\f1 sticks}     - {\uldb Batonnets}{\v IDH_RENDER_STICKS} \par
+- {\f1 spheres}    - {\uldb Spheres CPK}{\v IDH_RENDER_SPHERES} \par
+- {\f1 ball} / {\f1 ballstick} / {\f1 ball-and-stick}
+                - {\uldb Ball-and-stick}{\v IDH_RENDER_BALLSTICK} \par
+- {\f1 cartoon} / {\f1 ribbon} - {\uldb Ruban}{\v IDH_RENDER_RIBBON} \par
+- {\f1 dots}       - {\uldb Points}{\v IDH_RENDER_DOTS} \par
+- {\f1 hydrogens}  - active la visibilite des H \par
+- {\f1 labels}     - affiche les etiquettes d'atomes \par
+\par
+\b Exemples :\b0\par
+{\f1 show cartoon}\par
+{\f1 show sticks, resi 10-20}\par
+{\f1 show hydrogens}\par
+\page
+
+{\footnote # IDH_CMD_HIDE}
+{\footnote $ Commande hide}
+{\footnote K hide;cacher;masquer}
+\b\fs24 Commande {\f1 hide} \b0\fs20\par
+\par
+Reciproque de {\f1 show}. Desactive un mode d'affichage.\par
+\par
+\b Syntaxe :\b0\par
+{\f1 hide MODE [SELECTION]}\par
+\par
+\b Exemples :\b0\par
+{\f1 hide hydrogens}\par
+{\f1 hide labels}\par
+\par
+Voir : {\uldb show}{\v IDH_CMD_SHOW}.\par
+\page
+
+{\footnote # IDH_CMD_COLOR}
+{\footnote $ Commande color}
+{\footnote K color;couleur;coloration}
+\b\fs24 Commande {\f1 color} \b0\fs20\par
+\par
+Applique une couleur a une selection d'atomes.\par
+\par
+\b Syntaxe :\b0\par
+{\f1 color COULEUR [SELECTION]}\par
+\par
+Si {\f1 SELECTION} est omise, la coloration s'applique a tous les
+atomes ({\f1 all}).\par
+\par
+\b Exemples :\b0\par
+{\f1 color red}\par
+{\f1 color yellow, chain A}\par
+{\f1 color cyan, resi 10-20}\par
+\par
+Voir : {\uldb Couleurs}{\v IDH_COULEURS},
+{\uldb Langage de selection}{\v IDH_SELECT_LANG}.\par
+\page
+
+{\footnote # IDH_CMD_BGCOLOR}
+{\footnote $ Commande bg_color}
+{\footnote K bg_color;fond;arriere-plan;background}
+\b\fs24 Commande {\f1 bg_color} \b0\fs20\par
+\par
+Definit la couleur d'arriere-plan du canevas.\par
+\par
+\b Syntaxe :\b0\par
+{\f1 bg_color COULEUR}\par
+\par
+\b Exemples :\b0\par
+{\f1 bg_color black}\par
+{\f1 bg_color white}\par
+{\f1 bg_color blue}\par
+\par
+Voir : {\uldb Couleurs}{\v IDH_COULEURS}.\par
+\page
+
+{\footnote # IDH_CMD_ROTATE}
+{\footnote $ Commande rotate}
+{\footnote K rotate;tourner;rotation;axe}
+\b\fs24 Commande {\f1 rotate} \b0\fs20\par
+\par
+Fait tourner la scene autour d'un axe.\par
+\par
+\b Syntaxe :\b0\par
+{\f1 rotate AXE, DEG}\par
+\par
+{\f1 AXE} : {\f1 x}, {\f1 y} ou {\f1 z}. \par
+{\f1 DEG} : angle en degres (peut etre negatif).\par
+\par
+\b Exemples :\b0\par
+{\f1 rotate y, 30}\par
+{\f1 rotate x, -45}\par
+\page
+
+{\footnote # IDH_CMD_ZOOM}
+{\footnote $ Commande zoom}
+{\footnote K zoom;recadrer;cadrage}
+\b\fs24 Commande {\f1 zoom} \b0\fs20\par
+\par
+Recadre la vue sur la molecule entiere ({\i zoom to fit}).\par
+\par
+\b Syntaxe :\b0\par
+{\f1 zoom}\par
+\page
+
+{\footnote # IDH_CMD_SPIN}
+{\footnote $ Commande spin}
+{\footnote K spin;rotation auto;animation}
+\b\fs24 Commande {\f1 spin} \b0\fs20\par
+\par
+Active ou desactive la rotation automatique de la scene.\par
+\par
+\b Syntaxe :\b0\par
+{\f1 spin}              - bascule on/off \par
+{\f1 spin on}           - active \par
+{\f1 spin off}          - desactive \par
+\page
+
+{\footnote # IDH_CMD_RAY}
+{\footnote $ Commande ray}
+{\footnote K ray;raytracing;rendu;qualite}
+\b\fs24 Commande {\f1 ray} \b0\fs20\par
+\par
+Dans PyMOL d'origine, {\f1 ray} declenche un rendu raytrace haute
+qualite. Dans PYMOL.PAS, la commande effectue simplement un rendu
+rapide sans raytracing (l'execution se fait en VGA classique).\par
+\par
+\b Syntaxe :\b0\par
+{\f1 ray}\par
+\page
+
+{\footnote # IDH_CMD_SELECT}
+{\footnote $ Commande select}
+{\footnote K select;selection;atomes}
+\b\fs24 Commande {\f1 select} \b0\fs20\par
+\par
+Cree ou met a jour la selection nommee courante.\par
+\par
+\b Syntaxe :\b0\par
+{\f1 select NOM, EXPRESSION}\par
+{\f1 select EXPRESSION}\par
+\par
+\b Exemples :\b0\par
+{\f1 select sele, chain A}\par
+{\f1 select hetatm}\par
+{\f1 select resn ALA+GLY}\par
+{\f1 select resi 10-25}\par
+\par
+Voir : {\uldb Langage de selection}{\v IDH_SELECT_LANG}.\par
+\page
+
+{\footnote # IDH_CMD_RESET}
+{\footnote $ Commande reset}
+{\footnote K reset;reinitialiser;vue}
+\b\fs24 Commande {\f1 reset} \b0\fs20\par
+\par
+Recentre et recadre la vue. Equivaut a {\f1 zoom}.\par
+\par
+\b Syntaxe :\b0\par
+{\f1 reset}\par
+\par
+Pour reinitialiser aussi les parametres et la molecule, utiliser
+{\uldb reinitialize}{\v IDH_CMD_REINIT}.\par
+\page
+
+{\footnote # IDH_CMD_REINIT}
+{\footnote $ Commande reinitialize}
+{\footnote K reinitialize;reinit;reset complet}
+\b\fs24 Commande {\f1 reinitialize} \b0\fs20\par
+\par
+Reinitialise completement l'application : vide la molecule,
+remet les parametres a leurs valeurs par defaut et reinitialise
+la vue.\par
+\par
+\b Syntaxe :\b0\par
+{\f1 reinitialize}\par
+\page
+
+{\footnote # IDH_CMD_SET}
+{\footnote $ Commande set}
+{\footnote K set;parametre;reglage;configuration}
+\b\fs24 Commande {\f1 set} \b0\fs20\par
+\par
+Modifie la valeur d'un parametre global de PYMOL.PAS.\par
+\par
+\b Syntaxes acceptees :\b0\par
+{\f1 set NOM, VALEUR}\par
+{\f1 set NOM = VALEUR}\par
+{\f1 set NOM VALEUR}\par
+{\f1 unset NOM}       - met le parametre a 0/off \par
+\par
+\b Exemples :\b0\par
+{\f1 set cartoon_discrete_colors, on}\par
+{\f1 set cartoon_helix_color, red}\par
+{\f1 set sphere_scale, 1.5}\par
+{\f1 set transparency, 0.3}\par
+\par
+La liste exhaustive des parametres est dans
+{\uldb Parametres set / get}{\v IDH_PARAMS}.\par
+\par
+Voir : {\uldb get}{\v IDH_CMD_GET}.\par
+\page
+
+{\footnote # IDH_CMD_GET}
+{\footnote $ Commande get}
+{\footnote K get;parametre;afficher;valeur}
+\b\fs24 Commande {\f1 get} \b0\fs20\par
+\par
+Affiche dans la console la valeur courante d'un parametre.\par
+\par
+\b Syntaxe :\b0\par
+{\f1 get NOM}\par
+\par
+\b Exemples :\b0\par
+{\f1 get cartoon_discrete_colors}\par
+{\f1 get sphere_scale}\par
+\par
+Voir : {\uldb set}{\v IDH_CMD_SET},
+{\uldb Liste des parametres}{\v IDH_PARAMS}.\par
+\page
+
+{\footnote # IDH_CMD_RUN}
+{\footnote $ Commandes run et @}
+{\footnote K run;script;pml;@}
+\b\fs24 Commandes {\f1 run} et {\f1 @} \b0\fs20\par
+\par
+Executent un fichier script PML (suite de commandes PyMOL, une
+par ligne, lignes commencant par {\f1 #} ignorees comme commentaire).\par
+\par
+\b Syntaxe :\b0\par
+{\f1 run FICHIER.PML}\par
+{\f1 @FICHIER.PML}\par
+\par
+Les deux formes sont equivalentes. La forme {\f1 @} est une
+abreviation compatible avec PyMOL.\par
+\par
+\b Exemple de fichier {\f1 demo.pml} :\b0\par
+\par
+{\f1 # Charge la crambine}\par
+{\f1 load 1CRN.PDB}\par
+{\f1 show cartoon}\par
+{\f1 set cartoon_discrete_colors, on}\par
+{\f1 bg_color white}\par
+{\f1 zoom}\par
+\page
+
+{\footnote # IDH_CMD_QUIT}
+{\footnote $ Commande quit}
+{\footnote K quit;exit;quitter;sortie}
+\b\fs24 Commande {\f1 quit} \b0\fs20\par
+\par
+Termine l'application. Les formes equivalentes sont {\f1 quit},
+{\f1 exit} et {\f1 q}.\par
+\page
+
+{\footnote # IDH_CMD_HELP}
+{\footnote $ Commande help}
+{\footnote K help;aide;commande}
+\b\fs24 Commande {\f1 help} \b0\fs20\par
+\par
+Affiche dans la console la liste resumee des commandes PyMOL
+disponibles.\par
+\par
+\b Syntaxe :\b0\par
+{\f1 help}\par
+\par
+Pour l'aide detaillee, voir le present fichier PYMOL.HLP.\par
+\page
+
+{\footnote # IDH_CMD_CLS}
+{\footnote $ Commande cls}
+{\footnote K cls;clear;effacer console}
+\b\fs24 Commande {\f1 cls} \b0\fs20\par
+\par
+Efface tout le contenu de la console.\par
+\par
+\b Syntaxe :\b0\par
+{\f1 cls}\par
+\page
+
+{\footnote # IDH_CMD_ECHO}
+{\footnote $ Commande echo}
+{\footnote K echo;afficher;message}
+\b\fs24 Commande {\f1 echo} \b0\fs20\par
+\par
+Affiche un message texte dans la console. Utile dans les scripts
+PML pour tracer la progression.\par
+\par
+\b Syntaxe :\b0\par
+{\f1 echo TEXTE}\par
+\par
+\b Exemple :\b0\par
+{\f1 echo Chargement de la crambine...}\par
+\page
+
+{\footnote # IDH_RENDER}
+{\footnote $ Modes de rendu}
+{\footnote K rendu;render;representation}
+{\footnote + main:006}
+\b\fs24 Modes de rendu \b0\fs20\par
+\par
+PYMOL.PAS propose six representations principales :\par
+\par
+- {\uldb Lignes}{\v IDH_RENDER_LINES}        ({\f1 show lines}) \par
+- {\uldb Batonnets}{\v IDH_RENDER_STICKS}     ({\f1 show sticks}) \par
+- {\uldb Spheres CPK}{\v IDH_RENDER_SPHERES}   ({\f1 show spheres}) \par
+- {\uldb Ball-and-stick}{\v IDH_RENDER_BALLSTICK} ({\f1 show ballstick}) \par
+- {\uldb Ruban (cartoon)}{\v IDH_RENDER_RIBBON} ({\f1 show cartoon}) \par
+- {\uldb Points (dots)}{\v IDH_RENDER_DOTS}    ({\f1 show dots}) \par
+\par
+Les raccourcis clavier {\f1 L S C B R} basculent rapidement entre
+ces modes (voir {\uldb Raccourcis}{\v IDH_RACCOURCIS}).\par
+\page
+
+{\footnote # IDH_RENDER_LINES}
+{\footnote $ Mode Lignes}
+{\footnote K lignes;lines;wireframe}
+\b\fs24 Mode Lignes ({\f1 lines}) \b0\fs20\par
+\par
+Affichage filaire : chaque liaison est tracee par un simple trait
+1 pixel reliant les deux atomes. Tres rapide, ideal pour des
+molecules de plus de 10 000 atomes.\par
+\par
+La couleur du trait est decoupee en deux moities selon les couleurs
+respectives des deux atomes.\par
+\par
+Activation : {\f1 show lines} ou touche {\f1 L}.\par
+\page
+
+{\footnote # IDH_RENDER_STICKS}
+{\footnote $ Mode Batonnets}
+{\footnote K sticks;batonnets;baton}
+\b\fs24 Mode Batonnets ({\f1 sticks}) \b0\fs20\par
+\par
+Variante epaisse du mode {\uldb lignes}{\v IDH_RENDER_LINES} :
+les liaisons sont tracees comme des cylindres aplatis dont la
+demi-epaisseur est controlee par {\f1 stick_radius}.\par
+\par
+Activation : {\f1 show sticks} ou touche {\f1 S}.\par
+\par
+Voir : {\uldb set stick_radius}{\v IDH_PARAM_SIZES}.\par
+\page
+
+{\footnote # IDH_RENDER_SPHERES}
+{\footnote $ Mode Spheres CPK}
+{\footnote K spheres;cpk;van der waals;vdw}
+\b\fs24 Mode Spheres CPK ({\f1 spheres}) \b0\fs20\par
+\par
+Chaque atome est dessine comme une sphere remplie au rayon de Van
+der Waals (VdW). Le rayon affiche est multiplie par {\f1 sphere_scale}.\par
+\par
+Activation : {\f1 show spheres} ou touche {\f1 C}.\par
+\par
+Voir : {\uldb set sphere_scale}{\v IDH_PARAM_SIZES},
+{\uldb Couleurs CPK}{\v IDH_COULEURS_CPK}.\par
+\page
+
+{\footnote # IDH_RENDER_BALLSTICK}
+{\footnote $ Mode Ball-and-Stick}
+{\footnote K ball-and-stick;boules;batonnets}
+\b\fs24 Mode Ball-and-Stick ({\f1 ballstick}) \b0\fs20\par
+\par
+Combine batonnets et petites spheres aux positions d'atomes. C'est
+le mode par defaut au demarrage.\par
+\par
+Activation : {\f1 show ballstick} (ou {\f1 ball}, {\f1 ball-and-stick})
+ou touche {\f1 B}.\par
+\page
+
+{\footnote # IDH_RENDER_RIBBON}
+{\footnote $ Mode Ruban (cartoon)}
+{\footnote K ruban;ribbon;cartoon;dessin anime}
+\b\fs24 Mode Ruban / Cartoon ({\f1 ribbon}, {\f1 cartoon}) \b0\fs20\par
+\par
+Pour les molecules proteiques : trace un ruban epais (4 lignes
+paralleles) entre les atomes Calpha successifs des residus
+d'acides amines.\par
+\par
+Si le parametre {\f1 cartoon_discrete_colors} est sur {\f1 on}, la
+couleur du ruban varie selon la structure secondaire de chaque
+residu :\par
+\par
+- {\uldb Helices}{\v IDH_SSE_HELIX} -> {\f1 cartoon_helix_color}
+  (rouge par defaut). \par
+- {\uldb Brins}{\v IDH_SSE_SHEET}    -> {\f1 cartoon_sheet_color}
+  (jaune par defaut). \par
+- Boucles                   -> {\f1 cartoon_loop_color}
+  (cyan clair par defaut). \par
+\par
+Les structures secondaires sont lues depuis les enregistrements
+{\f1 HELIX} et {\f1 SHEET} du fichier PDB.\par
+\par
+Activation : {\f1 show cartoon} ou {\f1 show ribbon} ou touche {\f1 R}.\par
+\par
+Voir : {\uldb Structures secondaires}{\v IDH_SSE},
+{\uldb Parametres cartoon}{\v IDH_PARAM_CARTOON}.\par
+\page
+
+{\footnote # IDH_RENDER_DOTS}
+{\footnote $ Mode Points}
+{\footnote K dots;points;surface}
+\b\fs24 Mode Points ({\f1 dots}) \b0\fs20\par
+\par
+Chaque atome est represente par un nuage de points constituant
+une surface approchee.\par
+\par
+Activation : {\f1 show dots}.\par
+\page
+
+{\footnote # IDH_PARAMS}
+{\footnote $ Liste des parametres (set / get)}
+{\footnote K parametres;set;get;liste;options}
+{\footnote + main:007}
+\b\fs24 Parametres reglables par {\f1 set} / {\f1 get} \b0\fs20\par
+\par
+Les valeurs sont initialisees au demarrage. Toutes peuvent etre
+modifiees dynamiquement par {\f1 set} et inspectees par {\f1 get}.\par
+\par
+\b Categories :\b0\par
+\par
+- {\uldb Cartoon et coloration discrete}{\v IDH_PARAM_CARTOON} \par
+- {\uldb Rendu (ombres, orthoscopie, antialias)}{\v IDH_PARAM_RAY} \par
+- {\uldb Tailles (spheres, batonnets, transparence)}{\v IDH_PARAM_SIZES} \par
+- {\uldb Eclairage (ambient, specular)}{\v IDH_PARAM_LIGHT} \par
+- {\uldb Divers (dash_width, label_size, hash_max)}{\v IDH_PARAM_MISC} \par
+\par
+\b Tous les noms supportes :\b0\par
+{\f1 cartoon_discrete_colors}, {\f1 cartoon_helix_color},
+{\f1 cartoon_sheet_color} ({\f1 cartoon_strand_color}),
+{\f1 cartoon_loop_color} ({\f1 cartoon_coil_color}),
+{\f1 cartoon_transparency}, {\f1 ray_shadows}, {\f1 orthoscopic},
+{\f1 sphere_scale}, {\f1 stick_radius}, {\f1 transparency},
+{\f1 ambient}, {\f1 specular}, {\f1 antialias},
+{\f1 ray_trace_mode}, {\f1 dash_width}, {\f1 label_size},
+{\f1 hash_max}.\par
+\par
+Voir : {\uldb set}{\v IDH_CMD_SET}, {\uldb get}{\v IDH_CMD_GET}.\par
+\page
+
+{\footnote # IDH_PARAM_CARTOON}
+{\footnote $ Parametres cartoon}
+{\footnote K cartoon_discrete_colors;cartoon_helix_color;cartoon_sheet_color;cartoon_loop_color}
+\b\fs24 Parametres cartoon \b0\fs20\par
+\par
+\b {\f1 cartoon_discrete_colors} \b0 (booleen, defaut {\f1 off}) \par
+\tab Active la coloration discrete par structure secondaire dans
+le rendu {\uldb ruban}{\v IDH_RENDER_RIBBON}.\par
+\par
+\b {\f1 cartoon_helix_color} \b0 (couleur, defaut {\f1 LightRed = 12}) \par
+\tab Couleur appliquee aux residus en helice ({\f1 SSType = H}).\par
+\par
+\b {\f1 cartoon_sheet_color} \b0 (couleur, defaut {\f1 Yellow = 14}) \par
+\tab Couleur appliquee aux residus en brin ({\f1 SSType = E}). \par
+\tab Synonyme : {\f1 cartoon_strand_color}.\par
+\par
+\b {\f1 cartoon_loop_color} \b0 (couleur, defaut {\f1 LightCyan = 11}) \par
+\tab Couleur des residus en boucle / coil. \par
+\tab Synonyme : {\f1 cartoon_coil_color}.\par
+\par
+\b {\f1 cartoon_transparency} \b0 (reel 0.0..1.0, defaut 0.0) \par
+\tab Niveau de transparence du ruban.\par
+\par
+\b Exemple :\b0\par
+{\f1 set cartoon_discrete_colors, on}\par
+{\f1 set cartoon_helix_color, magenta}\par
+{\f1 set cartoon_sheet_color, lightgreen}\par
+{\f1 show cartoon}\par
+\page
+
+{\footnote # IDH_PARAM_RAY}
+{\footnote $ Parametres de rendu}
+{\footnote K ray_shadows;orthoscopic;antialias;ray_trace_mode}
+\b\fs24 Parametres de rendu \b0\fs20\par
+\par
+\b {\f1 ray_shadows} \b0 (booleen, defaut {\f1 on}) \par
+\tab Active le calcul d'ombres lors du rendu ray.\par
+\par
+\b {\f1 orthoscopic} \b0 (booleen, defaut {\f1 off}) \par
+\tab Active la projection orthogonale (sinon : perspective).\par
+\par
+\b {\f1 antialias} \b0 (entier, defaut 1) \par
+\tab Niveau d'anti-crenelage (0 = off, 1 = leger, >=2 = haute).\par
+\par
+\b {\f1 ray_trace_mode} \b0 (entier, defaut 0) \par
+\tab Mode de raytracing : 0 = ombrage classique, autres reserves
+pour compatibilite.\par
+\page
+
+{\footnote # IDH_PARAM_SIZES}
+{\footnote $ Parametres de tailles}
+{\footnote K sphere_scale;stick_radius;transparency;taille}
+\b\fs24 Parametres de tailles \b0\fs20\par
+\par
+\b {\f1 sphere_scale} \b0 (reel, defaut 1.0) \par
+\tab Facteur multiplicatif des rayons VdW dans le mode
+{\uldb spheres}{\v IDH_RENDER_SPHERES}.\par
+\par
+\b {\f1 stick_radius} \b0 (reel, defaut 0.25) \par
+\tab Demi-epaisseur des cylindres dans le mode
+{\uldb sticks}{\v IDH_RENDER_STICKS}.\par
+\par
+\b {\f1 transparency} \b0 (reel 0.0..1.0, defaut 0.0) \par
+\tab Transparence globale des spheres et surfaces.\par
+\page
+
+{\footnote # IDH_PARAM_LIGHT}
+{\footnote $ Parametres d'eclairage}
+{\footnote K ambient;specular;eclairage;light}
+\b\fs24 Parametres d'eclairage \b0\fs20\par
+\par
+\b {\f1 ambient} \b0 (reel 0.0..1.0, defaut 0.10) \par
+\tab Intensite de la lumiere ambiante.\par
+\par
+\b {\f1 specular} \b0 (reel 0.0..1.0, defaut 1.0) \par
+\tab Intensite de la composante speculaire.\par
+\page
+
+{\footnote # IDH_PARAM_MISC}
+{\footnote $ Parametres divers}
+{\footnote K dash_width;label_size;hash_max}
+\b\fs24 Parametres divers \b0\fs20\par
+\par
+\b {\f1 dash_width} \b0 (entier, defaut 2) \par
+\tab Epaisseur en pixels des lignes pointillees (distances,
+contacts H-bond, etc.).\par
+\par
+\b {\f1 label_size} \b0 (entier, defaut 14) \par
+\tab Taille des etiquettes d'atomes / residus.\par
+\par
+\b {\f1 hash_max} \b0 (entier, defaut 100000) \par
+\tab Taille maximale de la table de hachage utilisee par la
+detection de liaisons. Ajuster pour les molecules tres grandes.\par
+\page
+
+{\footnote # IDH_SSE}
+{\footnote $ Structures secondaires (HELIX / SHEET)}
+{\footnote K structures secondaires;helix;sheet;sse;cartoon}
+{\footnote + main:008}
+\b\fs24 Structures secondaires des proteines \b0\fs20\par
+\par
+PYMOL.PAS lit les enregistrements {\f1 HELIX} et {\f1 SHEET} d'un
+fichier PDB et annote chaque residu avec son type de structure
+secondaire :\par
+\par
+- {\f1 H} : {\uldb helice}{\v IDH_SSE_HELIX} \par
+- {\f1 E} : {\uldb brin}{\v IDH_SSE_SHEET} \par
+- {\f1 L} : boucle / coil (defaut) \par
+\par
+Pour visualiser ces annotations en couleur :\par
+\par
+{\f1 load 1CRN.PDB}\par
+{\f1 show cartoon}\par
+{\f1 set cartoon_discrete_colors, on}\par
+\par
+Apres chaque chargement, la console reporte le nombre de residus
+helice / brin detectes. Si un fichier PDB ne contient pas ces
+enregistrements, tous les residus restent en boucle (un calcul
+DSSP n'est pas encore implemente).\par
+\par
+Voir : {\uldb Mode ruban}{\v IDH_RENDER_RIBBON},
+{\uldb Parametres cartoon}{\v IDH_PARAM_CARTOON}.\par
+\page
+
+{\footnote # IDH_SSE_HELIX}
+{\footnote $ Enregistrement HELIX}
+{\footnote K helix;helice;pdb}
+\b\fs24 Enregistrement {\f1 HELIX} \b0\fs20\par
+\par
+Format PDB standard. Colonnes utilisees par PYMOL.PAS :\par
+\par
+- col 1-6 : {\f1 "HELIX "} \par
+- col 20  : identifiant de chaine initiale \par
+- col 22-25 : numero de residu initial \par
+- col 32  : identifiant de chaine finale \par
+- col 34-37 : numero de residu final \par
+\par
+\b Exemple :\b0\par
+{\f1 HELIX    1   1 ALA A   10  GLY A   22  1}\par
+\par
+Apres lecture, les residus 10 a 22 de la chaine A recevront
+{\f1 SSType := 'H'}.\par
+\page
+
+{\footnote # IDH_SSE_SHEET}
+{\footnote $ Enregistrement SHEET}
+{\footnote K sheet;brin;strand;pdb}
+\b\fs24 Enregistrement {\f1 SHEET} \b0\fs20\par
+\par
+Format PDB standard. Colonnes utilisees par PYMOL.PAS :\par
+\par
+- col 1-6 : {\f1 "SHEET "} \par
+- col 22  : identifiant de chaine initiale \par
+- col 23-26 : numero de residu initial \par
+- col 33  : identifiant de chaine finale \par
+- col 34-37 : numero de residu final \par
+\par
+\b Exemple :\b0\par
+{\f1 SHEET    1   A 5 THR A  30  TYR A  35  0}\par
+\par
+Apres lecture, les residus 30 a 35 de la chaine A recevront
+{\f1 SSType := 'E'}.\par
+\page
+
+{\footnote # IDH_FORMATS}
+{\footnote $ Formats de fichiers supportes}
+{\footnote K formats;fichiers;pdb;mol;sdf;xyz;pml}
+{\footnote + main:009}
+\b\fs24 Formats de fichiers supportes \b0\fs20\par
+\par
+\b Lecture :\b0\par
+\par
+- {\uldb PDB}{\v IDH_FORMAT_PDB}  (.PDB, .ENT) - Protein Data Bank \par
+- {\uldb MOL}{\v IDH_FORMAT_MOL}  (.MOL)       - MDL Molfile V2000 \par
+- {\uldb SDF}{\v IDH_FORMAT_SDF}  (.SDF)       - MDL Structure-Data multi-entree \par
+- {\uldb XYZ}{\v IDH_FORMAT_XYZ}  (.XYZ)       - Cartesien simple \par
+- {\uldb PML}{\v IDH_FORMAT_PML}  (.PML)       - Script PyMOL \par
+\par
+\b Ecriture :\b0\par
+\par
+- PDB, MOL, XYZ par la commande {\uldb save}{\v IDH_CMD_SAVE}. \par
+- {\uldb PPM}{\v IDH_FORMAT_PPM}  (.PPM) - capture d'ecran (export image). \par
+- BMP (capture d'ecran via menu Fichier). \par
+\page
+
+{\footnote # IDH_FORMAT_PDB}
+{\footnote $ Format PDB}
+{\footnote K pdb;protein data bank;ent}
+\b\fs24 Format PDB \b0\fs20\par
+\par
+Enregistrements ASCII reconnus :\par
+\par
+{\f1 HEADER} \tab Titre et metadonnees \par
+{\f1 TITLE}  \tab Titre prolonge sur plusieurs lignes \par
+{\f1 HELIX}  \tab {\uldb Helice}{\v IDH_SSE_HELIX} \par
+{\f1 SHEET}  \tab {\uldb Brin beta}{\v IDH_SSE_SHEET} \par
+{\f1 ATOM}   \tab Atome standard d'une proteine ou acide nucleique \par
+{\f1 HETATM} \tab Heteroatome (eau, ligand, ion...) \par
+{\f1 CONECT} \tab Liaisons explicites \par
+{\f1 ENDMDL} \tab Fin du premier modele (les suivants sont ignores) \par
+{\f1 END}    \tab Fin du fichier \par
+\par
+Les altlocs autres que {\f1 ' '} et {\f1 'A'} sont filtres pour
+eviter les doublons.\par
+\par
+Si le fichier ne contient pas d'enregistrement {\f1 CONECT}, les
+liaisons sont detectees automatiquement par distance et rayons
+covalents.\par
+\page
+
+{\footnote # IDH_FORMAT_MOL}
+{\footnote $ Format MOL (V2000)}
+{\footnote K mol;mdl;molfile;v2000}
+\b\fs24 Format MOL (MDL V2000) \b0\fs20\par
+\par
+Structure type :\par
+\par
+- Ligne 1 : nom \par
+- Ligne 2 : ligne d'en-tete \par
+- Ligne 3 : commentaire \par
+- Ligne 4 : ligne {\f1 counts} ({\i nbAtomes nbLiaisons ... V2000}) \par
+- N lignes d'atomes ({\f1 X Y Z Sym}) \par
+- M lignes de liaisons ({\f1 a b type}) \par
+- Terminateur {\f1 M  END} \par
+\par
+Le format binaire V3000 et l'extension RXN ne sont pas supportes.\par
+\page
+
+{\footnote # IDH_FORMAT_SDF}
+{\footnote $ Format SDF}
+{\footnote K sdf;structure data file;mdl}
+\b\fs24 Format SDF \b0\fs20\par
+\par
+Le SDF est une concatenation d'enregistrements MOL V2000 separes
+par {\f1 $$$$}. PYMOL.PAS charge la \b premiere \b0 entree du
+fichier. Les blocs de proprietes ({\f1 > <prop>}) sont ignores.\par
+\page
+
+{\footnote # IDH_FORMAT_XYZ}
+{\footnote $ Format XYZ}
+{\footnote K xyz;coordonnees cartesiennes}
+\b\fs24 Format XYZ \b0\fs20\par
+\par
+Format texte minimal :\par
+\par
+- Ligne 1 : nombre d'atomes {\f1 N} \par
+- Ligne 2 : commentaire / titre \par
+- N lignes : {\f1 Symbole X Y Z} \par
+\par
+\b Exemple :\b0\par
+{\f1 3}\par
+{\f1 Eau}\par
+{\f1 O   0.000  0.000  0.000}\par
+{\f1 H   0.957  0.000  0.000}\par
+{\f1 H  -0.239  0.927  0.000}\par
+\par
+Aucune information de liaison ; les liaisons sont detectees
+automatiquement apres chargement.\par
+\page
+
+{\footnote # IDH_FORMAT_PML}
+{\footnote $ Format PML}
+{\footnote K pml;script;commandes}
+\b\fs24 Format PML (script PyMOL) \b0\fs20\par
+\par
+Fichier texte contenant une suite de commandes PyMOL, une par
+ligne. Les lignes vides et celles commencant par {\f1 #} sont
+ignorees.\par
+\par
+Le script peut etre execute via :\par
+\par
+- la commande {\uldb run}{\v IDH_CMD_RUN} ou {\f1 @} \par
+- le menu Fichier -> Executer script \par
+- l'argument de ligne de commande {\f1 PYMOL demo.pml} \par
+\page
+
+{\footnote # IDH_FORMAT_PPM}
+{\footnote $ Export PPM}
+{\footnote K ppm;portable pixmap;image}
+\b\fs24 Export PPM \b0\fs20\par
+\par
+Le menu Fichier -> Exporter image PPM cree un fichier
+Portable Pixmap P6 (binaire) reproduisant le canevas a sa taille
+courante. La palette d'origine VGA 16 couleurs est convertie en
+RGB 24 bits.\par
+\page
+
+{\footnote # IDH_SELECT_LANG}
+{\footnote $ Langage de selection}
+{\footnote K selection;langage;mots-cles;atom;resi}
+{\footnote + main:010}
+\b\fs24 Langage de selection \b0\fs20\par
+\par
+La commande {\uldb select}{\v IDH_CMD_SELECT} et le second
+argument de {\uldb color}{\v IDH_CMD_COLOR} acceptent un mini
+langage de selection inspire de PyMOL.\par
+\par
+\b Mots-cles principaux :\b0\par
+\par
+- {\f1 all}           - tous les atomes \par
+- {\f1 none}          - selection vide \par
+- {\f1 hetatm}        - heteroatomes \par
+- {\f1 water}         - molecules d'eau (HOH, WAT, H2O) \par
+- {\f1 protein}       - tous les residus d'acide amine \par
+- {\f1 nucleic}       - residus nucleotidiques \par
+- {\f1 backbone}      - atomes N, CA, C, O \par
+- {\f1 sidechain}     - tous les atomes hors squelette \par
+- {\f1 hydrogen}      - atomes H \par
+\par
+\b Filtres :\b0\par
+\par
+- {\f1 chain A}       - chaine PDB A \par
+- {\f1 resi 10-20}    - residus de numero 10 a 20 \par
+- {\f1 resi 5+8+12}   - residus 5, 8 et 12 \par
+- {\f1 resn ALA+GLY}  - acides amines alanine ou glycine \par
+- {\f1 name CA}       - atomes Calpha \par
+- {\f1 elem N}        - atomes d'azote \par
+\par
+Voir : {\uldb Mots-cles}{\v IDH_SELECT_KEYWORDS},
+{\uldb Operateurs}{\v IDH_SELECT_OPERATORS}.\par
+\page
+
+{\footnote # IDH_SELECT_KEYWORDS}
+{\footnote $ Mots-cles de selection}
+{\footnote K selection;mots-cles;keywords}
+\b\fs24 Mots-cles de selection (recapitulatif) \b0\fs20\par
+\par
+- {\f1 all}, {\f1 none} \par
+- {\f1 hetatm}, {\f1 water} \par
+- {\f1 protein}, {\f1 nucleic} \par
+- {\f1 backbone}, {\f1 sidechain} \par
+- {\f1 hydrogen} \par
+- {\f1 visible}, {\f1 selected} \par
+\par
+Filtres parametres :\par
+- {\f1 chain X}                - une chaine X \par
+- {\f1 resi N} ou {\f1 resi N-M} ou {\f1 resi N+M+K} \par
+- {\f1 resn AAA}               - nom de residu \par
+- {\f1 name AAA}               - nom d'atome \par
+- {\f1 elem X}                 - symbole d'element \par
+- {\f1 index N} ou {\f1 index N-M} \par
+\page
+
+{\footnote # IDH_SELECT_OPERATORS}
+{\footnote $ Operateurs de selection}
+{\footnote K and;or;not;operateurs;booleens}
+\b\fs24 Operateurs de selection \b0\fs20\par
+\par
+- {\f1 and} - intersection (par defaut entre tokens) \par
+- {\f1 or}  - union \par
+- {\f1 not} - negation \par
+\par
+\b Exemples :\b0\par
+{\f1 select chain A and resi 10-30}\par
+{\f1 select protein and not hydrogen}\par
+{\f1 select water or hetatm}\par
+\par
+Les parentheses ne sont pas supportees ; les operateurs sont
+evalues de gauche a droite avec {\f1 not} prioritaire.\par
+\page
+
+{\footnote # IDH_COULEURS}
+{\footnote $ Couleurs supportees}
+{\footnote K couleurs;colors;palette;ega;vga}
+{\footnote + main:011}
+\b\fs24 Couleurs supportees \b0\fs20\par
+\par
+PYMOL.PAS utilise la palette VGA 16 couleurs (compatible BGI) :\par
+\par
+- {\f1 black}        ( 0) \par
+- {\f1 blue}         ( 1) \par
+- {\f1 green}        ( 2) \par
+- {\f1 cyan}         ( 3) \par
+- {\f1 red}          ( 4) \par
+- {\f1 magenta}      ( 5) \par
+- {\f1 brown}        ( 6) \par
+- {\f1 lightgray}    ( 7) \par
+- {\f1 darkgray}     ( 8) \par
+- {\f1 lightblue}    ( 9) \par
+- {\f1 lightgreen}   (10) \par
+- {\f1 lightcyan}    (11) \par
+- {\f1 lightred}     (12) \par
+- {\f1 lightmagenta} (13) \par
+- {\f1 yellow}       (14) \par
+- {\f1 white}        (15) \par
+\par
+Synonymes acceptes : {\f1 gray} = {\f1 lightgray},
+{\f1 pink} = {\f1 lightmagenta}, {\f1 orange} = {\f1 brown},
+{\f1 purple} = {\f1 magenta}.\par
+\par
+Voir : {\uldb Couleurs CPK}{\v IDH_COULEURS_CPK},
+{\uldb Coloration par chaine}{\v IDH_COULEURS_PAR_CHAINE}.\par
+\page
+
+{\footnote # IDH_COULEURS_CPK}
+{\footnote $ Couleurs CPK}
+{\footnote K cpk;corey;pauling;koltun;element}
+\b\fs24 Couleurs CPK (par element) \b0\fs20\par
+\par
+Convention historique Corey-Pauling-Koltun adaptee a la palette
+VGA 16 couleurs :\par
+\par
+- C - LightGray (gris clair) \par
+- N - Blue (bleu) \par
+- O - Red (rouge) \par
+- H - White (blanc) \par
+- S - Yellow (jaune) \par
+- P - LightMagenta (rose) \par
+- Halogenes (F, Cl, Br, I) - Green \par
+- Metaux                   - DarkGray \par
+- Inconnu                  - Magenta \par
+\par
+Activable par le menu \b Parametres \b0 -> {\f1 Couleur CPK} ou
+par {\f1 util.cbaw} (compatibilite).\par
+\page
+
+{\footnote # IDH_COULEURS_PAR_CHAINE}
+{\footnote $ Coloration par chaine}
+{\footnote K chaine;chain;coloration}
+\b\fs24 Coloration par chaine \b0\fs20\par
+\par
+Affecte une couleur differente a chaque chaine PDB rencontree
+dans la molecule. Les couleurs sont distribuees cycliquement
+parmi : Cyan, LightRed, LightGreen, Yellow, LightMagenta,
+LightBlue, Brown, White.\par
+\par
+Activable par le menu \b Parametres \b0 -> {\f1 Coloration par chaine}.\par
+\page
+
+{\footnote # IDH_PYTHON}
+{\footnote $ Interpreteur Python embarque}
+{\footnote K python;interpreteur;repl;script}
+{\footnote + main:012}
+\b\fs24 Interpreteur Python embarque \b0\fs20\par
+\par
+Toute ligne saisie dans la console qui n'est pas reconnue comme
+commande PyMOL est passee a un mini-interpreteur Python integre.
+Cet interpreteur supporte un sous-ensemble du langage suffisant
+pour des calculs et scripts simples.\par
+\par
+\b Rubriques :\b0\par
+\par
+- {\uldb Types}{\v IDH_PY_TYPES} \par
+- {\uldb Operateurs}{\v IDH_PY_OPS} \par
+- {\uldb Structures de controle}{\v IDH_PY_CTRL} \par
+- {\uldb Boucle for}{\v IDH_PY_FOR} \par
+- {\uldb Boucle while}{\v IDH_PY_WHILE} \par
+- {\uldb Import et modules}{\v IDH_PY_IMPORT} \par
+- {\uldb Module math}{\v IDH_PY_MODULE_MATH} \par
+- {\uldb Module os}{\v IDH_PY_MODULE_OS} \par
+- {\uldb Module time}{\v IDH_PY_MODULE_TIME} \par
+- {\uldb Fonctions integrees}{\v IDH_PY_BUILTINS} \par
+- {\uldb Limites de l'implementation}{\v IDH_PY_LIMITS} \par
+\page
+
+{\footnote # IDH_PY_TYPES}
+{\footnote $ Python : types supportes}
+{\footnote K python;types;int;float;str;list;bool}
+\b\fs24 Types supportes \b0\fs20\par
+\par
+- {\f1 int}    - entier signe 32 bits \par
+- {\f1 float}  - reel double precision \par
+- {\f1 str}    - chaine de caracteres entre {\f1 ' '} ou {\f1 " "} \par
+- {\f1 bool}   - {\f1 True}, {\f1 False} \par
+- {\f1 None}   - valeur nulle \par
+- {\f1 list}   - liste [a, b, c] (lecture/ecriture par index) \par
+\par
+Les dictionnaires et tuples ne sont pas implementes.\par
+\page
+
+{\footnote # IDH_PY_OPS}
+{\footnote $ Python : operateurs}
+{\footnote K python;operateurs;arithmetique;logique}
+\b\fs24 Operateurs Python supportes \b0\fs20\par
+\par
+- Arithmetique : {\f1 + - * / // % **} \par
+- Comparaison  : {\f1 == != < <= > >=} \par
+- Logique      : {\f1 and or not} \par
+- Affectation  : {\f1 = += -= *= /=} \par
+- Indexation   : {\f1 liste[i]} \par
+- Appel        : {\f1 fonction(a, b)} \par
+\par
+La division entiere {\f1 //} et la puissance {\f1 **} sont
+disponibles. Le slicing {\f1 a[i:j]} n'est pas implemente.\par
+\page
+
+{\footnote # IDH_PY_CTRL}
+{\footnote $ Python : structures de controle}
+{\footnote K python;if;else;elif;for;while;break;continue;pass}
+\b\fs24 Structures de controle \b0\fs20\par
+\par
+\b Conditionnel :\b0\par
+{\f1 if condition:}\par
+{\f1     instructions}\par
+{\f1 elif condition:}\par
+{\f1     instructions}\par
+{\f1 else:}\par
+{\f1     instructions}\par
+\par
+\b Boucles :\b0\par
+{\f1 for variable in iterable: ...}\par
+{\f1 while condition: ...}\par
+\par
+\b Controle de flot :\b0\par
+{\f1 break} - sort de la boucle courante \par
+{\f1 continue} - passe a l'iteration suivante \par
+{\f1 pass} - instruction nulle \par
+\par
+\b Continuation de ligne :\b0\par
+Une commande peut etre prolongee sur plusieurs lignes en
+terminant par {\f1 \\}.\par
+\par
+Voir : {\uldb for}{\v IDH_PY_FOR},
+{\uldb while}{\v IDH_PY_WHILE}.\par
+\page
+
+{\footnote # IDH_PY_FOR}
+{\footnote $ Python : boucle for}
+{\footnote K python;for;range;boucle}
+\b\fs24 Boucle {\f1 for} \b0\fs20\par
+\par
+\b Syntaxe :\b0\par
+{\f1 for variable in iterable:}\par
+{\f1     corps}\par
+\par
+Iterables supportes : listes litterales et {\f1 range(...)}.\par
+\par
+\b Exemples :\b0\par
+{\f1 for i in range(10): print(i)}\par
+{\f1 for x in [1, 2, 3]: print(x*x)}\par
+{\f1 for i in range(0, 100, 5): print(i)}\par
+\page
+
+{\footnote # IDH_PY_WHILE}
+{\footnote $ Python : boucle while}
+{\footnote K python;while;boucle}
+\b\fs24 Boucle {\f1 while} \b0\fs20\par
+\par
+\b Syntaxe :\b0\par
+{\f1 while condition:}\par
+{\f1     corps}\par
+\par
+\b Exemple :\b0\par
+{\f1 i = 0}\par
+{\f1 while i < 10: i = i + 1}\par
+\page
+
+{\footnote # IDH_PY_IMPORT}
+{\footnote $ Python : import et modules}
+{\footnote K python;import;module;from}
+\b\fs24 Import et modules \b0\fs20\par
+\par
+\b Syntaxes acceptees :\b0\par
+{\f1 import math}\par
+{\f1 import math as m}\par
+{\f1 from math import pi, sqrt}\par
+\par
+Une fois importe, on utilise les noms qualifies :\par
+{\f1 math.pi}\par
+{\f1 math.sqrt(2)}\par
+\par
+\b Modules disponibles :\b0\par
+\par
+- {\uldb math}{\v IDH_PY_MODULE_MATH} \par
+- {\uldb os}{\v IDH_PY_MODULE_OS} \par
+- {\uldb time}{\v IDH_PY_MODULE_TIME} \par
+\page
+
+{\footnote # IDH_PY_MODULE_MATH}
+{\footnote $ Module math}
+{\footnote K math;sqrt;sin;cos;pi}
+\b\fs24 Module {\f1 math} \b0\fs20\par
+\par
+\b Constantes :\b0\par
+{\f1 math.pi}    - 3.14159... \par
+{\f1 math.e}     - 2.71828... \par
+\par
+\b Fonctions :\b0\par
+{\f1 math.sqrt(x)}   - racine carree \par
+{\f1 math.sin(x)}    - sinus (radians) \par
+{\f1 math.cos(x)}    \par
+{\f1 math.tan(x)}    \par
+{\f1 math.asin(x)}, {\f1 math.acos(x)}, {\f1 math.atan(x)} \par
+{\f1 math.atan2(y, x)} \par
+{\f1 math.exp(x)}    \par
+{\f1 math.log(x)}    - logarithme naturel \par
+{\f1 math.log10(x)}  \par
+{\f1 math.floor(x)}, {\f1 math.ceil(x)} \par
+{\f1 math.fabs(x)}   \par
+{\f1 math.pow(x, y)} \par
+\page
+
+{\footnote # IDH_PY_MODULE_OS}
+{\footnote $ Module os}
+{\footnote K os;path;getcwd;system}
+\b\fs24 Module {\f1 os} \b0\fs20\par
+\par
+\b Fonctions et attributs :\b0\par
+{\f1 os.name}           - 'nt' ou 'posix' selon la plateforme \par
+{\f1 os.getcwd()}       - repertoire courant \par
+{\f1 os.system(cmd)}    - execute une commande shell \par
+{\f1 os.path.exists(p)} - true si le fichier ou dossier existe \par
+{\f1 os.path.join(a,b)} - concatenation de chemins \par
+\page
+
+{\footnote # IDH_PY_MODULE_TIME}
+{\footnote $ Module time}
+{\footnote K time;temps;sleep}
+\b\fs24 Module {\f1 time} \b0\fs20\par
+\par
+\b Fonctions :\b0\par
+{\f1 time.time()}    - secondes depuis l'epoque (reel) \par
+{\f1 time.clock()}   - temps CPU \par
+{\f1 time.sleep(s)}  - attend s secondes \par
+\par
+\b Exemple :\b0\par
+{\f1 import time}\par
+{\f1 t0 = time.time()}\par
+{\f1 load 1CRN.PDB}\par
+{\f1 print(time.time() - t0)}\par
+\page
+
+{\footnote # IDH_PY_BUILTINS}
+{\footnote $ Python : fonctions integrees}
+{\footnote K python;builtins;print;len;range;str;int}
+\b\fs24 Fonctions integrees disponibles \b0\fs20\par
+\par
+- {\f1 print(...)}    - affiche dans la console \par
+- {\f1 len(s)}        - longueur d'une chaine ou liste \par
+- {\f1 range(...)}    - sequence d'entiers \par
+- {\f1 int(x)}        - conversion en entier \par
+- {\f1 float(x)}      - conversion en reel \par
+- {\f1 str(x)}        - conversion en chaine \par
+- {\f1 bool(x)}       - conversion en booleen \par
+- {\f1 abs(x)}        - valeur absolue \par
+- {\f1 min(a, b, ...)} \par
+- {\f1 max(a, b, ...)} \par
+- {\f1 sum(liste)}    \par
+- {\f1 type(x)}       - nom du type \par
+\page
+
+{\footnote # IDH_PY_LIMITS}
+{\footnote $ Python : limites de l'implementation}
+{\footnote K limites;limitations;non implemente}
+\b\fs24 Limites de l'interpreteur \b0\fs20\par
+\par
+Le mini-interpreteur Python embarque dans PYMOL.PAS n'a pas
+vocation a remplacer CPython. Les fonctionnalites non
+implementees incluent :\par
+\par
+- Tuples, ensembles, dictionnaires \par
+- Slicing ({\f1 a[i:j]}) \par
+- Definition de fonctions ({\f1 def}) et de classes ({\f1 class}) \par
+- Gestionnaires d'exceptions ({\f1 try/except}) \par
+- Listes en intension ([x*x for x in range(10)]) \par
+- Generateurs ({\f1 yield}) \par
+- Decoratifs ({\f1 @decorator}) \par
+- f-strings ({\f1 f"..."}) \par
+- Import de modules tiers (only {\f1 math}, {\f1 os}, {\f1 time}) \par
+\par
+Pour des scripts plus elabores, utiliser PyMOL d'origine et
+adapter le code obtenu.\par
+\page
+
+{\footnote # IDH_RACCOURCIS}
+{\footnote $ Raccourcis clavier}
+{\footnote K raccourcis;clavier;touches;keys;hotkeys}
+{\footnote + main:013}
+\b\fs24 Raccourcis clavier \b0\fs20\par
+\par
+\b Generaux :\b0\par
+{\f1 F1}        - Ouvre l'aide \par
+{\f1 Tab}       - Afficher / masquer la console \par
+{\f1 Echap}     - Bascule sur la barre de menus \par
+{\f1 Alt+F4}    - Quitter \par
+\par
+\b Fichier :\b0\par
+{\f1 Ctrl+O}    - Ouvrir... \par
+{\f1 F3}        - Recharger \par
+{\f1 Ctrl+S}    - Enregistrer .PDB \par
+{\f1 Ctrl+R}    - Reinitialiser \par
+\par
+\b Edition :\b0\par
+{\f1 Ctrl+Z}    - Annuler \par
+{\f1 Ctrl+Y}    - Refaire \par
+{\f1 Ctrl+C}    - Copier \par
+{\f1 Ctrl+V}    - Coller \par
+{\f1 Ctrl+A}    - Selectionner tout \par
+{\f1 Del}       - Effacer la selection \par
+\par
+\b Affichage :\b0\par
+{\f1 L}         - Lignes \par
+{\f1 S}         - Batonnets \par
+{\f1 C}         - Spheres CPK \par
+{\f1 B}         - Boules + batonnets \par
+{\f1 R}         - Ruban / cartoon \par
+{\f1 A}         - Axes on/off \par
+{\f1 G}         - Grille on/off \par
+{\f1 H}         - Hydrogenes on/off \par
+\par
+\b Vue :\b0\par
+{\f1 Ctrl+Home} - Reinitialiser la vue \par
+\par
+\b Scenes :\b0\par
+{\f1 F5..F8}    - Memoriser scene 1..4 \par
+{\f1 Shift+F5..F8} - Rappeler scene 1..4 \par
+\par
+\b Souris :\b0\par
+Bouton gauche      - Rotation libre \par
+Bouton droit       - Translation \par
+Molette            - Zoom \par
+Bouton du milieu   - Pan ({\i pan and tilt}) \par
+\page
+
+{\footnote # IDH_APROPOS}
+{\footnote $ A propos de PYMOL.PAS}
+{\footnote K a propos;about;version;copyright}
+\b\fs24 A propos de PYMOL.PAS \b0\fs20\par
+\par
+\b PYMOL.PAS \b0 - Visualiseur moleculaire 3D, clone reduit du
+logiciel PyMOL de Schroedinger LLC, ecrit entierement en Free
+Pascal en mode Turbo Pascal ({\f1 -Mtp}) dans un seul fichier
+source.\par
+\par
+\b Auteur :\b0 Sylvain Maltais \par
+\b Contact :\b0 support@gladir.com \par
+\b Site :\b0 https://www.gladir.com/qchimie \par
+\b Licence :\b0 MIT \par
+\b Version :\b0 1.00 \par
+\par
+\b Compilation :\b0\par
+{\f1 fpc -Mtp PYMOL.PAS}\par
+\par
+\b Generation de l'aide :\b0\par
+{\f1 HC PYMOL.HPJ}\par
+\par
+\b Crediter :\b0\par
+- PyMOL (Schroedinger LLC) pour l'interface et le langage de
+  commandes inspiration. \par
+- Protein Data Bank pour le format PDB. \par
+- MDL / Symyx pour le format Molfile / SDF. \par
+\par
+PYMOL.PAS est un projet pedagogique non affilie a Schroedinger LLC.\par
+\par
+Voir aussi : {\uldb Sommaire}{\v IDH_INDEX}.\par
+}
