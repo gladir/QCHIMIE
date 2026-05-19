@@ -45,6 +45,7 @@ Uses
 Const
  PROG_TITLE         = 'PyMOL Clone 1.00 - QChimie';
  PROG_PROMPT        = 'PyMOL> ';
+ PROG_PROMPT_CONT   = '   ... ';
  PROG_VERSION       = '1.00';
 
  MENUBAR_HEIGHT     = 20;
@@ -3664,6 +3665,1476 @@ Begin
 End;
 
 { --------------------------------------------------------------------- }
+{ Mini-interpreteur Python embarque                                     }
+{                                                                       }
+{ Supporte expressions, comparaisons, booleens, chaines, listes,        }
+{ variables persistantes, indexation, ternaire (x if c else y) et plus  }
+{ de 30 fonctions natives (print, len, range, sqrt, sin, sum, ...).     }
+{ --------------------------------------------------------------------- }
+
+Const
+ PY_MAX_VARS    = 64;
+ PY_MAX_LIST    = 64;
+ PY_MAX_LISTS   = 32;
+ PY_MAX_TOKENS  = 256;
+ PY_MAX_ARGS    = 16;
+
+Type
+ TPyTokKind = (
+  PtkEOF, PtkNumber, PtkString, PtkIdent,
+  PtkPlus, PtkMinus, PtkStar, PtkSlash, PtkDSlash, PtkPercent, PtkDStar,
+  PtkEq, PtkEqEq, PtkNotEq, PtkLT, PtkLE, PtkGT, PtkGE,
+  PtkLPar, PtkRPar, PtkLBrk, PtkRBrk, PtkComma, PtkColon, PtkDot, PtkSemi,
+  PtkAnd, PtkOr, PtkNot, PtkIn, PtkIf, PtkElse,
+  PtkTrue, PtkFalse, PtkNone, PtkPrint,
+  PtkFor, PtkWhile, PtkImport, PtkBreak, PtkContinue, PtkPass
+ );
+
+ TPyToken = Record
+  Kind  : TPyTokKind;
+  S     : String[80];
+  N     : LongInt;
+  F     : Real;
+  IsFlt : Boolean;
+ End;
+
+ TPyValueKind = (PvNone, PvBool, PvInt, PvFloat, PvStr, PvList);
+
+ TPyValue = Record
+  Kind : TPyValueKind;
+  B    : Boolean;
+  I    : LongInt;
+  F    : Real;
+  S    : String;
+  L    : Integer;
+ End;
+
+ TPyList = Record
+  InUse : Boolean;
+  Count : Integer;
+  Items : Array[0..PY_MAX_LIST - 1] Of TPyValue;
+ End;
+
+ TPyVarSlot = Record
+  InUse : Boolean;
+  Name  : String[24];
+  Value : TPyValue;
+ End;
+
+Var
+ PyTokens         : Array[0..PY_MAX_TOKENS - 1] Of TPyToken;
+ PyTokCount       : Integer;
+ PyTokPos         : Integer;
+ PyVars           : Array[0..PY_MAX_VARS - 1] Of TPyVarSlot;
+ PyLists          : Array[0..PY_MAX_LISTS - 1] Of TPyList;
+ PyError          : Boolean;
+ PyErrorMsg       : String;
+ PyBreakSignal    : Boolean;
+ PyContinueSignal : Boolean;
+ PyContBuf        : String;
+ PyContPending    : Boolean;
+ PyLoopDepth      : Integer;
+
+Procedure PyInit;
+Var I: Integer;
+Begin
+ For I := 0 To PY_MAX_VARS - 1 Do PyVars[I].InUse := False;
+ For I := 0 To PY_MAX_LISTS - 1 Do PyLists[I].InUse := False;
+ PyError := False;
+ PyErrorMsg := '';
+ PyBreakSignal := False;
+ PyContinueSignal := False;
+ PyContBuf := '';
+ PyContPending := False;
+ PyLoopDepth := 0;
+End;
+
+{ Heure systeme (epoch Unix en secondes, comme time.time() de Python) }
+Function PyTimeNow: Real;
+Var
+ Y, Mo, D, DOW    : Word;
+ H, Mi, Se, S100  : Word;
+ A, Y2, M2, JD    : LongInt;
+Begin
+ GetDate(Y, Mo, D, DOW);
+ GetTime(H, Mi, Se, S100);
+ A  := (14 - LongInt(Mo)) Div 12;
+ Y2 := LongInt(Y) + 4800 - A;
+ M2 := LongInt(Mo) + 12 * A - 3;
+ JD := LongInt(D) + (153 * M2 + 2) Div 5 + 365 * Y2
+       + Y2 Div 4 - Y2 Div 100 + Y2 Div 400 - 32045;
+ { Jour julien du 1970-01-01 = 2440588 }
+ PyTimeNow := (JD - 2440588) * 86400.0
+              + H * 3600.0 + Mi * 60.0 + Se + S100 / 100.0;
+End;
+
+Procedure PySetErr(Const M: String);
+Begin
+ If Not PyError Then Begin PyError := True; PyErrorMsg := M; End;
+End;
+
+{ Constructeurs de valeurs }
+
+Function PyMakeNone: TPyValue;
+Var V: TPyValue;
+Begin
+ FillChar(V, SizeOf(V), 0);
+ V.Kind := PvNone; V.L := -1; PyMakeNone := V;
+End;
+
+Function PyMakeBool(BV: Boolean): TPyValue;
+Var V: TPyValue;
+Begin
+ FillChar(V, SizeOf(V), 0);
+ V.Kind := PvBool; V.B := BV; V.L := -1; PyMakeBool := V;
+End;
+
+Function PyMakeInt(IV: LongInt): TPyValue;
+Var V: TPyValue;
+Begin
+ FillChar(V, SizeOf(V), 0);
+ V.Kind := PvInt; V.I := IV; V.L := -1; PyMakeInt := V;
+End;
+
+Function PyMakeFloat(FV: Real): TPyValue;
+Var V: TPyValue;
+Begin
+ FillChar(V, SizeOf(V), 0);
+ V.Kind := PvFloat; V.F := FV; V.L := -1; PyMakeFloat := V;
+End;
+
+Function PyMakeStr(Const SV: String): TPyValue;
+Var V: TPyValue;
+Begin
+ FillChar(V, SizeOf(V), 0);
+ V.Kind := PvStr; V.S := SV; V.L := -1; PyMakeStr := V;
+End;
+
+Function PyNewList: Integer;
+Var I: Integer;
+Begin
+ PyNewList := -1;
+ For I := 0 To PY_MAX_LISTS - 1 Do
+  If Not PyLists[I].InUse Then Begin
+   PyLists[I].InUse := True;
+   PyLists[I].Count := 0;
+   PyNewList := I; Exit;
+  End;
+ PySetErr('Memoire de listes epuisee');
+End;
+
+Function PyMakeList(L: Integer): TPyValue;
+Var V: TPyValue;
+Begin
+ FillChar(V, SizeOf(V), 0);
+ V.Kind := PvList; V.L := L; PyMakeList := V;
+End;
+
+Procedure PyListAppend(L: Integer; Const V: TPyValue);
+Begin
+ If (L < 0) Or (L >= PY_MAX_LISTS) Then Exit;
+ If PyLists[L].Count >= PY_MAX_LIST Then Begin
+  PySetErr('Liste pleine'); Exit;
+ End;
+ PyLists[L].Items[PyLists[L].Count] := V;
+ Inc(PyLists[L].Count);
+End;
+
+{ Conversions et tests }
+
+Function PyIsNumeric(Const V: TPyValue): Boolean;
+Begin
+ PyIsNumeric := (V.Kind = PvBool) Or (V.Kind = PvInt) Or (V.Kind = PvFloat);
+End;
+
+Function PyToFloat(Const V: TPyValue): Real;
+Begin
+ PyToFloat := 0.0;
+ Case V.Kind Of
+  PvBool : If V.B Then PyToFloat := 1.0 Else PyToFloat := 0.0;
+  PvInt  : PyToFloat := V.I;
+  PvFloat: PyToFloat := V.F;
+ End;
+End;
+
+Function PyToInt(Const V: TPyValue): LongInt;
+Begin
+ PyToInt := 0;
+ Case V.Kind Of
+  PvBool : If V.B Then PyToInt := 1 Else PyToInt := 0;
+  PvInt  : PyToInt := V.I;
+  PvFloat: PyToInt := Trunc(V.F);
+ End;
+End;
+
+Function PyTruth(Const V: TPyValue): Boolean;
+Begin
+ PyTruth := False;
+ Case V.Kind Of
+  PvNone : PyTruth := False;
+  PvBool : PyTruth := V.B;
+  PvInt  : PyTruth := V.I <> 0;
+  PvFloat: PyTruth := V.F <> 0.0;
+  PvStr  : PyTruth := Length(V.S) > 0;
+  PvList : If V.L >= 0 Then PyTruth := PyLists[V.L].Count > 0;
+ End;
+End;
+
+Function PyTypeName(Const V: TPyValue): String;
+Begin
+ Case V.Kind Of
+  PvNone : PyTypeName := 'NoneType';
+  PvBool : PyTypeName := 'bool';
+  PvInt  : PyTypeName := 'int';
+  PvFloat: PyTypeName := 'float';
+  PvStr  : PyTypeName := 'str';
+  PvList : PyTypeName := 'list';
+ Else PyTypeName := '?';
+ End;
+End;
+
+Function PyEqVal(Const A, B: TPyValue): Boolean;
+Var I: Integer;
+Begin
+ PyEqVal := False;
+ If PyIsNumeric(A) And PyIsNumeric(B) Then
+  PyEqVal := PyToFloat(A) = PyToFloat(B)
+ Else If (A.Kind = PvStr) And (B.Kind = PvStr) Then
+  PyEqVal := A.S = B.S
+ Else If (A.Kind = PvNone) And (B.Kind = PvNone) Then
+  PyEqVal := True
+ Else If (A.Kind = PvList) And (B.Kind = PvList) And
+         (A.L >= 0) And (B.L >= 0) Then Begin
+  If PyLists[A.L].Count <> PyLists[B.L].Count Then Exit;
+  For I := 0 To PyLists[A.L].Count - 1 Do
+   If Not PyEqVal(PyLists[A.L].Items[I], PyLists[B.L].Items[I]) Then Exit;
+  PyEqVal := True;
+ End;
+End;
+
+Function PyLtVal(Const A, B: TPyValue): Boolean;
+Begin
+ PyLtVal := False;
+ If PyIsNumeric(A) And PyIsNumeric(B) Then
+  PyLtVal := PyToFloat(A) < PyToFloat(B)
+ Else If (A.Kind = PvStr) And (B.Kind = PvStr) Then
+  PyLtVal := A.S < B.S
+ Else PySetErr('Comparaison invalide: ' + PyTypeName(A) + ' / ' + PyTypeName(B));
+End;
+
+{ Representation textuelle }
+
+Function PyFmtFloat(R: Real): String;
+Var S: String; I: Integer;
+Begin
+ Str(R:0:6, S);
+ I := Length(S);
+ While (I > 1) And (S[I] = '0') Do Dec(I);
+ If (I >= 1) And (S[I] = '.') Then Inc(I);
+ PyFmtFloat := Copy(S, 1, I);
+End;
+
+Function PyReprVal(Const V: TPyValue): String; Forward;
+
+Function PyStrVal(Const V: TPyValue): String;
+Begin
+ If V.Kind = PvStr Then PyStrVal := V.S
+ Else PyStrVal := PyReprVal(V);
+End;
+
+Function PyReprVal(Const V: TPyValue): String;
+Var I: Integer; S: String;
+Begin
+ PyReprVal := '';
+ Case V.Kind Of
+  PvNone : PyReprVal := 'None';
+  PvBool : If V.B Then PyReprVal := 'True' Else PyReprVal := 'False';
+  PvInt  : PyReprVal := IntToStr(V.I);
+  PvFloat: PyReprVal := PyFmtFloat(V.F);
+  PvStr  : PyReprVal := '''' + V.S + '''';
+  PvList : Begin
+   S := '[';
+   If V.L >= 0 Then
+    For I := 0 To PyLists[V.L].Count - 1 Do Begin
+     If I > 0 Then S := S + ', ';
+     S := S + PyReprVal(PyLists[V.L].Items[I]);
+    End;
+   S := S + ']';
+   PyReprVal := S;
+  End;
+ End;
+End;
+
+{ Lexer }
+
+Function PyDigitCh(C: Char): Boolean;
+Begin PyDigitCh := (C >= '0') And (C <= '9'); End;
+
+Function PyAlphaCh(C: Char): Boolean;
+Begin
+ PyAlphaCh := ((C >= 'a') And (C <= 'z')) Or
+              ((C >= 'A') And (C <= 'Z')) Or (C = '_');
+End;
+
+Function PyAlnumCh(C: Char): Boolean;
+Begin PyAlnumCh := PyAlphaCh(C) Or PyDigitCh(C); End;
+
+Procedure PyTokenize(Const Src: String);
+Var
+ I, L : Integer;
+ C    : Char;
+ S    : String;
+ N    : LongInt;
+ F    : Real;
+ IsFlt: Boolean;
+ Code : Integer;
+ Quote: Char;
+Begin
+ PyTokCount := 0;
+ I := 1; L := Length(Src);
+ While (I <= L) And (PyTokCount < PY_MAX_TOKENS - 1) Do Begin
+  C := Src[I];
+  If (C = ' ') Or (C = #9) Or (C = #13) Then Inc(I)
+  Else If C = #10 Then Begin
+   PyTokens[PyTokCount].Kind := PtkSemi;
+   Inc(PyTokCount); Inc(I);
+  End
+  Else If C = '#' Then Begin
+   While (I <= L) And (Src[I] <> #10) Do Inc(I);
+  End
+  Else If PyDigitCh(C) Then Begin
+   S := ''; IsFlt := False;
+   While (I <= L) And (PyDigitCh(Src[I]) Or (Src[I] = '.')) Do Begin
+    If Src[I] = '.' Then Begin
+     If IsFlt Then Break;
+     IsFlt := True;
+    End;
+    S := S + Src[I]; Inc(I);
+   End;
+   If (I <= L) And ((Src[I] = 'e') Or (Src[I] = 'E')) Then Begin
+    IsFlt := True;
+    S := S + Src[I]; Inc(I);
+    If (I <= L) And ((Src[I] = '+') Or (Src[I] = '-')) Then Begin
+     S := S + Src[I]; Inc(I);
+    End;
+    While (I <= L) And PyDigitCh(Src[I]) Do Begin
+     S := S + Src[I]; Inc(I);
+    End;
+   End;
+   PyTokens[PyTokCount].Kind := PtkNumber;
+   PyTokens[PyTokCount].S := Copy(S, 1, 80);
+   PyTokens[PyTokCount].IsFlt := IsFlt;
+   If IsFlt Then Begin
+    Val(S, F, Code);
+    PyTokens[PyTokCount].F := F;
+    PyTokens[PyTokCount].N := Trunc(F);
+   End Else Begin
+    Val(S, N, Code);
+    PyTokens[PyTokCount].N := N;
+    PyTokens[PyTokCount].F := N;
+   End;
+   If Code <> 0 Then PySetErr('Nombre invalide: ' + S);
+   Inc(PyTokCount);
+  End
+  Else If (C = '"') Or (C = '''') Then Begin
+   Quote := C; Inc(I); S := '';
+   While (I <= L) And (Src[I] <> Quote) Do Begin
+    If (Src[I] = '\') And (I < L) Then Begin
+     Inc(I);
+     Case Src[I] Of
+      'n': S := S + #10;
+      't': S := S + #9;
+      'r': S := S + #13;
+      '\': S := S + '\';
+      '''': S := S + '''';
+      '"': S := S + '"';
+     Else S := S + Src[I];
+     End;
+     Inc(I);
+    End Else Begin
+     S := S + Src[I]; Inc(I);
+    End;
+   End;
+   If I <= L Then Inc(I);
+   PyTokens[PyTokCount].Kind := PtkString;
+   PyTokens[PyTokCount].S := Copy(S, 1, 80);
+   Inc(PyTokCount);
+  End
+  Else If PyAlphaCh(C) Then Begin
+   S := '';
+   While (I <= L) And PyAlnumCh(Src[I]) Do Begin
+    S := S + Src[I]; Inc(I);
+   End;
+   PyTokens[PyTokCount].S := Copy(S, 1, 80);
+   If      S = 'and'   Then PyTokens[PyTokCount].Kind := PtkAnd
+   Else If S = 'or'    Then PyTokens[PyTokCount].Kind := PtkOr
+   Else If S = 'not'   Then PyTokens[PyTokCount].Kind := PtkNot
+   Else If S = 'in'    Then PyTokens[PyTokCount].Kind := PtkIn
+   Else If S = 'if'    Then PyTokens[PyTokCount].Kind := PtkIf
+   Else If S = 'else'  Then PyTokens[PyTokCount].Kind := PtkElse
+   Else If S = 'True'  Then PyTokens[PyTokCount].Kind := PtkTrue
+   Else If S = 'False' Then PyTokens[PyTokCount].Kind := PtkFalse
+   Else If S = 'None'  Then PyTokens[PyTokCount].Kind := PtkNone
+   Else If S = 'print' Then PyTokens[PyTokCount].Kind := PtkPrint
+   Else If S = 'for'      Then PyTokens[PyTokCount].Kind := PtkFor
+   Else If S = 'while'    Then PyTokens[PyTokCount].Kind := PtkWhile
+   Else If S = 'import'   Then PyTokens[PyTokCount].Kind := PtkImport
+   Else If S = 'break'    Then PyTokens[PyTokCount].Kind := PtkBreak
+   Else If S = 'continue' Then PyTokens[PyTokCount].Kind := PtkContinue
+   Else If S = 'pass'     Then PyTokens[PyTokCount].Kind := PtkPass
+   Else PyTokens[PyTokCount].Kind := PtkIdent;
+   Inc(PyTokCount);
+  End
+  Else Begin
+   Case C Of
+    '+': Begin PyTokens[PyTokCount].Kind := PtkPlus;   Inc(I); Inc(PyTokCount); End;
+    '-': Begin PyTokens[PyTokCount].Kind := PtkMinus;  Inc(I); Inc(PyTokCount); End;
+    '*': Begin
+     If (I < L) And (Src[I+1] = '*') Then Begin
+      PyTokens[PyTokCount].Kind := PtkDStar; Inc(I, 2);
+     End Else Begin
+      PyTokens[PyTokCount].Kind := PtkStar; Inc(I);
+     End;
+     Inc(PyTokCount);
+    End;
+    '/': Begin
+     If (I < L) And (Src[I+1] = '/') Then Begin
+      PyTokens[PyTokCount].Kind := PtkDSlash; Inc(I, 2);
+     End Else Begin
+      PyTokens[PyTokCount].Kind := PtkSlash; Inc(I);
+     End;
+     Inc(PyTokCount);
+    End;
+    '%': Begin PyTokens[PyTokCount].Kind := PtkPercent; Inc(I); Inc(PyTokCount); End;
+    '=': Begin
+     If (I < L) And (Src[I+1] = '=') Then Begin
+      PyTokens[PyTokCount].Kind := PtkEqEq; Inc(I, 2);
+     End Else Begin
+      PyTokens[PyTokCount].Kind := PtkEq; Inc(I);
+     End;
+     Inc(PyTokCount);
+    End;
+    '!': Begin
+     If (I < L) And (Src[I+1] = '=') Then Begin
+      PyTokens[PyTokCount].Kind := PtkNotEq; Inc(I, 2); Inc(PyTokCount);
+     End Else Begin PySetErr('! doit etre suivi de ='); Inc(I); End;
+    End;
+    '<': Begin
+     If (I < L) And (Src[I+1] = '=') Then Begin
+      PyTokens[PyTokCount].Kind := PtkLE; Inc(I, 2);
+     End Else Begin
+      PyTokens[PyTokCount].Kind := PtkLT; Inc(I);
+     End;
+     Inc(PyTokCount);
+    End;
+    '>': Begin
+     If (I < L) And (Src[I+1] = '=') Then Begin
+      PyTokens[PyTokCount].Kind := PtkGE; Inc(I, 2);
+     End Else Begin
+      PyTokens[PyTokCount].Kind := PtkGT; Inc(I);
+     End;
+     Inc(PyTokCount);
+    End;
+    '(': Begin PyTokens[PyTokCount].Kind := PtkLPar;  Inc(I); Inc(PyTokCount); End;
+    ')': Begin PyTokens[PyTokCount].Kind := PtkRPar;  Inc(I); Inc(PyTokCount); End;
+    '[': Begin PyTokens[PyTokCount].Kind := PtkLBrk;  Inc(I); Inc(PyTokCount); End;
+    ']': Begin PyTokens[PyTokCount].Kind := PtkRBrk;  Inc(I); Inc(PyTokCount); End;
+    ',': Begin PyTokens[PyTokCount].Kind := PtkComma; Inc(I); Inc(PyTokCount); End;
+    ':': Begin PyTokens[PyTokCount].Kind := PtkColon; Inc(I); Inc(PyTokCount); End;
+    '.': Begin PyTokens[PyTokCount].Kind := PtkDot;   Inc(I); Inc(PyTokCount); End;
+    ';': Begin PyTokens[PyTokCount].Kind := PtkSemi;  Inc(I); Inc(PyTokCount); End;
+   Else
+    PySetErr('Caractere inattendu: ' + C);
+    Inc(I);
+   End;
+  End;
+ End;
+ PyTokens[PyTokCount].Kind := PtkEOF;
+ PyTokens[PyTokCount].S := '';
+ Inc(PyTokCount);
+End;
+
+{ Variables }
+
+Function PyFindVar(Const N: String): Integer;
+Var I: Integer;
+Begin
+ PyFindVar := -1;
+ For I := 0 To PY_MAX_VARS - 1 Do
+  If PyVars[I].InUse And (PyVars[I].Name = N) Then Begin
+   PyFindVar := I; Exit;
+  End;
+End;
+
+Procedure PySetVar(Const N: String; Const V: TPyValue);
+Var I, F: Integer;
+Begin
+ I := PyFindVar(N);
+ If I >= 0 Then Begin PyVars[I].Value := V; Exit; End;
+ F := -1;
+ For I := 0 To PY_MAX_VARS - 1 Do
+  If Not PyVars[I].InUse Then Begin F := I; Break; End;
+ If F < 0 Then Begin PySetErr('Trop de variables'); Exit; End;
+ PyVars[F].InUse := True;
+ PyVars[F].Name := Copy(N, 1, 24);
+ PyVars[F].Value := V;
+End;
+
+Function PyGetVar(Const N: String; Var V: TPyValue): Boolean;
+Var I: Integer;
+Begin
+ I := PyFindVar(N);
+ If I >= 0 Then Begin V := PyVars[I].Value; PyGetVar := True; End
+ Else PyGetVar := False;
+End;
+
+{ Operateurs arithmetiques }
+
+Function PyAddOp(Const A, B: TPyValue): TPyValue;
+Var NL, I: Integer;
+Begin
+ If (A.Kind = PvStr) And (B.Kind = PvStr) Then
+  PyAddOp := PyMakeStr(A.S + B.S)
+ Else If (A.Kind = PvList) And (B.Kind = PvList) Then Begin
+  NL := PyNewList;
+  If NL < 0 Then Begin PyAddOp := PyMakeNone; Exit; End;
+  If A.L >= 0 Then
+   For I := 0 To PyLists[A.L].Count - 1 Do PyListAppend(NL, PyLists[A.L].Items[I]);
+  If B.L >= 0 Then
+   For I := 0 To PyLists[B.L].Count - 1 Do PyListAppend(NL, PyLists[B.L].Items[I]);
+  PyAddOp := PyMakeList(NL);
+ End
+ Else If PyIsNumeric(A) And PyIsNumeric(B) Then Begin
+  If (A.Kind = PvFloat) Or (B.Kind = PvFloat) Then
+   PyAddOp := PyMakeFloat(PyToFloat(A) + PyToFloat(B))
+  Else
+   PyAddOp := PyMakeInt(PyToInt(A) + PyToInt(B));
+ End
+ Else Begin
+  PySetErr('+ non supporte: ' + PyTypeName(A) + ' / ' + PyTypeName(B));
+  PyAddOp := PyMakeNone;
+ End;
+End;
+
+Function PySubOp(Const A, B: TPyValue): TPyValue;
+Begin
+ If PyIsNumeric(A) And PyIsNumeric(B) Then Begin
+  If (A.Kind = PvFloat) Or (B.Kind = PvFloat) Then
+   PySubOp := PyMakeFloat(PyToFloat(A) - PyToFloat(B))
+  Else
+   PySubOp := PyMakeInt(PyToInt(A) - PyToInt(B));
+ End
+ Else Begin
+  PySetErr('- non supporte'); PySubOp := PyMakeNone;
+ End;
+End;
+
+Function PyMulOp(Const A, B: TPyValue): TPyValue;
+Var I, K, N, NL: Integer; SS: String;
+Begin
+ If (A.Kind = PvStr) And PyIsNumeric(B) Then Begin
+  N := PyToInt(B); SS := '';
+  For I := 1 To N Do SS := SS + A.S;
+  PyMulOp := PyMakeStr(SS);
+ End
+ Else If (A.Kind = PvList) And PyIsNumeric(B) Then Begin
+  NL := PyNewList;
+  If NL < 0 Then Begin PyMulOp := PyMakeNone; Exit; End;
+  N := PyToInt(B);
+  For I := 1 To N Do
+   If A.L >= 0 Then
+    For K := 0 To PyLists[A.L].Count - 1 Do
+     PyListAppend(NL, PyLists[A.L].Items[K]);
+  PyMulOp := PyMakeList(NL);
+ End
+ Else If PyIsNumeric(A) And PyIsNumeric(B) Then Begin
+  If (A.Kind = PvFloat) Or (B.Kind = PvFloat) Then
+   PyMulOp := PyMakeFloat(PyToFloat(A) * PyToFloat(B))
+  Else
+   PyMulOp := PyMakeInt(PyToInt(A) * PyToInt(B));
+ End
+ Else Begin
+  PySetErr('* non supporte'); PyMulOp := PyMakeNone;
+ End;
+End;
+
+Function PyDivOp(Const A, B: TPyValue): TPyValue;
+Begin
+ If Not (PyIsNumeric(A) And PyIsNumeric(B)) Then Begin
+  PySetErr('/ non supporte'); PyDivOp := PyMakeNone; Exit;
+ End;
+ If PyToFloat(B) = 0.0 Then Begin
+  PySetErr('Division par zero'); PyDivOp := PyMakeNone; Exit;
+ End;
+ PyDivOp := PyMakeFloat(PyToFloat(A) / PyToFloat(B));
+End;
+
+Function PyFloorDivOp(Const A, B: TPyValue): TPyValue;
+Var F: Real; Adj: Integer;
+Begin
+ If Not (PyIsNumeric(A) And PyIsNumeric(B)) Then Begin
+  PySetErr('// non supporte'); PyFloorDivOp := PyMakeNone; Exit;
+ End;
+ If PyToFloat(B) = 0.0 Then Begin
+  PySetErr('Division par zero'); PyFloorDivOp := PyMakeNone; Exit;
+ End;
+ F := PyToFloat(A) / PyToFloat(B);
+ If (F < 0) And (Frac(F) <> 0) Then Adj := 1 Else Adj := 0;
+ If (A.Kind = PvFloat) Or (B.Kind = PvFloat) Then
+  PyFloorDivOp := PyMakeFloat(Trunc(F) - Adj)
+ Else
+  PyFloorDivOp := PyMakeInt(Trunc(F) - Adj);
+End;
+
+Function PyModOp(Const A, B: TPyValue): TPyValue;
+Var Ai, Bi: LongInt; Af, Bf, R: Real;
+Begin
+ If Not (PyIsNumeric(A) And PyIsNumeric(B)) Then Begin
+  PySetErr('% non supporte'); PyModOp := PyMakeNone; Exit;
+ End;
+ If (A.Kind = PvFloat) Or (B.Kind = PvFloat) Then Begin
+  Af := PyToFloat(A); Bf := PyToFloat(B);
+  If Bf = 0 Then Begin PySetErr('Modulo par zero'); PyModOp := PyMakeNone; Exit; End;
+  R := Af - Int(Af / Bf) * Bf;
+  PyModOp := PyMakeFloat(R);
+ End Else Begin
+  Ai := PyToInt(A); Bi := PyToInt(B);
+  If Bi = 0 Then Begin PySetErr('Modulo par zero'); PyModOp := PyMakeNone; Exit; End;
+  PyModOp := PyMakeInt(Ai - (Ai Div Bi) * Bi);
+ End;
+End;
+
+Function PyPowOp(Const A, B: TPyValue): TPyValue;
+Var Af, R: Real; N, I: LongInt;
+Begin
+ If Not (PyIsNumeric(A) And PyIsNumeric(B)) Then Begin
+  PySetErr('** non supporte'); PyPowOp := PyMakeNone; Exit;
+ End;
+ If B.Kind <> PvFloat Then Begin
+  Af := PyToFloat(A); N := PyToInt(B); R := 1.0;
+  If N >= 0 Then For I := 1 To N Do R := R * Af
+  Else Begin
+   If Af = 0 Then Begin PySetErr('0**negatif'); PyPowOp := PyMakeNone; Exit; End;
+   For I := 1 To -N Do R := R / Af;
+  End;
+  If (A.Kind <> PvFloat) And (N >= 0) Then PyPowOp := PyMakeInt(Trunc(R))
+  Else PyPowOp := PyMakeFloat(R);
+ End Else Begin
+  Af := PyToFloat(A);
+  If Af <= 0 Then Begin
+   PySetErr('base <= 0 avec exposant flottant'); PyPowOp := PyMakeNone; Exit;
+  End;
+  PyPowOp := PyMakeFloat(Exp(Ln(Af) * PyToFloat(B)));
+ End;
+End;
+
+Function PyInList(Const Item: TPyValue; Const Container: TPyValue): Boolean;
+Var I: Integer;
+Begin
+ PyInList := False;
+ If Container.Kind = PvList Then Begin
+  If Container.L < 0 Then Exit;
+  For I := 0 To PyLists[Container.L].Count - 1 Do
+   If PyEqVal(Item, PyLists[Container.L].Items[I]) Then Begin
+    PyInList := True; Exit;
+   End;
+ End
+ Else If (Container.Kind = PvStr) And (Item.Kind = PvStr) Then
+  PyInList := Pos(Item.S, Container.S) > 0;
+End;
+
+{ Parser (descente recursive) }
+
+Procedure PyAdvance;
+Begin
+ If PyTokPos < PyTokCount - 1 Then Inc(PyTokPos);
+End;
+
+Function PyPeek: TPyTokKind;
+Begin
+ If PyTokPos < PyTokCount Then PyPeek := PyTokens[PyTokPos].Kind
+ Else PyPeek := PtkEOF;
+End;
+
+Function PyMatch(K: TPyTokKind): Boolean;
+Begin
+ If PyPeek = K Then Begin PyAdvance; PyMatch := True; End
+ Else PyMatch := False;
+End;
+
+Function PyParseExpr: TPyValue;   Forward;
+Function PyParseCall: TPyValue;   Forward;
+Function PyParseUnary: TPyValue;  Forward;
+Function PyCallBuiltin(Const N: String; Const Args: Array Of TPyValue;
+                       NArgs: Integer): TPyValue; Forward;
+
+Function PyParsePrimary: TPyValue;
+Var V: TPyValue; NL: Integer;
+Begin
+ V := PyMakeNone;
+ Case PyPeek Of
+  PtkNumber: Begin
+   If PyTokens[PyTokPos].IsFlt Then V := PyMakeFloat(PyTokens[PyTokPos].F)
+   Else V := PyMakeInt(PyTokens[PyTokPos].N);
+   PyAdvance;
+  End;
+  PtkString: Begin V := PyMakeStr(PyTokens[PyTokPos].S); PyAdvance; End;
+  PtkTrue  : Begin V := PyMakeBool(True);  PyAdvance; End;
+  PtkFalse : Begin V := PyMakeBool(False); PyAdvance; End;
+  PtkNone  : Begin V := PyMakeNone;        PyAdvance; End;
+  PtkLPar: Begin
+   PyAdvance;
+   V := PyParseExpr;
+   If Not PyMatch(PtkRPar) Then PySetErr(') attendu');
+  End;
+  PtkLBrk: Begin
+   PyAdvance;
+   NL := PyNewList;
+   V := PyMakeList(NL);
+   If PyPeek <> PtkRBrk Then Begin
+    PyListAppend(NL, PyParseExpr);
+    While PyMatch(PtkComma) Do PyListAppend(NL, PyParseExpr);
+   End;
+   If Not PyMatch(PtkRBrk) Then PySetErr('] attendu');
+  End;
+ Else
+  PySetErr('Expression attendue');
+  V := PyMakeNone;
+ End;
+ PyParsePrimary := V;
+End;
+
+Function PyParseCall: TPyValue;
+Var
+ V, Idx : TPyValue;
+ Name   : String;
+ IsCall : Boolean;
+ Args   : Array[0..PY_MAX_ARGS - 1] Of TPyValue;
+ NArgs, K : Integer;
+Begin
+ IsCall := False;
+ V := PyMakeNone;
+ If PyPeek = PtkIdent Then Begin
+  Name := PyTokens[PyTokPos].S;
+  PyAdvance;
+  While PyPeek = PtkDot Do Begin
+   PyAdvance;
+   If PyPeek <> PtkIdent Then Begin
+    PySetErr('Identificateur attendu apres .'); Break;
+   End;
+   Name := Name + '.' + PyTokens[PyTokPos].S;
+   PyAdvance;
+  End;
+  If PyPeek = PtkLPar Then Begin
+   PyAdvance;
+   NArgs := 0;
+   If PyPeek <> PtkRPar Then Begin
+    Args[NArgs] := PyParseExpr; Inc(NArgs);
+    While PyMatch(PtkComma) And (NArgs < PY_MAX_ARGS) Do Begin
+     Args[NArgs] := PyParseExpr; Inc(NArgs);
+    End;
+   End;
+   If Not PyMatch(PtkRPar) Then PySetErr(') attendu');
+   V := PyCallBuiltin(Name, Args, NArgs);
+   IsCall := True;
+  End Else Begin
+   { Nom: variable ou constante (eventuellement qualifiee) }
+   If Pos('.', Name) = 0 Then Begin
+    If PyGetVar(Name, V) Then
+     IsCall := True
+    Else If Name = 'pi' Then Begin V := PyMakeFloat(3.141592653589793); IsCall := True; End
+    Else If Name = 'e'  Then Begin V := PyMakeFloat(2.718281828459045); IsCall := True; End
+    Else Begin PySetErr('Nom inconnu: ' + Name); V := PyMakeNone; IsCall := True; End;
+   End Else Begin
+    If      Name = 'math.pi'  Then V := PyMakeFloat(3.141592653589793)
+    Else If Name = 'math.e'   Then V := PyMakeFloat(2.718281828459045)
+    Else If Name = 'math.inf' Then V := PyMakeFloat(1.0e30)
+    Else If Name = 'math.tau' Then V := PyMakeFloat(6.283185307179586)
+    Else Begin PySetErr('Attribut inconnu: ' + Name); V := PyMakeNone; End;
+    IsCall := True;
+   End;
+  End;
+ End;
+ If Not IsCall Then V := PyParsePrimary;
+ While PyPeek = PtkLBrk Do Begin
+  PyAdvance;
+  Idx := PyParseExpr;
+  If Not PyMatch(PtkRBrk) Then PySetErr('] attendu');
+  If (V.Kind = PvList) And (V.L >= 0) And PyIsNumeric(Idx) Then Begin
+   K := PyToInt(Idx);
+   If K < 0 Then K := PyLists[V.L].Count + K;
+   If (K < 0) Or (K >= PyLists[V.L].Count) Then Begin
+    PySetErr('Index hors limites'); V := PyMakeNone;
+   End Else V := PyLists[V.L].Items[K];
+  End
+  Else If (V.Kind = PvStr) And PyIsNumeric(Idx) Then Begin
+   K := PyToInt(Idx);
+   If K < 0 Then K := Length(V.S) + K;
+   If (K < 0) Or (K >= Length(V.S)) Then Begin
+    PySetErr('Index chaine hors limites'); V := PyMakeNone;
+   End Else V := PyMakeStr(V.S[K+1]);
+  End
+  Else Begin
+   PySetErr('Indexation non supportee'); V := PyMakeNone;
+  End;
+ End;
+ PyParseCall := V;
+End;
+
+Function PyParsePower: TPyValue;
+Var Base, Expn: TPyValue;
+Begin
+ Base := PyParseCall;
+ If PyMatch(PtkDStar) Then Begin
+  Expn := PyParseUnary;
+  Base := PyPowOp(Base, Expn);
+ End;
+ PyParsePower := Base;
+End;
+
+Function PyParseUnary: TPyValue;
+Var V: TPyValue;
+Begin
+ If PyMatch(PtkMinus) Then Begin
+  V := PyParseUnary;
+  If PyIsNumeric(V) Then Begin
+   If V.Kind = PvFloat Then V := PyMakeFloat(-V.F)
+   Else V := PyMakeInt(-PyToInt(V));
+  End Else Begin PySetErr('- unaire non numerique'); V := PyMakeNone; End;
+ End
+ Else If PyMatch(PtkPlus) Then V := PyParseUnary
+ Else V := PyParsePower;
+ PyParseUnary := V;
+End;
+
+Function PyParseTerm: TPyValue;
+Var Left, Right: TPyValue; Op: TPyTokKind;
+Begin
+ Left := PyParseUnary;
+ While (PyPeek = PtkStar) Or (PyPeek = PtkSlash) Or
+       (PyPeek = PtkDSlash) Or (PyPeek = PtkPercent) Do Begin
+  Op := PyPeek; PyAdvance;
+  Right := PyParseUnary;
+  Case Op Of
+   PtkStar    : Left := PyMulOp(Left, Right);
+   PtkSlash   : Left := PyDivOp(Left, Right);
+   PtkDSlash  : Left := PyFloorDivOp(Left, Right);
+   PtkPercent : Left := PyModOp(Left, Right);
+  End;
+ End;
+ PyParseTerm := Left;
+End;
+
+Function PyParseArith: TPyValue;
+Var Left, Right: TPyValue; Op: TPyTokKind;
+Begin
+ Left := PyParseTerm;
+ While (PyPeek = PtkPlus) Or (PyPeek = PtkMinus) Do Begin
+  Op := PyPeek; PyAdvance;
+  Right := PyParseTerm;
+  If Op = PtkPlus Then Left := PyAddOp(Left, Right)
+  Else Left := PySubOp(Left, Right);
+ End;
+ PyParseArith := Left;
+End;
+
+Function PyParseComp: TPyValue;
+Var Left, Right: TPyValue; Op: TPyTokKind;
+Begin
+ Left := PyParseArith;
+ While (PyPeek = PtkEqEq) Or (PyPeek = PtkNotEq) Or
+       (PyPeek = PtkLT) Or (PyPeek = PtkLE) Or
+       (PyPeek = PtkGT) Or (PyPeek = PtkGE) Or (PyPeek = PtkIn) Do Begin
+  Op := PyPeek; PyAdvance;
+  Right := PyParseArith;
+  Case Op Of
+   PtkEqEq : Left := PyMakeBool(PyEqVal(Left, Right));
+   PtkNotEq: Left := PyMakeBool(Not PyEqVal(Left, Right));
+   PtkLT   : Left := PyMakeBool(PyLtVal(Left, Right));
+   PtkLE   : Left := PyMakeBool(PyLtVal(Left, Right) Or PyEqVal(Left, Right));
+   PtkGT   : Left := PyMakeBool(PyLtVal(Right, Left));
+   PtkGE   : Left := PyMakeBool(PyLtVal(Right, Left) Or PyEqVal(Left, Right));
+   PtkIn   : Left := PyMakeBool(PyInList(Left, Right));
+  End;
+ End;
+ PyParseComp := Left;
+End;
+
+Function PyParseNot: TPyValue;
+Var V: TPyValue;
+Begin
+ If PyMatch(PtkNot) Then Begin
+  V := PyParseNot;
+  PyParseNot := PyMakeBool(Not PyTruth(V));
+ End
+ Else PyParseNot := PyParseComp;
+End;
+
+Function PyParseAnd: TPyValue;
+Var Left, Right: TPyValue;
+Begin
+ Left := PyParseNot;
+ While PyMatch(PtkAnd) Do Begin
+  Right := PyParseNot;
+  If PyTruth(Left) Then Left := Right;
+ End;
+ PyParseAnd := Left;
+End;
+
+Function PyParseOr: TPyValue;
+Var Left, Right: TPyValue;
+Begin
+ Left := PyParseAnd;
+ While PyMatch(PtkOr) Do Begin
+  Right := PyParseAnd;
+  If Not PyTruth(Left) Then Left := Right;
+ End;
+ PyParseOr := Left;
+End;
+
+Function PyParseExpr: TPyValue;
+Var Cond, ThenV, ElseV: TPyValue;
+Begin
+ Cond := PyParseOr;
+ If PyMatch(PtkIf) Then Begin
+  ThenV := Cond;
+  Cond := PyParseOr;
+  If PyMatch(PtkElse) Then ElseV := PyParseExpr
+  Else Begin PySetErr('else attendu'); ElseV := PyMakeNone; End;
+  If PyTruth(Cond) Then PyParseExpr := ThenV
+  Else PyParseExpr := ElseV;
+ End Else PyParseExpr := Cond;
+End;
+
+{ Fonctions natives }
+
+Function PyCallBuiltin(Const N: String; Const Args: Array Of TPyValue;
+                       NArgs: Integer): TPyValue;
+Var
+ I, K, NL : Integer;
+ Mn, Mx, Tmp : TPyValue;
+ SS, S2 : String;
+ F, Sm, Mult : Real;
+ IV : LongInt;
+ Code : Integer;
+Begin
+ PyCallBuiltin := PyMakeNone;
+ { ----- Modules : math.* / time.* / os.* ----- }
+ If (Length(N) > 5) And (Copy(N, 1, 5) = 'math.') Then Begin
+  PyCallBuiltin := PyCallBuiltin(Copy(N, 6, 255), Args, NArgs); Exit;
+ End;
+ If N = 'time.time' Then Begin
+  PyCallBuiltin := PyMakeFloat(PyTimeNow); Exit;
+ End;
+ If N = 'time.clock' Then Begin
+  PyCallBuiltin := PyMakeFloat(PyTimeNow); Exit;
+ End;
+ If N = 'time.sleep' Then Begin
+  If NArgs <> 1 Then Begin PySetErr('time.sleep() 1 arg'); Exit; End;
+  Delay(Round(PyToFloat(Args[0]) * 1000));
+  Exit;
+ End;
+ If N = 'os.getcwd' Then Begin
+  GetDir(0, SS);
+  PyCallBuiltin := PyMakeStr(SS); Exit;
+ End;
+ If N = 'floor' Then Begin
+  If NArgs <> 1 Then Begin PySetErr('floor() 1 arg'); Exit; End;
+  F := PyToFloat(Args[0]);
+  If F >= 0 Then PyCallBuiltin := PyMakeInt(Trunc(F))
+  Else If Frac(F) = 0 Then PyCallBuiltin := PyMakeInt(Trunc(F))
+  Else PyCallBuiltin := PyMakeInt(Trunc(F) - 1);
+  Exit;
+ End;
+ If N = 'ceil' Then Begin
+  If NArgs <> 1 Then Begin PySetErr('ceil() 1 arg'); Exit; End;
+  F := PyToFloat(Args[0]);
+  If F <= 0 Then PyCallBuiltin := PyMakeInt(Trunc(F))
+  Else If Frac(F) = 0 Then PyCallBuiltin := PyMakeInt(Trunc(F))
+  Else PyCallBuiltin := PyMakeInt(Trunc(F) + 1);
+  Exit;
+ End;
+ If N = 'fabs' Then Begin
+  If NArgs <> 1 Then Begin PySetErr('fabs() 1 arg'); Exit; End;
+  PyCallBuiltin := PyMakeFloat(Abs(PyToFloat(Args[0]))); Exit;
+ End;
+ If N = 'print' Then Begin
+  SS := '';
+  For I := 0 To NArgs - 1 Do Begin
+   If I > 0 Then SS := SS + ' ';
+   SS := SS + PyStrVal(Args[I]);
+  End;
+  ConsoleSay(SS); Exit;
+ End;
+ If N = 'len' Then Begin
+  If NArgs <> 1 Then Begin PySetErr('len() 1 arg'); Exit; End;
+  Case Args[0].Kind Of
+   PvStr : PyCallBuiltin := PyMakeInt(Length(Args[0].S));
+   PvList: If Args[0].L >= 0 Then
+             PyCallBuiltin := PyMakeInt(PyLists[Args[0].L].Count)
+           Else PyCallBuiltin := PyMakeInt(0);
+  Else PySetErr('len() type non supporte');
+  End; Exit;
+ End;
+ If N = 'str' Then Begin
+  If NArgs <> 1 Then Begin PySetErr('str() 1 arg'); Exit; End;
+  PyCallBuiltin := PyMakeStr(PyStrVal(Args[0])); Exit;
+ End;
+ If N = 'repr' Then Begin
+  If NArgs <> 1 Then Begin PySetErr('repr() 1 arg'); Exit; End;
+  PyCallBuiltin := PyMakeStr(PyReprVal(Args[0])); Exit;
+ End;
+ If N = 'int' Then Begin
+  If NArgs <> 1 Then Begin PySetErr('int() 1 arg'); Exit; End;
+  Case Args[0].Kind Of
+   PvBool, PvInt, PvFloat: PyCallBuiltin := PyMakeInt(PyToInt(Args[0]));
+   PvStr: Begin
+    Val(Args[0].S, IV, Code);
+    If Code <> 0 Then PySetErr('int(): conversion impossible')
+    Else PyCallBuiltin := PyMakeInt(IV);
+   End;
+  Else PySetErr('int(): type invalide');
+  End; Exit;
+ End;
+ If N = 'float' Then Begin
+  If NArgs <> 1 Then Begin PySetErr('float() 1 arg'); Exit; End;
+  Case Args[0].Kind Of
+   PvBool, PvInt, PvFloat: PyCallBuiltin := PyMakeFloat(PyToFloat(Args[0]));
+   PvStr: Begin
+    Val(Args[0].S, F, Code);
+    If Code <> 0 Then PySetErr('float(): conversion impossible')
+    Else PyCallBuiltin := PyMakeFloat(F);
+   End;
+  Else PySetErr('float(): type invalide');
+  End; Exit;
+ End;
+ If N = 'bool' Then Begin
+  If NArgs <> 1 Then Begin PySetErr('bool() 1 arg'); Exit; End;
+  PyCallBuiltin := PyMakeBool(PyTruth(Args[0])); Exit;
+ End;
+ If N = 'abs' Then Begin
+  If NArgs <> 1 Then Begin PySetErr('abs() 1 arg'); Exit; End;
+  If Args[0].Kind = PvFloat Then PyCallBuiltin := PyMakeFloat(Abs(Args[0].F))
+  Else If PyIsNumeric(Args[0]) Then
+   PyCallBuiltin := PyMakeInt(Abs(PyToInt(Args[0])))
+  Else PySetErr('abs(): type invalide');
+  Exit;
+ End;
+ If N = 'min' Then Begin
+  If NArgs < 1 Then Begin PySetErr('min() >=1 arg'); Exit; End;
+  If (NArgs = 1) And (Args[0].Kind = PvList) And (Args[0].L >= 0) Then Begin
+   If PyLists[Args[0].L].Count = 0 Then Begin
+    PySetErr('min() liste vide'); Exit;
+   End;
+   Mn := PyLists[Args[0].L].Items[0];
+   For I := 1 To PyLists[Args[0].L].Count - 1 Do
+    If PyLtVal(PyLists[Args[0].L].Items[I], Mn) Then
+     Mn := PyLists[Args[0].L].Items[I];
+   PyCallBuiltin := Mn;
+  End Else Begin
+   Mn := Args[0];
+   For I := 1 To NArgs - 1 Do
+    If PyLtVal(Args[I], Mn) Then Mn := Args[I];
+   PyCallBuiltin := Mn;
+  End;
+  Exit;
+ End;
+ If N = 'max' Then Begin
+  If NArgs < 1 Then Begin PySetErr('max() >=1 arg'); Exit; End;
+  If (NArgs = 1) And (Args[0].Kind = PvList) And (Args[0].L >= 0) Then Begin
+   If PyLists[Args[0].L].Count = 0 Then Begin
+    PySetErr('max() liste vide'); Exit;
+   End;
+   Mx := PyLists[Args[0].L].Items[0];
+   For I := 1 To PyLists[Args[0].L].Count - 1 Do
+    If PyLtVal(Mx, PyLists[Args[0].L].Items[I]) Then
+     Mx := PyLists[Args[0].L].Items[I];
+   PyCallBuiltin := Mx;
+  End Else Begin
+   Mx := Args[0];
+   For I := 1 To NArgs - 1 Do
+    If PyLtVal(Mx, Args[I]) Then Mx := Args[I];
+   PyCallBuiltin := Mx;
+  End;
+  Exit;
+ End;
+ If N = 'sum' Then Begin
+  If NArgs <> 1 Then Begin PySetErr('sum() 1 arg list'); Exit; End;
+  If (Args[0].Kind <> PvList) Or (Args[0].L < 0) Then Begin
+   PySetErr('sum(): liste attendue'); Exit;
+  End;
+  Sm := 0;
+  For I := 0 To PyLists[Args[0].L].Count - 1 Do
+   Sm := Sm + PyToFloat(PyLists[Args[0].L].Items[I]);
+  PyCallBuiltin := PyMakeFloat(Sm); Exit;
+ End;
+ If N = 'range' Then Begin
+  NL := PyNewList;
+  If NL < 0 Then Exit;
+  Case NArgs Of
+   1: Begin
+    K := 0; I := PyToInt(Args[0]);
+    While K < I Do Begin PyListAppend(NL, PyMakeInt(K)); Inc(K); End;
+   End;
+   2: Begin
+    K := PyToInt(Args[0]); I := PyToInt(Args[1]);
+    While K < I Do Begin PyListAppend(NL, PyMakeInt(K)); Inc(K); End;
+   End;
+   3: Begin
+    K := PyToInt(Args[0]); I := PyToInt(Args[1]);
+    Code := PyToInt(Args[2]);
+    If Code = 0 Then Begin PySetErr('range(): step=0'); Exit; End;
+    If Code > 0 Then While K < I Do Begin
+     PyListAppend(NL, PyMakeInt(K)); K := K + Code; End
+    Else While K > I Do Begin
+     PyListAppend(NL, PyMakeInt(K)); K := K + Code; End;
+   End;
+  Else PySetErr('range() 1..3 args');
+  End;
+  PyCallBuiltin := PyMakeList(NL); Exit;
+ End;
+ If N = 'list' Then Begin
+  NL := PyNewList; If NL < 0 Then Exit;
+  If NArgs = 1 Then Begin
+   If Args[0].Kind = PvList Then Begin
+    If Args[0].L >= 0 Then
+     For I := 0 To PyLists[Args[0].L].Count - 1 Do
+      PyListAppend(NL, PyLists[Args[0].L].Items[I]);
+   End
+   Else If Args[0].Kind = PvStr Then
+    For I := 1 To Length(Args[0].S) Do
+     PyListAppend(NL, PyMakeStr(Args[0].S[I]));
+  End;
+  PyCallBuiltin := PyMakeList(NL); Exit;
+ End;
+ If N = 'sqrt' Then Begin
+  If NArgs <> 1 Then Begin PySetErr('sqrt() 1 arg'); Exit; End;
+  F := PyToFloat(Args[0]);
+  If F < 0 Then Begin PySetErr('sqrt(<0)'); Exit; End;
+  PyCallBuiltin := PyMakeFloat(Sqrt(F)); Exit;
+ End;
+ If (N = 'sin') And (NArgs = 1) Then Begin
+  PyCallBuiltin := PyMakeFloat(Sin(PyToFloat(Args[0]))); Exit;
+ End;
+ If (N = 'cos') And (NArgs = 1) Then Begin
+  PyCallBuiltin := PyMakeFloat(Cos(PyToFloat(Args[0]))); Exit;
+ End;
+ If (N = 'tan') And (NArgs = 1) Then Begin
+  F := PyToFloat(Args[0]);
+  PyCallBuiltin := PyMakeFloat(Sin(F) / Cos(F)); Exit;
+ End;
+ If (N = 'exp') And (NArgs = 1) Then Begin
+  PyCallBuiltin := PyMakeFloat(Exp(PyToFloat(Args[0]))); Exit;
+ End;
+ If (N = 'log') Or (N = 'ln') Then Begin
+  If NArgs <> 1 Then Begin PySetErr('log() 1 arg'); Exit; End;
+  F := PyToFloat(Args[0]);
+  If F <= 0 Then Begin PySetErr('log(<=0)'); Exit; End;
+  PyCallBuiltin := PyMakeFloat(Ln(F)); Exit;
+ End;
+ If N = 'log10' Then Begin
+  If NArgs <> 1 Then Begin PySetErr('log10() 1 arg'); Exit; End;
+  F := PyToFloat(Args[0]);
+  If F <= 0 Then Begin PySetErr('log10(<=0)'); Exit; End;
+  PyCallBuiltin := PyMakeFloat(Ln(F) / Ln(10)); Exit;
+ End;
+ If N = 'pow' Then Begin
+  If NArgs <> 2 Then Begin PySetErr('pow() 2 args'); Exit; End;
+  PyCallBuiltin := PyPowOp(Args[0], Args[1]); Exit;
+ End;
+ If N = 'round' Then Begin
+  If NArgs < 1 Then Begin PySetErr('round() >=1 arg'); Exit; End;
+  F := PyToFloat(Args[0]);
+  K := 0;
+  If NArgs >= 2 Then K := PyToInt(Args[1]);
+  Mult := 1;
+  For I := 1 To Abs(K) Do Mult := Mult * 10;
+  If K >= 0 Then F := Round(F * Mult) / Mult
+  Else F := Round(F / Mult) * Mult;
+  If K <= 0 Then PyCallBuiltin := PyMakeInt(Round(F))
+  Else PyCallBuiltin := PyMakeFloat(F);
+  Exit;
+ End;
+ If N = 'type' Then Begin
+  If NArgs <> 1 Then Begin PySetErr('type() 1 arg'); Exit; End;
+  PyCallBuiltin := PyMakeStr('<class ''' + PyTypeName(Args[0]) + '''>'); Exit;
+ End;
+ If N = 'hex' Then Begin
+  If NArgs <> 1 Then Begin PySetErr('hex() 1 arg'); Exit; End;
+  IV := PyToInt(Args[0]); SS := ''; K := Abs(IV);
+  If K = 0 Then SS := '0';
+  While K > 0 Do Begin
+   If (K And 15) < 10 Then SS := Chr(Ord('0') + (K And 15)) + SS
+   Else SS := Chr(Ord('a') + (K And 15) - 10) + SS;
+   K := K Shr 4;
+  End;
+  If IV < 0 Then SS := '-0x' + SS Else SS := '0x' + SS;
+  PyCallBuiltin := PyMakeStr(SS); Exit;
+ End;
+ If N = 'oct' Then Begin
+  If NArgs <> 1 Then Begin PySetErr('oct() 1 arg'); Exit; End;
+  IV := PyToInt(Args[0]); SS := ''; K := Abs(IV);
+  If K = 0 Then SS := '0';
+  While K > 0 Do Begin SS := Chr(Ord('0') + (K And 7)) + SS; K := K Shr 3; End;
+  If IV < 0 Then SS := '-0o' + SS Else SS := '0o' + SS;
+  PyCallBuiltin := PyMakeStr(SS); Exit;
+ End;
+ If N = 'bin' Then Begin
+  If NArgs <> 1 Then Begin PySetErr('bin() 1 arg'); Exit; End;
+  IV := PyToInt(Args[0]); SS := ''; K := Abs(IV);
+  If K = 0 Then SS := '0';
+  While K > 0 Do Begin SS := Chr(Ord('0') + (K And 1)) + SS; K := K Shr 1; End;
+  If IV < 0 Then SS := '-0b' + SS Else SS := '0b' + SS;
+  PyCallBuiltin := PyMakeStr(SS); Exit;
+ End;
+ If N = 'chr' Then Begin
+  If NArgs <> 1 Then Begin PySetErr('chr() 1 arg'); Exit; End;
+  PyCallBuiltin := PyMakeStr(Chr(PyToInt(Args[0]) And $FF)); Exit;
+ End;
+ If N = 'ord' Then Begin
+  If (NArgs <> 1) Or (Args[0].Kind <> PvStr) Or (Length(Args[0].S) <> 1) Then
+   Begin PySetErr('ord(): 1 caractere attendu'); Exit; End;
+  PyCallBuiltin := PyMakeInt(Ord(Args[0].S[1])); Exit;
+ End;
+ If N = 'upper' Then Begin
+  If (NArgs <> 1) Or (Args[0].Kind <> PvStr) Then
+   Begin PySetErr('upper(): chaine attendue'); Exit; End;
+  PyCallBuiltin := PyMakeStr(UpStr(Args[0].S)); Exit;
+ End;
+ If N = 'lower' Then Begin
+  If (NArgs <> 1) Or (Args[0].Kind <> PvStr) Then
+   Begin PySetErr('lower(): chaine attendue'); Exit; End;
+  PyCallBuiltin := PyMakeStr(LoStr(Args[0].S)); Exit;
+ End;
+ If N = 'reversed' Then Begin
+  If NArgs <> 1 Then Begin PySetErr('reversed() 1 arg'); Exit; End;
+  If Args[0].Kind = PvList Then Begin
+   NL := PyNewList;
+   If (NL >= 0) And (Args[0].L >= 0) Then
+    For I := PyLists[Args[0].L].Count - 1 DownTo 0 Do
+     PyListAppend(NL, PyLists[Args[0].L].Items[I]);
+   PyCallBuiltin := PyMakeList(NL);
+  End
+  Else If Args[0].Kind = PvStr Then Begin
+   S2 := '';
+   For I := Length(Args[0].S) DownTo 1 Do S2 := S2 + Args[0].S[I];
+   PyCallBuiltin := PyMakeStr(S2);
+  End
+  Else PySetErr('reversed(): type invalide');
+  Exit;
+ End;
+ If N = 'sorted' Then Begin
+  If NArgs <> 1 Then Begin PySetErr('sorted() 1 arg'); Exit; End;
+  If (Args[0].Kind <> PvList) Or (Args[0].L < 0) Then Begin
+   PySetErr('sorted(): liste attendue'); Exit;
+  End;
+  NL := PyNewList;
+  If NL >= 0 Then Begin
+   For I := 0 To PyLists[Args[0].L].Count - 1 Do
+    PyListAppend(NL, PyLists[Args[0].L].Items[I]);
+   For I := 1 To PyLists[NL].Count - 1 Do Begin
+    Tmp := PyLists[NL].Items[I]; K := I - 1;
+    While (K >= 0) And PyLtVal(Tmp, PyLists[NL].Items[K]) Do Begin
+     PyLists[NL].Items[K+1] := PyLists[NL].Items[K]; Dec(K);
+    End;
+    PyLists[NL].Items[K+1] := Tmp;
+   End;
+  End;
+  PyCallBuiltin := PyMakeList(NL); Exit;
+ End;
+ If N = 'help' Then Begin
+  ConsoleSay('Python builtins: print, len, str, repr, int, float, bool, abs,');
+  ConsoleSay('  min, max, sum, range, list, sqrt, sin, cos, tan, exp, log,');
+  ConsoleSay('  log10, pow, round, type, hex, oct, bin, chr, ord, upper,');
+  ConsoleSay('  lower, reversed, sorted. Constantes: pi, e, True, False, None.');
+  Exit;
+ End;
+ PySetErr('Fonction inconnue: ' + N);
+End;
+
+{ Execution }
+
+Procedure PyExecStatement; Forward;
+
+Procedure PyExecBlock;
+Begin
+ While (Not PyError) And (Not PyBreakSignal) And (Not PyContinueSignal) And
+       (PyPeek <> PtkEOF) Do Begin
+  PyExecStatement;
+  If PyError Or PyBreakSignal Or PyContinueSignal Then Break;
+  If Not PyMatch(PtkSemi) Then Break;
+ End;
+End;
+
+Procedure PyExecFor;
+Var
+ LoopVar : String;
+ IterV   : TPyValue;
+ I, BodyStart, ItemsCount, Cnt : Integer;
+Begin
+ Inc(PyLoopDepth);
+ If PyPeek <> PtkIdent Then Begin
+  PySetErr('Identificateur attendu apres for'); Dec(PyLoopDepth); Exit;
+ End;
+ LoopVar := PyTokens[PyTokPos].S;
+ PyAdvance;
+ If Not PyMatch(PtkIn) Then Begin
+  PySetErr('in attendu dans for'); Dec(PyLoopDepth); Exit;
+ End;
+ IterV := PyParseExpr;
+ If PyError Then Begin Dec(PyLoopDepth); Exit; End;
+ If Not PyMatch(PtkColon) Then Begin
+  PySetErr(': attendu dans for'); Dec(PyLoopDepth); Exit;
+ End;
+ While PyMatch(PtkSemi) Do ;
+ BodyStart := PyTokPos;
+ If IterV.Kind = PvList Then Begin
+  If IterV.L >= 0 Then Begin
+   ItemsCount := PyLists[IterV.L].Count;
+   For I := 0 To ItemsCount - 1 Do Begin
+    PySetVar(LoopVar, PyLists[IterV.L].Items[I]);
+    PyTokPos := BodyStart;
+    PyContinueSignal := False;
+    PyExecBlock;
+    If PyError Or PyBreakSignal Then Break;
+   End;
+  End;
+ End
+ Else If IterV.Kind = PvStr Then Begin
+  Cnt := Length(IterV.S);
+  For I := 1 To Cnt Do Begin
+   PySetVar(LoopVar, PyMakeStr(IterV.S[I]));
+   PyTokPos := BodyStart;
+   PyContinueSignal := False;
+   PyExecBlock;
+   If PyError Or PyBreakSignal Then Break;
+  End;
+ End
+ Else PySetErr('for: type non iterable');
+ PyBreakSignal := False;
+ PyContinueSignal := False;
+ PyTokPos := PyTokCount;  { saute le reste = fin du bloc }
+ Dec(PyLoopDepth);
+End;
+
+Procedure PyExecWhile;
+Var
+ CondStart, BodyStart : Integer;
+ Cond  : TPyValue;
+ Guard : LongInt;
+Begin
+ Inc(PyLoopDepth);
+ CondStart := PyTokPos;
+ BodyStart := -1;
+ Guard := 0;
+ While True Do Begin
+  Inc(Guard);
+  If Guard > 200000 Then Begin
+   PySetErr('while: limite d''iterations atteinte (200000)'); Break;
+  End;
+  PyTokPos := CondStart;
+  Cond := PyParseExpr;
+  If PyError Then Break;
+  If Not PyMatch(PtkColon) Then Begin
+   PySetErr(': attendu dans while'); Break;
+  End;
+  While PyMatch(PtkSemi) Do ;
+  If BodyStart < 0 Then BodyStart := PyTokPos;
+  If Not PyTruth(Cond) Then Break;
+  PyTokPos := BodyStart;
+  PyContinueSignal := False;
+  PyExecBlock;
+  If PyError Or PyBreakSignal Then Break;
+ End;
+ PyBreakSignal := False;
+ PyContinueSignal := False;
+ PyTokPos := PyTokCount;
+ Dec(PyLoopDepth);
+End;
+
+Procedure PyExecStatement;
+Var
+ V    : TPyValue;
+ Name : String;
+ S    : String;
+Begin
+ If PyError Then Exit;
+ If (PyPeek = PtkEOF) Or (PyPeek = PtkSemi) Then Exit;
+ { pass : ne fait rien }
+ If PyMatch(PtkPass) Then Exit;
+ { break / continue }
+ If PyMatch(PtkBreak) Then Begin
+  If PyLoopDepth = 0 Then PySetErr('break hors boucle')
+  Else PyBreakSignal := True;
+  Exit;
+ End;
+ If PyMatch(PtkContinue) Then Begin
+  If PyLoopDepth = 0 Then PySetErr('continue hors boucle')
+  Else PyContinueSignal := True;
+  Exit;
+ End;
+ { import MOD [, MOD]* : accepte silencieusement }
+ If PyMatch(PtkImport) Then Begin
+  If PyPeek <> PtkIdent Then Begin PySetErr('module attendu'); Exit; End;
+  PyAdvance;
+  While PyMatch(PtkComma) Do Begin
+   If PyPeek <> PtkIdent Then Begin PySetErr('module attendu'); Exit; End;
+   PyAdvance;
+  End;
+  Exit;
+ End;
+ { for IDENT in EXPR : BODY }
+ If PyMatch(PtkFor) Then Begin PyExecFor; Exit; End;
+ { while EXPR : BODY }
+ If PyMatch(PtkWhile) Then Begin PyExecWhile; Exit; End;
+ { print expr [, expr]*   (forme statement sans parentheses) }
+ If PyPeek = PtkPrint Then Begin
+  PyAdvance;
+  If (PyPeek = PtkEOF) Or (PyPeek = PtkSemi) Then Begin ConsoleSay(''); Exit; End;
+  S := '';
+  V := PyParseExpr; S := PyStrVal(V);
+  While PyMatch(PtkComma) Do Begin
+   V := PyParseExpr; S := S + ' ' + PyStrVal(V);
+  End;
+  If Not PyError Then ConsoleSay(S);
+  Exit;
+ End;
+ { Assignation: IDENT = expr }
+ If (PyPeek = PtkIdent) And (PyTokPos + 1 < PyTokCount) And
+    (PyTokens[PyTokPos + 1].Kind = PtkEq) Then Begin
+  Name := PyTokens[PyTokPos].S;
+  PyAdvance; PyAdvance;
+  V := PyParseExpr;
+  If Not PyError Then PySetVar(Name, V);
+  Exit;
+ End;
+ { Expression simple : evalue et affiche son repr si non-None }
+ V := PyParseExpr;
+ If (Not PyError) And (V.Kind <> PvNone) Then
+  ConsoleSay(PyReprVal(V));
+End;
+
+Function PyEval(Const Src: String): Boolean;
+Begin
+ PyError := False;
+ PyErrorMsg := '';
+ PyTokenize(Src);
+ If Not PyError Then Begin
+  PyTokPos := 0;
+  Repeat
+   PyExecStatement;
+   If PyError Then Break;
+   If Not PyMatch(PtkSemi) Then Break;
+  Until PyPeek = PtkEOF;
+ End;
+ If PyError Then Begin
+  ConsoleErr('Erreur: ' + PyErrorMsg);
+  PyEval := False;
+ End
+ Else PyEval := True;
+End;
+
+{ --------------------------------------------------------------------- }
 { Interpreteur de commandes PyMOL                                       }
 { --------------------------------------------------------------------- }
 
@@ -3815,7 +5286,8 @@ Begin
   End;
   ConsoleSay(Rest); Exit;
  End;
- ConsoleErr('Commande inconnue: ' + C);
+ { Fallback: tente l'interpreteur Python embarque }
+ If Not PyEval(Cmd) Then ;
 End;
 
 { --------------------------------------------------------------------- }
@@ -3838,14 +5310,31 @@ Begin
 End;
 
 Procedure ConsoleSubmit;
-Var S: String;
+Var S: String; L: Integer; Echoed: String;
 Begin
  S := ConsoleInput;
  ConsoleInput := '';
  ConsoleCursor := 0;
- If S = '' Then Exit;
- ConsoleEcho(PROG_PROMPT + S);
- ConsoleHistoryAdd(S);
+ If (S = '') And (Not PyContPending) Then Exit;
+ If PyContPending Then Echoed := PROG_PROMPT_CONT + S
+ Else Echoed := PROG_PROMPT + S;
+ ConsoleEcho(Echoed);
+ If S <> '' Then ConsoleHistoryAdd(S);
+ { Detection de continuation : ligne se terminant par \ }
+ L := Length(S);
+ While (L > 0) And ((S[L] = ' ') Or (S[L] = #9)) Do Dec(L);
+ If (L > 0) And (S[L] = '\') Then Begin
+  S := Copy(S, 1, L - 1);
+  If PyContBuf = '' Then PyContBuf := S
+  Else PyContBuf := PyContBuf + #10 + S;
+  PyContPending := True;
+  Exit;
+ End;
+ If PyContPending Then Begin
+  S := PyContBuf + #10 + S;
+  PyContBuf := '';
+  PyContPending := False;
+ End;
  ExecPyMOLCommand(S);
 End;
 
@@ -4151,6 +5640,7 @@ Begin
 
  InitMenus;
  LayoutMenuBar;
+ PyInit;
 
  CanvasTop := MenuBarHeight;
  If ConsoleVisible Then
