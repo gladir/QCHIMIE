@@ -147,6 +147,7 @@ Type
   LastAt   : Integer;
   IsAA     : Boolean;
   IsNucl   : Boolean;
+  SSType   : Char;           { 'H'=helice, 'E'=brin, 'L'=boucle }
  End;
 
  TChainInfo = Record
@@ -230,6 +231,25 @@ Var
  ViewFlags   : Word;
  SimSpinning : Boolean;          { rotation automatique }
  SpinSpeed   : Real;
+
+ { Parametres PyMOL (`set NAME, VAL`) }
+ SetCartoonDiscreteColors : Boolean;
+ SetCartoonHelixColor     : Byte;
+ SetCartoonSheetColor     : Byte;
+ SetCartoonLoopColor      : Byte;
+ SetRayShadows            : Boolean;
+ SetOrthoscopic           : Boolean;
+ SetSphereScale           : Real;
+ SetStickRadius           : Real;
+ SetCartoonTransparency   : Real;
+ SetTransparency          : Real;
+ SetAmbient               : Real;
+ SetSpecular              : Real;
+ SetAntialias             : Integer;
+ SetRayTraceMode          : Integer;
+ SetDashWidth             : Integer;
+ SetLabelSize             : Integer;
+ SetHashLimit             : LongInt;
 
  { Menus }
  Menus       : Array[0..NUM_MENUS-1] Of TMenu;
@@ -869,6 +889,7 @@ Begin
     M.Resi[R].LastAt := I;
     M.Resi[R].IsAA := IsAminoAcidName(M.Atoms[I].ResName);
     M.Resi[R].IsNucl := IsNucleicName(M.Atoms[I].ResName);
+    M.Resi[R].SSType := 'L';
     Inc(M.NRes);
    End;
    LastCh := M.Atoms[I].ChainID;
@@ -1023,19 +1044,33 @@ End;
 { Lit un fichier PDB. Reconnait HEADER, TITLE, ATOM, HETATM, CONECT,
   END, ENDMDL. Sur ENDMDL le premier modele est conserve. }
 Function LoadPDB(Const FileName: String; Var M: TMolecule): Boolean;
+Const
+ MAX_SSE = 256;
+Type
+ TSSERng = Record
+  Kind     : Char;     { 'H' helix, 'E' sheet }
+  ChainID  : Char;
+  StartSeq : Integer;
+  EndSeq   : Integer;
+ End;
 Var
  F : Text;
  Line, Rec : String;
  A : TAtom;
  Idx, Sn : LongInt;
  IxA, IxB : LongInt;
- I, K : Integer;
+ I, K, J : Integer;
  ModelSeen : Boolean;
  SerialMap : Array[0..MAX_ATOMS-1] Of LongInt;
  NSerial : Integer;
+ SSEs : Array[0..MAX_SSE - 1] Of TSSERng;
+ NSSE : Integer;
+ Ch   : Char;
+ S1, S2 : Integer;
 Begin
  LoadPDB := False;
  ClearMolecule(M);
+ NSSE := 0;
  M.FileName := FileName;
  {$I-} Assign(F, FileName); Reset(F); {$I+}
  If IOResult <> 0 Then Exit;
@@ -1052,6 +1087,24 @@ Begin
   Else If Rec = 'TITLE ' Then Begin
    If M.Title <> '' Then M.Title := M.Title + ' ';
    M.Title := M.Title + TrimStr(FieldS(Line, 11, 80));
+  End
+  Else If Rec = 'HELIX ' Then Begin
+   If NSSE < MAX_SSE Then Begin
+    SSEs[NSSE].Kind := 'H';
+    If Length(Line) >= 22 Then SSEs[NSSE].ChainID := Line[20] Else SSEs[NSSE].ChainID := ' ';
+    SSEs[NSSE].StartSeq := StrToIntDef(FieldT(Line, 22, 25), 0);
+    SSEs[NSSE].EndSeq   := StrToIntDef(FieldT(Line, 34, 37), 0);
+    Inc(NSSE);
+   End;
+  End
+  Else If Rec = 'SHEET ' Then Begin
+   If NSSE < MAX_SSE Then Begin
+    SSEs[NSSE].Kind := 'E';
+    If Length(Line) >= 22 Then SSEs[NSSE].ChainID := Line[22] Else SSEs[NSSE].ChainID := ' ';
+    SSEs[NSSE].StartSeq := StrToIntDef(FieldT(Line, 23, 26), 0);
+    SSEs[NSSE].EndSeq   := StrToIntDef(FieldT(Line, 34, 37), 0);
+    Inc(NSSE);
+   End;
   End
   Else If (Rec = 'ATOM  ') Or (Rec = 'HETATM') Then Begin
    If ParseAtomLine(Line, Rec = 'HETATM', A) Then Begin
@@ -1095,6 +1148,16 @@ Begin
  If M.NBonds = 0 Then AutoDetectBonds(M);
  ComputeBounds(M);
  BuildResidueIndex(M);
+ { Application des annotations HELIX / SHEET aux residus }
+ For J := 0 To NSSE - 1 Do Begin
+  Ch := SSEs[J].ChainID;
+  S1 := SSEs[J].StartSeq;
+  S2 := SSEs[J].EndSeq;
+  For I := 0 To M.NRes - 1 Do
+   If ((Ch = ' ') Or (M.Resi[I].ChainID = Ch)) And
+      (M.Resi[I].ResSeq >= S1) And (M.Resi[I].ResSeq <= S2) Then
+    M.Resi[I].SSType := SSEs[J].Kind;
+ End;
  M.Loaded := M.NAtoms > 0;
  LoadPDB := M.Loaded;
  If ModelSeen Then ; { eviter avertissement }
@@ -2271,6 +2334,8 @@ Procedure DrawMoleculeRibbon;
 Var
  R, FirstCA, PrevCA, CurCA : Integer;
  I : Integer;
+ SegCol, EdgeCol : Byte;
+ SS : Char;
 Begin
  PrevCA := -1;
  SetColor(LightCyan);
@@ -2283,15 +2348,27 @@ Begin
    End;
   If CurCA < 0 Then Begin PrevCA := -1; Continue; End;
   If PrevCA >= 0 Then Begin
-   { trace 4 lignes paralleles pour la "trame" }
-   SetColor(LightCyan);
+   { Couleur du segment selon le SSE si cartoon_discrete_colors = on }
+   If SetCartoonDiscreteColors Then Begin
+    SS := Mol.Resi[R].SSType;
+    Case SS Of
+     'H': SegCol := SetCartoonHelixColor;
+     'E': SegCol := SetCartoonSheetColor;
+    Else   SegCol := SetCartoonLoopColor;
+    End;
+    EdgeCol := SegCol;
+   End Else Begin
+    SegCol  := LightCyan;
+    EdgeCol := Cyan;
+   End;
+   SetColor(SegCol);
    Line(ScreenX[PrevCA], ScreenY[PrevCA] - 1,
         ScreenX[CurCA],  ScreenY[CurCA] - 1);
    Line(ScreenX[PrevCA], ScreenY[PrevCA],
         ScreenX[CurCA],  ScreenY[CurCA]);
    Line(ScreenX[PrevCA], ScreenY[PrevCA] + 1,
         ScreenX[CurCA],  ScreenY[CurCA] + 1);
-   SetColor(Cyan);
+   SetColor(EdgeCol);
    Line(ScreenX[PrevCA], ScreenY[PrevCA] + 2,
         ScreenX[CurCA],  ScreenY[CurCA] + 2);
   End;
@@ -5138,6 +5215,141 @@ End;
 { Interpreteur de commandes PyMOL                                       }
 { --------------------------------------------------------------------- }
 
+{ Reconnait on/off/1/0/true/false/yes/no.
+  Retourne 1 = on, 0 = off, -1 = invalide. }
+Function ParseOnOff(Const S: String): Integer;
+Var L: String;
+Begin
+ L := LoStr(TrimStr(S));
+ If (L = 'on') Or (L = '1') Or (L = 'true') Or (L = 'yes') Then ParseOnOff := 1
+ Else If (L = 'off') Or (L = '0') Or (L = 'false') Or (L = 'no') Then ParseOnOff := 0
+ Else ParseOnOff := -1;
+End;
+
+Function OnOffStr(B: Boolean): String;
+Begin
+ If B Then OnOffStr := 'on' Else OnOffStr := 'off';
+End;
+
+{ Applique `set NAME, VAL`. Retourne True si la cle est connue. }
+Function ApplySetting(Const Name, ValStr: String): Boolean;
+Var
+ N : String;
+ B : Integer;
+ F : Real;
+ IV : LongInt;
+ Code : Integer;
+ Col : Byte;
+Begin
+ N := LoStr(Name);
+ ApplySetting := True;
+ If N = 'cartoon_discrete_colors' Then Begin
+  B := ParseOnOff(ValStr);
+  If B < 0 Then Begin ConsoleErr('set ' + N + ' attend on/off'); Exit; End;
+  SetCartoonDiscreteColors := B = 1;
+  ConsoleSay(' set ' + N + ' = ' + OnOffStr(SetCartoonDiscreteColors));
+  NeedRedraw := True;
+ End
+ Else If N = 'cartoon_helix_color' Then Begin
+  Col := ParseColorName(ValStr); SetCartoonHelixColor := Col;
+  NeedRedraw := True; ConsoleSay(' set ' + N + ' = ' + ValStr);
+ End
+ Else If (N = 'cartoon_sheet_color') Or (N = 'cartoon_strand_color') Then Begin
+  Col := ParseColorName(ValStr); SetCartoonSheetColor := Col;
+  NeedRedraw := True; ConsoleSay(' set ' + N + ' = ' + ValStr);
+ End
+ Else If (N = 'cartoon_loop_color') Or (N = 'cartoon_coil_color') Then Begin
+  Col := ParseColorName(ValStr); SetCartoonLoopColor := Col;
+  NeedRedraw := True; ConsoleSay(' set ' + N + ' = ' + ValStr);
+ End
+ Else If N = 'ray_shadows' Then Begin
+  B := ParseOnOff(ValStr);
+  If B < 0 Then Begin ConsoleErr('set ' + N + ' attend on/off'); Exit; End;
+  SetRayShadows := B = 1;
+  ConsoleSay(' set ' + N + ' = ' + OnOffStr(SetRayShadows));
+ End
+ Else If N = 'orthoscopic' Then Begin
+  B := ParseOnOff(ValStr);
+  If B < 0 Then Begin ConsoleErr('set ' + N + ' attend on/off'); Exit; End;
+  SetOrthoscopic := B = 1;
+  ConsoleSay(' set ' + N + ' = ' + OnOffStr(SetOrthoscopic));
+ End
+ Else If N = 'sphere_scale' Then Begin
+  If Not StrToReal(ValStr, F) Then Begin ConsoleErr('set ' + N + ' attend reel'); Exit; End;
+  SetSphereScale := F; NeedRedraw := True;
+  ConsoleSay(' set ' + N + ' = ' + RealToStr(F, 4));
+ End
+ Else If N = 'stick_radius' Then Begin
+  If Not StrToReal(ValStr, F) Then Begin ConsoleErr('set ' + N + ' attend reel'); Exit; End;
+  SetStickRadius := F; NeedRedraw := True;
+  ConsoleSay(' set ' + N + ' = ' + RealToStr(F, 4));
+ End
+ Else If N = 'cartoon_transparency' Then Begin
+  If Not StrToReal(ValStr, F) Then Begin ConsoleErr('set ' + N + ' attend reel'); Exit; End;
+  SetCartoonTransparency := F; NeedRedraw := True;
+  ConsoleSay(' set ' + N + ' = ' + RealToStr(F, 4));
+ End
+ Else If N = 'transparency' Then Begin
+  If Not StrToReal(ValStr, F) Then Begin ConsoleErr('set ' + N + ' attend reel'); Exit; End;
+  SetTransparency := F; NeedRedraw := True;
+  ConsoleSay(' set ' + N + ' = ' + RealToStr(F, 4));
+ End
+ Else If N = 'ambient' Then Begin
+  If Not StrToReal(ValStr, F) Then Begin ConsoleErr('set ' + N + ' attend reel'); Exit; End;
+  SetAmbient := F; ConsoleSay(' set ' + N + ' = ' + RealToStr(F, 4));
+ End
+ Else If N = 'specular' Then Begin
+  If Not StrToReal(ValStr, F) Then Begin ConsoleErr('set ' + N + ' attend reel'); Exit; End;
+  SetSpecular := F; ConsoleSay(' set ' + N + ' = ' + RealToStr(F, 4));
+ End
+ Else If N = 'antialias' Then Begin
+  Val(ValStr, IV, Code); If Code <> 0 Then Begin ConsoleErr('set ' + N + ' attend entier'); Exit; End;
+  SetAntialias := IV; ConsoleSay(' set ' + N + ' = ' + IntToStr(IV));
+ End
+ Else If N = 'ray_trace_mode' Then Begin
+  Val(ValStr, IV, Code); If Code <> 0 Then Begin ConsoleErr('set ' + N + ' attend entier'); Exit; End;
+  SetRayTraceMode := IV; ConsoleSay(' set ' + N + ' = ' + IntToStr(IV));
+ End
+ Else If N = 'dash_width' Then Begin
+  Val(ValStr, IV, Code); If Code <> 0 Then Begin ConsoleErr('set ' + N + ' attend entier'); Exit; End;
+  SetDashWidth := IV; ConsoleSay(' set ' + N + ' = ' + IntToStr(IV));
+ End
+ Else If N = 'label_size' Then Begin
+  Val(ValStr, IV, Code); If Code <> 0 Then Begin ConsoleErr('set ' + N + ' attend entier'); Exit; End;
+  SetLabelSize := IV; ConsoleSay(' set ' + N + ' = ' + IntToStr(IV));
+ End
+ Else If N = 'hash_max' Then Begin
+  Val(ValStr, IV, Code); If Code <> 0 Then Begin ConsoleErr('set ' + N + ' attend entier'); Exit; End;
+  SetHashLimit := IV; ConsoleSay(' set ' + N + ' = ' + IntToStr(IV));
+ End
+ Else ApplySetting := False;
+End;
+
+Function QuerySetting(Const Name: String): Boolean;
+Var N: String;
+Begin
+ N := LoStr(Name);
+ QuerySetting := True;
+ If      N = 'cartoon_discrete_colors' Then ConsoleSay(N + ' = ' + OnOffStr(SetCartoonDiscreteColors))
+ Else If N = 'cartoon_helix_color'  Then ConsoleSay(N + ' = ' + IntToStr(SetCartoonHelixColor))
+ Else If N = 'cartoon_sheet_color'  Then ConsoleSay(N + ' = ' + IntToStr(SetCartoonSheetColor))
+ Else If N = 'cartoon_loop_color'   Then ConsoleSay(N + ' = ' + IntToStr(SetCartoonLoopColor))
+ Else If N = 'ray_shadows'          Then ConsoleSay(N + ' = ' + OnOffStr(SetRayShadows))
+ Else If N = 'orthoscopic'          Then ConsoleSay(N + ' = ' + OnOffStr(SetOrthoscopic))
+ Else If N = 'sphere_scale'         Then ConsoleSay(N + ' = ' + RealToStr(SetSphereScale, 4))
+ Else If N = 'stick_radius'         Then ConsoleSay(N + ' = ' + RealToStr(SetStickRadius, 4))
+ Else If N = 'cartoon_transparency' Then ConsoleSay(N + ' = ' + RealToStr(SetCartoonTransparency, 4))
+ Else If N = 'transparency'         Then ConsoleSay(N + ' = ' + RealToStr(SetTransparency, 4))
+ Else If N = 'ambient'              Then ConsoleSay(N + ' = ' + RealToStr(SetAmbient, 4))
+ Else If N = 'specular'             Then ConsoleSay(N + ' = ' + RealToStr(SetSpecular, 4))
+ Else If N = 'antialias'            Then ConsoleSay(N + ' = ' + IntToStr(SetAntialias))
+ Else If N = 'ray_trace_mode'       Then ConsoleSay(N + ' = ' + IntToStr(SetRayTraceMode))
+ Else If N = 'dash_width'           Then ConsoleSay(N + ' = ' + IntToStr(SetDashWidth))
+ Else If N = 'label_size'           Then ConsoleSay(N + ' = ' + IntToStr(SetLabelSize))
+ Else If N = 'hash_max'             Then ConsoleSay(N + ' = ' + IntToStr(SetHashLimit))
+ Else QuerySetting := False;
+End;
+
 Procedure ExecPyMOLCommand(Const Cmd: String);
 Var
  W : Array[0..7] Of String;
@@ -5285,6 +5497,29 @@ Begin
    Rest := Rest + W[I];
   End;
   ConsoleSay(Rest); Exit;
+ End;
+ { set NAME, VAL  /  set NAME = VAL  /  set NAME VAL  /  unset NAME }
+ If (C = 'set') Or (C = 'unset') Then Begin
+  If NW < 2 Then Begin
+   ConsoleErr('Usage: set NAME, VAL    (ou unset NAME)'); Exit;
+  End;
+  Arg1 := W[1];
+  Arg2 := '';
+  If NW >= 3 Then Begin
+   If W[2] = '=' Then Begin
+    If NW >= 4 Then Arg2 := W[3];
+   End Else Arg2 := W[2];
+  End;
+  If C = 'unset' Then Arg2 := '0';
+  If Not ApplySetting(Arg1, Arg2) Then
+   ConsoleErr('set: parametre inconnu: ' + Arg1);
+  Exit;
+ End;
+ If C = 'get' Then Begin
+  If NW < 2 Then Begin ConsoleErr('Usage: get NAME'); Exit; End;
+  If Not QuerySetting(W[1]) Then
+   ConsoleErr('get: parametre inconnu: ' + W[1]);
+  Exit;
  End;
  { Fallback: tente l'interpreteur Python embarque }
  If Not PyEval(Cmd) Then ;
@@ -5622,6 +5857,25 @@ Begin
  SimSpinning := False;
  SpinSpeed := 1.5;
  SelName := 'sele';
+
+ { Parametres PyMOL par defaut }
+ SetCartoonDiscreteColors := False;
+ SetCartoonHelixColor     := LightRed;
+ SetCartoonSheetColor     := Yellow;
+ SetCartoonLoopColor      := LightCyan;
+ SetRayShadows            := True;
+ SetOrthoscopic           := False;
+ SetSphereScale           := 1.0;
+ SetStickRadius           := 0.25;
+ SetCartoonTransparency   := 0.0;
+ SetTransparency          := 0.0;
+ SetAmbient               := 0.10;
+ SetSpecular              := 1.0;
+ SetAntialias             := 1;
+ SetRayTraceMode          := 0;
+ SetDashWidth             := 2;
+ SetLabelSize             := 14;
+ SetHashLimit             := 100000;
 
  ConsoleCount := 0;
  ConsoleView := 0;
