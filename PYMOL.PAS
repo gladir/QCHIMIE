@@ -1043,6 +1043,8 @@ End;
 
 { Lit un fichier PDB. Reconnait HEADER, TITLE, ATOM, HETATM, CONECT,
   END, ENDMDL. Sur ENDMDL le premier modele est conserve. }
+Procedure ConsoleSay(Const S: String); Forward;
+
 Function LoadPDB(Const FileName: String; Var M: TMolecule): Boolean;
 Const
  MAX_SSE = 256;
@@ -1157,6 +1159,16 @@ Begin
    If ((Ch = ' ') Or (M.Resi[I].ChainID = Ch)) And
       (M.Resi[I].ResSeq >= S1) And (M.Resi[I].ResSeq <= S2) Then
     M.Resi[I].SSType := SSEs[J].Kind;
+ End;
+ { Rapport : combien d'enregistrements SSE lus et residus annotes }
+ If NSSE > 0 Then Begin
+  S1 := 0; S2 := 0;
+  For I := 0 To M.NRes - 1 Do
+   If M.Resi[I].SSType = 'H' Then Inc(S1)
+   Else If M.Resi[I].SSType = 'E' Then Inc(S2);
+  ConsoleSay('PDB: ' + IntToStr(NSSE) + ' enregistrements HELIX/SHEET; '
+             + IntToStr(S1) + ' residus helice, '
+             + IntToStr(S2) + ' residus brin.');
  End;
  M.Loaded := M.NAtoms > 0;
  LoadPDB := M.Loaded;
@@ -5956,7 +5968,23 @@ End;
 Var
  InitFile : String;
 
-Begin
+BEGIN
+ {$IFDEF FPC}
+  {$IFDEF WINDOWS}
+   SetUseACP(False);
+  {$ENDIF}
+ {$ENDIF}
+ If(ParamStr(1)='/?')or(ParamStr(1)='--help')or(ParamStr(1)='-h')Then Begin
+  WriteLn('PYMOL - Cette commande permet de visualiser, manipuler et ',
+          'analyser des structures mol‚culaires tridimensionnelles, ',
+          'notamment des prot‚ines, des acides nucl‚iques et des ',
+          'compos‚s chimiques, … l''aide du logiciel PyMOL.');
+  WriteLn;
+  WriteLn('Syntaxe : PYMOL [fichier.PDB]');
+  WriteLn;
+  WriteLn(' fichier.PDB  Fichier de proteine');
+  Halt;
+ End;
  InitGraphicsMode;
  InitializeAll;
  If ParamCount >= 1 Then Begin
@@ -5975,4 +6003,4 @@ Begin
  End;
  MainLoop;
  CleanupAll;
-End.
+END.
