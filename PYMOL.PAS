@@ -3603,6 +3603,792 @@ Begin
  End;
 End;
 
+{ --------------------------------------------------------------------- }
+{ Visionneuse WinHelp .HLP                                              }
+{ Port simplifie depuis DEV-COOLS\DEVENV.PAS - compatible HC.PAS        }
+{   - En-tete 16 octets (Magic, DirStart, FreeChain, EOFOfs)            }
+{   - Fichiers internes |SYSTEM, |TOPIC, |CONTEXT                       }
+{   - Compression LZ77 optionnelle                                      }
+{   - Topics : RTF brut precede d un en-tete 21 octets                  }
+{ --------------------------------------------------------------------- }
+
+Const
+ HLPV_MAX_TOPICS = 1024;
+ HLPV_MAX_CTX    = 2048;
+ HLPV_MAX_RUNS   = 4096;
+ HLPV_MAGIC      : LongInt = $00035F3F;
+ HLPV_CONTENT_X      = 12;
+ HLPV_LINE_HEIGHT    = 14;
+ HLPV_TITLEBAR_H     = 22;
+
+Type
+ PHlpByteArr = ^THlpByteArr;
+ THlpByteArr = Array[0..0] Of Byte;
+
+ THlpvTopic = Record
+  Offset    : LongInt;
+  RtfStart  : LongInt;
+  RtfLen    : LongInt;
+ End;
+
+ THlpvCtx = Record
+  Hash      : LongInt;
+  TopicOfs  : LongInt;
+ End;
+
+ THlpvRunKind = (HRK_Text, HRK_Newline);
+
+ THlpvRun = Record
+  Kind     : THlpvRunKind;
+  Txt      : String[80];
+  X, Y     : Integer;
+  W        : Integer;
+  Bold     : Boolean;
+  Italic   : Boolean;
+  Under    : Boolean;
+  Color    : Byte;
+  Hot      : Boolean;
+  Target   : String[60];
+ End;
+
+ THlpvFmt = Record
+  Bold      : Boolean;
+  Italic    : Boolean;
+  Under     : Boolean;
+  Hot       : Boolean;
+  Color     : Byte;
+ End;
+
+Var
+ HlpvFileBuf     : PHlpByteArr;
+ HlpvFileLen     : LongInt;
+ HlpvTopicData   : PHlpByteArr;
+ HlpvTopicLen    : LongInt;
+ HlpvTopics      : Array[1..HLPV_MAX_TOPICS] Of THlpvTopic;
+ HlpvNumTopics   : Integer;
+ HlpvCtxTbl      : Array[1..HLPV_MAX_CTX] Of THlpvCtx;
+ HlpvNumCtx      : Integer;
+ HlpvRuns        : Array[1..HLPV_MAX_RUNS] Of THlpvRun;
+ HlpvNumRuns     : Integer;
+ HlpvDocHeight   : Integer;
+ HlpvScrollY     : Integer;
+ HlpvCurTopic    : Integer;
+ HlpvBackHistory : Array[1..32] Of Integer;
+ HlpvHistCount   : Integer;
+ HlpvTitle       : String;
+ HlpvViewX1, HlpvViewY1, HlpvViewX2, HlpvViewY2: Integer;
+ HlpvDone        : Boolean;
+
+Function HlpvLE16(Buf: PHlpByteArr; Ofs: LongInt): Word;
+Begin
+ HlpvLE16 := Word(Buf^[Ofs]) Or (Word(Buf^[Ofs + 1]) Shl 8);
+End;
+
+Function HlpvLE32(Buf: PHlpByteArr; Ofs: LongInt): LongInt;
+Begin
+ HlpvLE32 := LongInt(Buf^[Ofs]) Or (LongInt(Buf^[Ofs + 1]) Shl 8) Or
+             (LongInt(Buf^[Ofs + 2]) Shl 16) Or
+             (LongInt(Buf^[Ofs + 3]) Shl 24);
+End;
+
+Function HlpvUpCh(C: Char): Char;
+Begin
+ If (C >= 'a') And (C <= 'z') Then HlpvUpCh := Chr(Ord(C) - 32)
+ Else HlpvUpCh := C;
+End;
+
+{$PUSH}{$Q-}{$R-}
+Function HlpvHashContext(S: String): LongInt;
+Var I: Integer; H: LongInt;
+Begin
+ H := 0;
+ For I := 1 To Length(S) Do
+  H := H * 43 + Ord(HlpvUpCh(S[I]));
+ HlpvHashContext := H;
+End;
+{$POP}
+
+Function HlpvFileExists(FN: String): Boolean;
+Var F: File;
+Begin
+ Assign(F, FN);
+ {$I-} Reset(F, 1); {$I+}
+ If IOResult = 0 Then Begin Close(F); HlpvFileExists := True; End
+ Else HlpvFileExists := False;
+End;
+
+Function HlpvExtractPath(FN: String): String;
+Var I: Integer;
+Begin
+ For I := Length(FN) Downto 1 Do
+  If (FN[I] = '\') Or (FN[I] = '/') Or (FN[I] = ':') Then Begin
+   HlpvExtractPath := Copy(FN, 1, I);
+   Exit;
+  End;
+ HlpvExtractPath := '';
+End;
+
+Function HlpvEndsWith(S, Suffix: String): Boolean;
+Var I, L1, L2: Integer; C1, C2: Char;
+Begin
+ HlpvEndsWith := False;
+ L1 := Length(S); L2 := Length(Suffix);
+ If L2 > L1 Then Exit;
+ For I := 1 To L2 Do Begin
+  C1 := S[L1 - L2 + I]; C2 := Suffix[I];
+  If (C1 >= 'a') And (C1 <= 'z') Then C1 := Chr(Ord(C1) - 32);
+  If (C2 >= 'a') And (C2 <= 'z') Then C2 := Chr(Ord(C2) - 32);
+  If C1 <> C2 Then Exit;
+ End;
+ HlpvEndsWith := True;
+End;
+
+Procedure HlpvLZ77Decompress(Src: PHlpByteArr; SrcLen: LongInt;
+                              Var Dst: PHlpByteArr; Var DstLen: LongInt);
+Var
+ SrcPos, DstPos, MatchOfs: LongInt;
+ OrigSize, Len, K: LongInt;
+ Flag, BitMask, B1, B2: Byte;
+Begin
+ Dst := Nil; DstLen := 0;
+ If SrcLen < 4 Then Exit;
+ OrigSize := LongInt(Src^[0]) Or (LongInt(Src^[1]) Shl 8) Or
+             (LongInt(Src^[2]) Shl 16) Or (LongInt(Src^[3]) Shl 24);
+ If (OrigSize <= 0) Or (OrigSize > 16000000) Then Exit;
+ GetMem(Dst, OrigSize);
+ FillChar(Dst^, OrigSize, 0);
+ SrcPos := 4; DstPos := 0;
+ While (SrcPos < SrcLen) And (DstPos < OrigSize) Do Begin
+  Flag := Src^[SrcPos]; Inc(SrcPos);
+  BitMask := 1;
+  While (BitMask <> 0) And (SrcPos < SrcLen) And (DstPos < OrigSize) Do Begin
+   If (Flag And BitMask) <> 0 Then Begin
+    Dst^[DstPos] := Src^[SrcPos]; Inc(SrcPos); Inc(DstPos);
+   End Else Begin
+    If SrcPos + 1 >= SrcLen Then Break;
+    B1 := Src^[SrcPos]; B2 := Src^[SrcPos + 1]; Inc(SrcPos, 2);
+    Len := LongInt((B1 Shr 4) And $0F) + 3;
+    MatchOfs := (LongInt(B1 And $0F) Shl 8) Or LongInt(B2);
+    If MatchOfs = 0 Then Break;
+    For K := 1 To Len Do Begin
+     If DstPos >= OrigSize Then Break;
+     If DstPos - MatchOfs < 0 Then Dst^[DstPos] := 0
+     Else Dst^[DstPos] := Dst^[DstPos - MatchOfs];
+     Inc(DstPos);
+    End;
+   End;
+   If BitMask = 128 Then BitMask := 0 Else BitMask := BitMask Shl 1;
+  End;
+ End;
+ DstLen := DstPos;
+End;
+
+Function HlpvLoadFile(FileName: String): Boolean;
+Var
+ F: File; OldFM: Byte; Got: Word; Remain, P: LongInt;
+Begin
+ HlpvLoadFile := False;
+ HlpvFileBuf := Nil; HlpvFileLen := 0;
+ OldFM := FileMode; FileMode := 0;
+ Assign(F, FileName);
+ {$I-} Reset(F, 1); {$I+}
+ If IOResult <> 0 Then Begin FileMode := OldFM; Exit; End;
+ HlpvFileLen := FileSize(F);
+ If HlpvFileLen < 16 Then Begin Close(F); FileMode := OldFM; Exit; End;
+ GetMem(HlpvFileBuf, HlpvFileLen);
+ P := 0; Remain := HlpvFileLen;
+ While Remain > 0 Do Begin
+  If Remain > 32000 Then BlockRead(F, HlpvFileBuf^[P], 32000, Got)
+  Else BlockRead(F, HlpvFileBuf^[P], Remain, Got);
+  If Got = 0 Then Break;
+  Inc(P, Got); Dec(Remain, Got);
+ End;
+ Close(F); FileMode := OldFM;
+ If HlpvLE32(HlpvFileBuf, 0) <> HLPV_MAGIC Then Exit;
+ HlpvLoadFile := True;
+End;
+
+Function HlpvFindFile(Name: String): LongInt;
+Var
+ DirStart, PagePtr, J, EntOfs: LongInt;
+ PagePos, NEntries, I, NL: Integer;
+ EntName: String;
+Begin
+ HlpvFindFile := -1;
+ DirStart := HlpvLE32(HlpvFileBuf, 4);
+ If (DirStart < 16) Or (DirStart + 9 + 38 + 1024 > HlpvFileLen) Then Exit;
+ PagePos := 9 + 38;
+ PagePtr := DirStart + PagePos;
+ NEntries := HlpvLE16(HlpvFileBuf, PagePtr + 2);
+ J := PagePtr + 8;
+ For I := 1 To NEntries Do Begin
+  EntName := ''; NL := 0;
+  While (J < HlpvFileLen) And (NL < 80) And (HlpvFileBuf^[J] <> 0) Do Begin
+   EntName := EntName + Chr(HlpvFileBuf^[J]);
+   Inc(J); Inc(NL);
+  End;
+  Inc(J);
+  EntOfs := HlpvLE32(HlpvFileBuf, J);
+  Inc(J, 4);
+  If EntName = Name Then Begin HlpvFindFile := EntOfs; Exit; End;
+ End;
+End;
+
+Function HlpvLoadTopicFile: Boolean;
+Var
+ TopicOfs, Reserved, Used: LongInt;
+ Flags: Byte; RawPtr, Tmp: PHlpByteArr; TmpLen: LongInt;
+Begin
+ HlpvLoadTopicFile := False;
+ HlpvTopicData := Nil; HlpvTopicLen := 0;
+ TopicOfs := HlpvFindFile('|TOPIC');
+ If TopicOfs < 0 Then Exit;
+ If TopicOfs + 9 > HlpvFileLen Then Exit;
+ Reserved := HlpvLE32(HlpvFileBuf, TopicOfs);
+ Used := HlpvLE32(HlpvFileBuf, TopicOfs + 4);
+ Flags := HlpvFileBuf^[TopicOfs + 8];
+ If TopicOfs + 9 + Used > HlpvFileLen Then Exit;
+ RawPtr := PHlpByteArr(@HlpvFileBuf^[TopicOfs + 9]);
+ If (Flags And 1) <> 0 Then Begin
+  HlpvLZ77Decompress(RawPtr, Used, Tmp, TmpLen);
+  If Tmp = Nil Then Exit;
+  HlpvTopicData := Tmp; HlpvTopicLen := TmpLen;
+ End Else Begin
+  GetMem(HlpvTopicData, Used);
+  Move(RawPtr^, HlpvTopicData^, Used);
+  HlpvTopicLen := Used;
+ End;
+ If Reserved = -1 Then ;
+ HlpvLoadTopicFile := True;
+End;
+
+Procedure HlpvScanTopics;
+Var P, Sz: LongInt;
+Begin
+ HlpvNumTopics := 0; P := 0;
+ While (P + 21 <= HlpvTopicLen) And (HlpvNumTopics < HLPV_MAX_TOPICS) Do Begin
+  If HlpvTopicData^[P] <> 2 Then Break;
+  Sz := HlpvLE32(HlpvTopicData, P + 1);
+  If (Sz < 0) Or (P + 21 + Sz > HlpvTopicLen) Then Break;
+  Inc(HlpvNumTopics);
+  HlpvTopics[HlpvNumTopics].Offset := P;
+  HlpvTopics[HlpvNumTopics].RtfStart := P + 21;
+  HlpvTopics[HlpvNumTopics].RtfLen := Sz;
+  P := P + 21 + Sz;
+ End;
+End;
+
+Procedure HlpvLoadContext;
+Var CtxOfs, Used, P: LongInt;
+Begin
+ HlpvNumCtx := 0;
+ CtxOfs := HlpvFindFile('|CONTEXT');
+ If CtxOfs < 0 Then Exit;
+ If CtxOfs + 9 > HlpvFileLen Then Exit;
+ Used := HlpvLE32(HlpvFileBuf, CtxOfs + 4);
+ If CtxOfs + 9 + Used > HlpvFileLen Then Exit;
+ P := CtxOfs + 9;
+ While (P + 8 <= CtxOfs + 9 + Used) And (HlpvNumCtx < HLPV_MAX_CTX) Do Begin
+  Inc(HlpvNumCtx);
+  HlpvCtxTbl[HlpvNumCtx].Hash := HlpvLE32(HlpvFileBuf, P);
+  HlpvCtxTbl[HlpvNumCtx].TopicOfs := HlpvLE32(HlpvFileBuf, P + 4);
+  Inc(P, 8);
+ End;
+End;
+
+Procedure HlpvLoadSystemTitle;
+Var
+ SysOfs, Used, P, EndP: LongInt;
+ RecType, RecLen: Word; I: Integer;
+Begin
+ HlpvTitle := '';
+ SysOfs := HlpvFindFile('|SYSTEM');
+ If SysOfs < 0 Then Exit;
+ Used := HlpvLE32(HlpvFileBuf, SysOfs + 4);
+ P := SysOfs + 9; EndP := P + Used;
+ If P + 12 > EndP Then Exit;
+ Inc(P, 12);
+ While P + 4 <= EndP Do Begin
+  RecType := HlpvLE16(HlpvFileBuf, P);
+  RecLen := HlpvLE16(HlpvFileBuf, P + 2);
+  Inc(P, 4);
+  If P + RecLen > EndP Then Break;
+  If RecType = 1 Then Begin
+   HlpvTitle := '';
+   For I := 0 To RecLen - 1 Do Begin
+    If HlpvFileBuf^[P + I] = 0 Then Break;
+    HlpvTitle := HlpvTitle + Chr(HlpvFileBuf^[P + I]);
+   End;
+  End;
+  Inc(P, RecLen);
+ End;
+End;
+
+Function HlpvFindTopicByOffset(TopicOfs: LongInt): Integer;
+Var I: Integer;
+Begin
+ HlpvFindTopicByOffset := 0;
+ For I := 1 To HlpvNumTopics Do
+  If HlpvTopics[I].Offset = TopicOfs Then Begin
+   HlpvFindTopicByOffset := I; Exit;
+  End;
+End;
+
+Function HlpvFindTopicByContext(Ctx: String): Integer;
+Var H: LongInt; I: Integer;
+Begin
+ HlpvFindTopicByContext := 0;
+ H := HlpvHashContext(Ctx);
+ For I := 1 To HlpvNumCtx Do
+  If HlpvCtxTbl[I].Hash = H Then Begin
+   HlpvFindTopicByContext := HlpvFindTopicByOffset(HlpvCtxTbl[I].TopicOfs);
+   Exit;
+  End;
+End;
+
+Procedure HlpvAddRun(Const ATxt: String; AX, AY, AW: Integer;
+                     Const Fmt: THlpvFmt; Const ATarget: String);
+Begin
+ If HlpvNumRuns >= HLPV_MAX_RUNS Then Exit;
+ Inc(HlpvNumRuns);
+ With HlpvRuns[HlpvNumRuns] Do Begin
+  Kind   := HRK_Text;
+  Txt    := ATxt;
+  X      := AX; Y := AY; W := AW;
+  Bold   := Fmt.Bold; Italic := Fmt.Italic; Under := Fmt.Under;
+  Color  := Fmt.Color; Hot := Fmt.Hot;
+  Target := ATarget;
+ End;
+End;
+
+Procedure HlpvLayoutTopic(Idx: Integer; AvailWidth: Integer);
+Var
+ P, EndP: LongInt;
+ GroupDepth, IgnoreDepth: Integer;
+ B: Byte; C, NextC: Char;
+ CurX, CurY: Integer;
+ WordS: String; WordW: Integer;
+ Fmt: THlpvFmt;
+ SavedFmt: Array[1..16] Of THlpvFmt;
+ FmtStack: Integer;
+ CmdName: String; CmdParam: LongInt;
+ HasParam, ParamNeg: Boolean;
+ InUldb, InV: Boolean;
+ PendingTarget, LastTarget: String;
+ HotRunsStart: Integer;
+ HexHi, HexLo: Char;
+ SkipCmd: Boolean;
+ K: Integer;
+
+ Procedure FlushWord;
+ Var W2, XEnd: Integer;
+ Begin
+  If WordS = '' Then Exit;
+  W2 := Length(WordS) * 8;
+  XEnd := CurX + W2;
+  If (CurX > HLPV_CONTENT_X) And (XEnd > AvailWidth - 8) Then Begin
+   CurX := HLPV_CONTENT_X;
+   Inc(CurY, HLPV_LINE_HEIGHT);
+  End;
+  HlpvAddRun(WordS, CurX, CurY, Length(WordS) * 8, Fmt, LastTarget);
+  Inc(CurX, W2);
+  WordS := ''; WordW := 0;
+ End;
+
+ Procedure NewLine;
+ Begin
+  FlushWord;
+  CurX := HLPV_CONTENT_X;
+  Inc(CurY, HLPV_LINE_HEIGHT);
+ End;
+
+ Procedure AppendCh(Ch: Char);
+ Begin
+  If Ch = ' ' Then Begin
+   FlushWord;
+   If CurX + 8 > AvailWidth - 8 Then Begin
+    CurX := HLPV_CONTENT_X;
+    Inc(CurY, HLPV_LINE_HEIGHT);
+   End Else Inc(CurX, 8);
+  End Else Begin
+   If Length(WordS) < 80 Then WordS := WordS + Ch;
+  End;
+ End;
+
+Begin
+ HlpvNumRuns := 0; HlpvDocHeight := 0;
+ If (Idx < 1) Or (Idx > HlpvNumTopics) Then Exit;
+ P := HlpvTopics[Idx].RtfStart;
+ EndP := P + HlpvTopics[Idx].RtfLen;
+ GroupDepth := 0; IgnoreDepth := 0;
+ CurX := HLPV_CONTENT_X; CurY := 8;
+ WordS := ''; WordW := 0;
+ Fmt.Bold := False; Fmt.Italic := False; Fmt.Under := False;
+ Fmt.Hot := False; Fmt.Color := Black;
+ FmtStack := 0;
+ InUldb := False; InV := False;
+ PendingTarget := ''; LastTarget := '';
+ HotRunsStart := 0;
+ While P < EndP Do Begin
+  B := HlpvTopicData^[P]; C := Chr(B); Inc(P);
+  If IgnoreDepth > 0 Then Begin
+   If C = '{' Then Inc(IgnoreDepth)
+   Else If C = '}' Then Dec(IgnoreDepth);
+   Continue;
+  End;
+  Case C Of
+   '{': Begin
+    FlushWord;
+    Inc(GroupDepth);
+    If FmtStack < 16 Then Begin
+     Inc(FmtStack); SavedFmt[FmtStack] := Fmt;
+    End;
+   End;
+   '}': Begin
+    FlushWord;
+    If GroupDepth > 0 Then Dec(GroupDepth);
+    If InV And (PendingTarget <> '') Then Begin
+     For K := HotRunsStart To HlpvNumRuns Do
+      If (K >= 1) And (K <= HlpvNumRuns) And HlpvRuns[K].Hot Then
+       HlpvRuns[K].Target := PendingTarget;
+     LastTarget := ''; PendingTarget := ''; InV := False;
+    End;
+    If InUldb And (GroupDepth < FmtStack) Then InUldb := False;
+    If FmtStack > 0 Then Begin
+     Fmt := SavedFmt[FmtStack]; Dec(FmtStack);
+    End;
+   End;
+   '\': Begin
+    If P >= EndP Then Break;
+    NextC := Chr(HlpvTopicData^[P]);
+    If (NextC = '\') Or (NextC = '{') Or (NextC = '}') Then Begin
+     AppendCh(NextC); Inc(P);
+    End Else If NextC = '''' Then Begin
+     Inc(P);
+     If P + 1 < EndP Then Begin
+      HexHi := Chr(HlpvTopicData^[P]);
+      HexLo := Chr(HlpvTopicData^[P + 1]);
+      Inc(P, 2); B := 0;
+      Case HexHi Of
+       '0'..'9': B := (Ord(HexHi) - Ord('0')) Shl 4;
+       'a'..'f': B := (Ord(HexHi) - Ord('a') + 10) Shl 4;
+       'A'..'F': B := (Ord(HexHi) - Ord('A') + 10) Shl 4;
+      End;
+      Case HexLo Of
+       '0'..'9': B := B Or (Ord(HexLo) - Ord('0'));
+       'a'..'f': B := B Or (Ord(HexLo) - Ord('a') + 10);
+       'A'..'F': B := B Or (Ord(HexLo) - Ord('A') + 10);
+      End;
+      If B >= 32 Then AppendCh(Chr(B));
+     End;
+    End Else If NextC = '*' Then Begin
+     Inc(P);
+    End Else If NextC = #10 Then Begin
+     NewLine; Inc(P);
+    End Else If NextC = #13 Then Begin
+     Inc(P);
+     If (P < EndP) And (HlpvTopicData^[P] = 10) Then Inc(P);
+    End Else Begin
+     CmdName := '';
+     While (P < EndP) And (HlpvTopicData^[P] >= Ord('a')) And
+           (HlpvTopicData^[P] <= Ord('z')) Do Begin
+      If Length(CmdName) < 30 Then
+       CmdName := CmdName + Chr(HlpvTopicData^[P]);
+      Inc(P);
+     End;
+     HasParam := False; ParamNeg := False; CmdParam := 0;
+     If (P < EndP) And (Chr(HlpvTopicData^[P]) = '-') Then Begin
+      ParamNeg := True; Inc(P);
+     End;
+     While (P < EndP) And (HlpvTopicData^[P] >= Ord('0')) And
+           (HlpvTopicData^[P] <= Ord('9')) Do Begin
+      HasParam := True;
+      CmdParam := CmdParam * 10 + (HlpvTopicData^[P] - Ord('0'));
+      Inc(P);
+     End;
+     If ParamNeg Then CmdParam := -CmdParam;
+     If (P < EndP) And (HlpvTopicData^[P] = 32) Then Inc(P);
+     SkipCmd := False;
+     If CmdName = 'b' Then Fmt.Bold := Not (HasParam And (CmdParam = 0))
+     Else If CmdName = 'i' Then Fmt.Italic := Not (HasParam And (CmdParam = 0))
+     Else If CmdName = 'ul' Then Fmt.Under := True
+     Else If CmdName = 'ulnone' Then Fmt.Under := False
+     Else If CmdName = 'uldb' Then Begin
+      Fmt.Under := True; Fmt.Hot := True; Fmt.Color := Blue;
+      InUldb := True; HotRunsStart := HlpvNumRuns + 1;
+     End
+     Else If CmdName = 'v' Then Begin
+      InV := True; PendingTarget := ''; Continue;
+     End
+     Else If CmdName = 'plain' Then Begin
+      Fmt.Bold := False; Fmt.Italic := False;
+      Fmt.Under := False; Fmt.Hot := False; Fmt.Color := Black;
+     End
+     Else If CmdName = 'par' Then NewLine
+     Else If CmdName = 'line' Then NewLine
+     Else If CmdName = 'tab' Then Begin
+      FlushWord;
+      CurX := ((CurX - HLPV_CONTENT_X) Div 64 + 1) * 64 + HLPV_CONTENT_X;
+     End
+     Else If CmdName = 'cf' Then Begin
+      If HasParam Then
+       Case CmdParam Of
+        0: Fmt.Color := Black;
+        1: Fmt.Color := Red;
+        2: Fmt.Color := Green;
+        3: Fmt.Color := Blue;
+       Else
+        Fmt.Color := Black;
+       End;
+     End
+     Else If (CmdName = 'fonttbl') Or (CmdName = 'colortbl') Or
+             (CmdName = 'stylesheet') Or (CmdName = 'info') Or
+             (CmdName = 'footnote') Or (CmdName = 'header') Or
+             (CmdName = 'footer') Or (CmdName = 'pict') Or
+             (CmdName = 'field') Or (CmdName = 'xe') Or
+             (CmdName = 'comment') Then Begin
+      IgnoreDepth := 1; SkipCmd := True;
+     End;
+     If SkipCmd Then Continue;
+    End;
+   End;
+   #13: ;
+   #10: If WordS <> '' Then AppendCh(' ');
+   #9: Begin
+    FlushWord;
+    CurX := ((CurX - HLPV_CONTENT_X) Div 64 + 1) * 64 + HLPV_CONTENT_X;
+   End;
+  Else
+   If InV Then PendingTarget := PendingTarget + C
+   Else AppendCh(C);
+  End;
+ End;
+ FlushWord;
+ HlpvDocHeight := CurY + HLPV_LINE_HEIGHT;
+End;
+
+Procedure HlpvDrawRun(Const R: THlpvRun; ScreenY: Integer);
+Var TX, TY: Integer;
+Begin
+ TX := HlpvViewX1 + R.X; TY := ScreenY;
+ If (TY + HLPV_LINE_HEIGHT < HlpvViewY1 + HLPV_TITLEBAR_H) Or
+    (TY > HlpvViewY2) Then Exit;
+ If R.Hot Then SetColor(Blue) Else SetColor(R.Color);
+ OutTextXY(TX, TY, R.Txt);
+ If R.Bold Then OutTextXY(TX + 1, TY, R.Txt);
+ If R.Italic Then Begin
+  If R.Hot Then SetColor(LightBlue) Else SetColor(R.Color);
+  OutTextXY(TX, TY + 1, R.Txt);
+ End;
+ If R.Under Or R.Hot Then Begin
+  If R.Hot Then SetColor(Blue) Else SetColor(R.Color);
+  Line(TX, TY + 9, TX + R.W - 1, TY + 9);
+ End;
+End;
+
+Procedure HlpvDraw;
+Var I, SY: Integer; S: String;
+Begin
+ HideMouseCursor;
+ SetFillStyle(SolidFill, White);
+ Bar(HlpvViewX1, HlpvViewY1, HlpvViewX2, HlpvViewY2);
+ SetFillStyle(SolidFill, Blue);
+ Bar(HlpvViewX1, HlpvViewY1,
+     HlpvViewX2, HlpvViewY1 + HLPV_TITLEBAR_H - 1);
+ SetColor(White);
+ S := 'Aide';
+ If HlpvTitle <> '' Then S := 'Aide - ' + HlpvTitle;
+ OutTextXY(HlpvViewX1 + 6, HlpvViewY1 + 6, S);
+ OutTextXY(HlpvViewX2 - 22, HlpvViewY1 + 6, '[X]');
+ SetColor(DarkGray);
+ Rectangle(HlpvViewX1, HlpvViewY1, HlpvViewX2, HlpvViewY2);
+ Line(HlpvViewX1, HlpvViewY1 + HLPV_TITLEBAR_H - 1,
+      HlpvViewX2, HlpvViewY1 + HLPV_TITLEBAR_H - 1);
+ For I := 1 To HlpvNumRuns Do Begin
+  SY := HlpvViewY1 + HLPV_TITLEBAR_H + HlpvRuns[I].Y - HlpvScrollY;
+  If (SY >= HlpvViewY1 + HLPV_TITLEBAR_H) And
+     (SY + HLPV_LINE_HEIGHT <= HlpvViewY2) Then
+   HlpvDrawRun(HlpvRuns[I], SY);
+ End;
+ SetFillStyle(SolidFill, LightGray);
+ Bar(HlpvViewX1 + 1, HlpvViewY2 - 14, HlpvViewX2 - 1, HlpvViewY2 - 1);
+ SetColor(Black);
+ OutTextXY(HlpvViewX1 + 6, HlpvViewY2 - 12,
+  'Esc=Fermer  Fleches/PgUp/PgDn=Defilement  Clic=Lien  Bksp=Retour');
+ ShowMouseCursor;
+End;
+
+Procedure HlpvScrollBy(Delta: Integer);
+Var MaxScroll: Integer;
+Begin
+ MaxScroll := HlpvDocHeight - (HlpvViewY2 - HlpvViewY1 - HLPV_TITLEBAR_H - 16);
+ If MaxScroll < 0 Then MaxScroll := 0;
+ Inc(HlpvScrollY, Delta);
+ If HlpvScrollY < 0 Then HlpvScrollY := 0;
+ If HlpvScrollY > MaxScroll Then HlpvScrollY := MaxScroll;
+End;
+
+Procedure HlpvNavigateTo(NewIdx: Integer);
+Begin
+ If (NewIdx < 1) Or (NewIdx > HlpvNumTopics) Then Exit;
+ If HlpvHistCount < 32 Then Begin
+  Inc(HlpvHistCount);
+  HlpvBackHistory[HlpvHistCount] := HlpvCurTopic;
+ End;
+ HlpvCurTopic := NewIdx;
+ HlpvScrollY := 0;
+ HlpvLayoutTopic(HlpvCurTopic, HlpvViewX2 - HlpvViewX1 - 16);
+End;
+
+Procedure HlpvNavigateBack;
+Begin
+ If HlpvHistCount <= 0 Then Exit;
+ HlpvCurTopic := HlpvBackHistory[HlpvHistCount];
+ Dec(HlpvHistCount);
+ HlpvScrollY := 0;
+ HlpvLayoutTopic(HlpvCurTopic, HlpvViewX2 - HlpvViewX1 - 16);
+End;
+
+Procedure HlpvHandleClick(MX, MY: Integer);
+Var I, SY, NewIdx: Integer;
+Begin
+ If (MY >= HlpvViewY1) And (MY < HlpvViewY1 + HLPV_TITLEBAR_H) And
+    (MX >= HlpvViewX2 - 24) And (MX <= HlpvViewX2 - 2) Then Begin
+  HlpvDone := True; Exit;
+ End;
+ For I := 1 To HlpvNumRuns Do Begin
+  If Not HlpvRuns[I].Hot Then Continue;
+  SY := HlpvViewY1 + HLPV_TITLEBAR_H + HlpvRuns[I].Y - HlpvScrollY;
+  If (MX >= HlpvViewX1 + HlpvRuns[I].X) And
+     (MX < HlpvViewX1 + HlpvRuns[I].X + HlpvRuns[I].W) And
+     (MY >= SY) And (MY < SY + HLPV_LINE_HEIGHT) Then Begin
+   If HlpvRuns[I].Target <> '' Then Begin
+    NewIdx := HlpvFindTopicByContext(HlpvRuns[I].Target);
+    If NewIdx > 0 Then HlpvNavigateTo(NewIdx);
+   End;
+   Exit;
+  End;
+ End;
+End;
+
+Procedure HlpvRun;
+Var
+ K: Char;
+ LeftDown, OldLeft: Boolean;
+ PageH: Integer;
+Begin
+ HlpvDone := False;
+ HlpvDraw;
+ While KeyPressed Do Begin
+  K := ReadKey;
+  If K = #0 Then If KeyPressed Then ReadKey;
+ End;
+ GetMouseLocal(MouseX, MouseY, MouseButtons);
+ OldLeft := (MouseButtons And 1) <> 0;
+ PageH := (HlpvViewY2 - HlpvViewY1) Div 2;
+ While Not HlpvDone Do Begin
+  If KeyPressed Then Begin
+   K := ReadKey;
+   If K = #0 Then Begin
+    K := ReadKey;
+    Case K Of
+     #72: HlpvScrollBy(-HLPV_LINE_HEIGHT);  { Up }
+     #80: HlpvScrollBy(HLPV_LINE_HEIGHT);   { Down }
+     #73: HlpvScrollBy(-PageH);             { PgUp }
+     #81: HlpvScrollBy(PageH);              { PgDn }
+     #71: HlpvScrollY := 0;                 { Home }
+     #79: HlpvScrollBy(HlpvDocHeight);      { End }
+    End;
+    HlpvDraw;
+   End
+   Else If K = #27 Then HlpvDone := True
+   Else If K = #8 Then Begin HlpvNavigateBack; HlpvDraw; End;
+  End;
+  GetMouseLocal(MouseX, MouseY, MouseButtons);
+  LeftDown := (MouseButtons And 1) <> 0;
+  If LeftDown And Not OldLeft Then Begin
+   HlpvHandleClick(MouseX, MouseY);
+   HlpvDraw;
+  End;
+  OldLeft := LeftDown;
+  Delay(15);
+ End;
+ OldMouseButtons := MouseButtons;
+End;
+
+Procedure HlpvShow(FileName, Context: String);
+Var Idx: Integer;
+Begin
+ If Not HlpvLoadFile(FileName) Then Begin
+  ShowMessage('Aide',
+   'Impossible de charger le fichier d''aide : ' + FileName);
+  NeedRedraw := True; Exit;
+ End;
+ If Not HlpvLoadTopicFile Then Begin
+  ShowMessage('Aide', 'Fichier |TOPIC introuvable ou corrompu.');
+  If HlpvFileBuf <> Nil Then Begin
+   FreeMem(HlpvFileBuf, HlpvFileLen); HlpvFileBuf := Nil;
+  End;
+  NeedRedraw := True; Exit;
+ End;
+ HlpvScanTopics;
+ HlpvLoadContext;
+ HlpvLoadSystemTitle;
+ If HlpvNumTopics = 0 Then Begin
+  ShowMessage('Aide', 'Aucun topic dans le fichier d''aide.');
+  If HlpvTopicData <> Nil Then Begin
+   FreeMem(HlpvTopicData, HlpvTopicLen); HlpvTopicData := Nil;
+  End;
+  FreeMem(HlpvFileBuf, HlpvFileLen); HlpvFileBuf := Nil;
+  NeedRedraw := True; Exit;
+ End;
+ Idx := 0;
+ If Context <> '' Then Idx := HlpvFindTopicByContext(Context);
+ If Idx = 0 Then Idx := 1;
+ HlpvCurTopic := Idx;
+ HlpvScrollY := 0;
+ HlpvHistCount := 0;
+ HlpvViewX1 := 8;
+ HlpvViewY1 := MenuBarHeight + 8;
+ HlpvViewX2 := ScreenWidth - 8;
+ HlpvViewY2 := ScreenHeight - 24;
+ HlpvLayoutTopic(HlpvCurTopic, HlpvViewX2 - HlpvViewX1 - 16);
+ HlpvRun;
+ If HlpvTopicData <> Nil Then Begin
+  FreeMem(HlpvTopicData, HlpvTopicLen); HlpvTopicData := Nil;
+ End;
+ If HlpvFileBuf <> Nil Then Begin
+  FreeMem(HlpvFileBuf, HlpvFileLen); HlpvFileBuf := Nil;
+ End;
+ NeedRedraw := True;
+End;
+
+Procedure OpenHelpFile(BaseName, Context: String);
+Var
+ Candidates: Array[1..5] Of String;
+ FN, ExeDir: String;
+ I: Integer; Found: Boolean;
+Begin
+ ExeDir := HlpvExtractPath(ParamStr(0));
+ Candidates[1] := ExeDir + 'HELP\PYMOL\' + BaseName;
+ Candidates[2] := 'HELP\PYMOL\' + BaseName;
+ Candidates[3] := ExeDir + BaseName;
+ Candidates[4] := BaseName;
+ Candidates[5] := '..\HELP\PYMOL\' + BaseName;
+ Found := False; FN := '';
+ For I := 1 To 5 Do
+  If (Not Found) And HlpvFileExists(Candidates[I]) Then Begin
+   FN := Candidates[I]; Found := True;
+  End;
+ If Not Found Then Begin
+  ShowMessage('Documentation',
+   'Fichier d''aide ' + BaseName + ' introuvable.');
+  NeedRedraw := True; Exit;
+ End;
+ If HlpvEndsWith(FN, '.HLP') Then HlpvShow(FN, Context)
+ Else ShowMessage('Aide', 'Format non supporte: ' + FN);
+End;
+
 Procedure DispatchMenu(MenuIdx, ItemIdx: Integer);
 Var S: String;
 Begin
@@ -3734,20 +4520,11 @@ Begin
    End;
   MENU_HELP:
    Case ItemIdx Of
-    0: ShowMessage('Documentation',
-                   'PyMOL Clone - QChimie - documentation : voir README.');
-    1: ShowMessage('Commandes',
-                   'load, save, select, color, show, hide, bg_color, ' +
-                   'rotate, zoom, reset, quit, spin, ray, run.');
-    2: ShowMessage('Raccourcis',
-                   'F1=Aide F3=Recharger Tab=Console L/S/C/B/R=Mode ' +
-                   'A=Axes G=Grille H=Hydrogenes Esc=Menu');
-    3: ShowMessage('Souris',
-                   'Bouton gauche=Rotation  droit=Translation  ' +
-                   'central=Zoom');
-    5: ShowMessage('A propos',
-                   PROG_TITLE + #13 +
-                   'Auteur: Sylvain Maltais 2026');
+    0: OpenHelpFile('PYMOL.HLP', '');
+    1: OpenHelpFile('PYMOL.HLP', 'IDH_COMMANDES');
+    2: OpenHelpFile('PYMOL.HLP', 'IDH_RACCOURCIS');
+    3: OpenHelpFile('PYMOL.HLP', 'IDH_RACCOURCIS');
+    5: OpenHelpFile('PYMOL.HLP', 'IDH_APROPOS');
    End;
  End;
  NeedRedraw := True;
@@ -5663,7 +6440,7 @@ Begin
    NeedRedraw := True;
   End;
   Case K Of
-   #59: ShowMessage('Aide', 'F1=Aide  F3=Recharger  Tab=Console  Echap=Menu');
+   #59: OpenHelpFile('PYMOL.HLP', '');  { F1 }
    #61: DoReload;          { F3 }
    #62: SimSpinning := Not SimSpinning;        { F4 }
    #63: DispatchMenu(MENU_DISPLAY, 0);   { F5 }
@@ -5976,9 +6753,9 @@ BEGIN
  {$ENDIF}
  If(ParamStr(1)='/?')or(ParamStr(1)='--help')or(ParamStr(1)='-h')Then Begin
   WriteLn('PYMOL - Cette commande permet de visualiser, manipuler et ',
-          'analyser des structures mol‚culaires tridimensionnelles, ',
-          'notamment des prot‚ines, des acides nucl‚iques et des ',
-          'compos‚s chimiques, … l''aide du logiciel PyMOL.');
+          'analyser des structures molï¿½culaires tridimensionnelles, ',
+          'notamment des protï¿½ines, des acides nuclï¿½iques et des ',
+          'composï¿½s chimiques, ï¿½ l''aide du logiciel PyMOL.');
   WriteLn;
   WriteLn('Syntaxe : PYMOL [fichier.PDB]');
   WriteLn;
