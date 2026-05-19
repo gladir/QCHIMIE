@@ -3822,6 +3822,7 @@ Begin
    #62: SimSpinning := Not SimSpinning;        { F4 }
    #63: DispatchMenu(MENU_DISPLAY, 0);   { F5 }
    #68: Running := False;                      { F10 }
+   #107: Running := False;                     { Alt+F4 }
    #71: ZoomToFit;                             { Home }
    #75: RotY := RotY - 5;
    #77: RotY := RotY + 5;
