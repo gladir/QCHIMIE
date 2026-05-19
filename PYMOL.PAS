@@ -3894,6 +3894,22 @@ Begin
  RightDown := (MouseButtons And 2) <> 0;
  MidDown   := (MouseButtons And 4) <> 0;
  OldLeft   := (OldMouseButtons And 1) <> 0;
+ { Survol : menu ouvert -> changement automatique de menu / item }
+ If MenuActive And ((MouseX <> OldMouseX) Or (MouseY <> OldMouseY)) Then Begin
+  Hit := MenuBarHitTest(MouseX, MouseY);
+  If (Hit >= 0) And (Hit <> ActiveMenu) Then Begin
+   ActiveMenu := Hit; ActiveMenuItem := -1;
+   NeedRedraw := True;
+  End
+  Else Begin
+   ItemHit := MenuItemHitTest(MouseX, MouseY, ActiveMenu);
+   If (ItemHit >= 0) And (ItemHit <> ActiveMenuItem) And
+      (Not Menus[ActiveMenu].Items[ItemHit].Separator) Then Begin
+    ActiveMenuItem := ItemHit;
+    NeedRedraw := True;
+   End;
+  End;
+ End;
  { Front bouton gauche }
  If LeftDown And (Not OldLeft) Then Begin
   Hit := MenuBarHitTest(MouseX, MouseY);
