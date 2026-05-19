@@ -3,6 +3,11 @@ Liste de commandes écrite en Pascal (Turbo Pascal ou Free Pascal) sur la chimie
 
 ![image](https://user-images.githubusercontent.com/11842176/173241903-be1d3f65-5db1-4675-b16a-ba13d25c9800.png)
 
+Aperçu de la commande PyMOL :
+
+<img width="638" height="477" alt="image" src="https://github.com/user-attachments/assets/1b5824e1-6cc2-4585-bce9-04c317f3e912" />
+
+
 <h2>Liste des fichiers</h3>
 
 Voici la liste des différents fichiers proposés dans QChimie :
