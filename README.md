@@ -24,6 +24,10 @@ Voici la liste des différents fichiers proposés dans QChimie :
       <td><b>FINDELEM.PAS</b></td>
       <td>Cette commande permet de détecter les éléments chimiques mentionné dans un texte.</td>
   </tr>
+  <tr>
+	  <td><b>PYMOL.PAS</b></td>
+	  <td>Cette commande permet de visualiser, manipuler et analyser des structures moléculaires tridimensionnelles, not amment des protéines, des acides nucléiques et des composés chimiques, à l'aide du logiciel PyMOL.</td>
+  </tr>
  </table>
 
 <h2>Compilation</h2>
