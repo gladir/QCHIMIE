@@ -183,7 +183,7 @@ Type
   Title     : String[16];
   Items     : Array[0..MAX_MENU_ITEMS-1] Of TMenuItem;
   ItemCount : Byte;
-  X, Width  : Integer;
+  X, Y, Width : Integer;
  End;
 
  TElementInfo = Record
@@ -232,6 +232,7 @@ Var
 
  { Menus }
  Menus       : Array[0..NUM_MENUS-1] Of TMenu;
+ MenuBarHeight : Integer;
  MenuActive  : Boolean;
  ActiveMenu  : Integer;
  ActiveMenuItem : Integer;
@@ -1912,7 +1913,7 @@ Procedure ZoomToFit;
 Var
  Avail : Integer;
 Begin
- Avail := ScreenHeight - MENUBAR_HEIGHT - STATUSBAR_HEIGHT;
+ Avail := ScreenHeight - MenuBarHeight - STATUSBAR_HEIGHT;
  If ConsoleVisible Then Dec(Avail, CONSOLE_HEIGHT);
  If Avail < 100 Then Avail := 100;
  If Mol.Radius > 0.001 Then
@@ -2613,26 +2614,45 @@ Begin
  MI(Menus[MENU_HELP], 5, 'A propos...',     '');
 End;
 
+Procedure LayoutMenuBar;
+Var I, X, W, MaxX, Row, TitleW : Integer;
+Begin
+ TitleW := 8 * Length(PROG_TITLE) + 8;
+ MaxX := ScreenWidth - TitleW;
+ X := 5; Row := 0;
+ For I := 0 To NUM_MENUS - 1 Do Begin
+  W := TextWidth(Menus[I].Title);
+  If (Row = 0) And ((X + W + 12) > MaxX) Then Begin
+   X := 5; Row := 1;
+   MaxX := ScreenWidth - 5;
+  End;
+  Menus[I].X := X;
+  Menus[I].Y := Row * MENUBAR_HEIGHT;
+  X := X + W + 12;
+ End;
+ If Row = 0 Then MenuBarHeight := MENUBAR_HEIGHT
+ Else MenuBarHeight := 2 * MENUBAR_HEIGHT;
+End;
+
 Procedure DrawMenuBar;
 Var
- I, X, W: Integer;
+ I, W : Integer;
 Begin
+ LayoutMenuBar;
  SetFillStyle(SolidFill, LightGray);
- Bar(0, 0, ScreenWidth - 1, MENUBAR_HEIGHT - 1);
+ Bar(0, 0, ScreenWidth - 1, MenuBarHeight - 1);
  SetColor(DarkGray);
- Line(0, MENUBAR_HEIGHT - 1, ScreenWidth - 1, MENUBAR_HEIGHT - 1);
- X := 5;
+ Line(0, MenuBarHeight - 1, ScreenWidth - 1, MenuBarHeight - 1);
  For I := 0 To NUM_MENUS - 1 Do Begin
-  Menus[I].X := X;
   W := TextWidth(Menus[I].Title);
   If MenuActive And (ActiveMenu = I) Then Begin
    SetFillStyle(SolidFill, Blue);
-   Bar(X - 2, 2, X + W + 2, MENUBAR_HEIGHT - 3);
+   Bar(Menus[I].X - 2, Menus[I].Y + 2,
+       Menus[I].X + W + 2, Menus[I].Y + MENUBAR_HEIGHT - 3);
    SetColor(White);
   End
   Else SetColor(Black);
-  OutTextXY(X, 5, Menus[I].Title);
-  X := X + W + 12;
+  OutTextXY(Menus[I].X, Menus[I].Y + 5, Menus[I].Title);
  End;
  SetColor(DarkGray);
  OutTextXY(ScreenWidth - 8 * Length(PROG_TITLE) - 4, 5, PROG_TITLE);
@@ -2655,7 +2675,7 @@ Begin
  If Wmax < 180 Then Wmax := 180;
  Menus[MenuIdx].Width := Wmax;
  X := Menus[MenuIdx].X - 2;
- Y := MENUBAR_HEIGHT;
+ Y := Menus[MenuIdx].Y + MENUBAR_HEIGHT;
  W := Wmax;
  H := Menus[MenuIdx].ItemCount * ItemHeight + 4;
  { Decale a gauche si depasse }
@@ -2703,11 +2723,12 @@ Function MenuBarHitTest(Mx, My: Integer): Integer;
 Var I, X1, X2: Integer;
 Begin
  MenuBarHitTest := -1;
- If My >= MENUBAR_HEIGHT Then Exit;
+ If My >= MenuBarHeight Then Exit;
  For I := 0 To NUM_MENUS - 1 Do Begin
   X1 := Menus[I].X - 2;
   X2 := Menus[I].X + TextWidth(Menus[I].Title) + 2;
-  If (Mx >= X1) And (Mx <= X2) Then Begin
+  If (Mx >= X1) And (Mx <= X2) And
+     (My >= Menus[I].Y) And (My < Menus[I].Y + MENUBAR_HEIGHT) Then Begin
    MenuBarHitTest := I; Exit;
   End;
  End;
@@ -2718,7 +2739,7 @@ Var Idx, Top, Bot, X, W: Integer;
 Begin
  MenuItemHitTest := -1;
  If (MenuIdx < 0) Or (MenuIdx >= NUM_MENUS) Then Exit;
- Top := MENUBAR_HEIGHT;
+ Top := Menus[MenuIdx].Y + MENUBAR_HEIGHT;
  Bot := Top + Menus[MenuIdx].ItemCount * 16 + 4;
  X := Menus[MenuIdx].X - 2;
  W := Menus[MenuIdx].Width;
@@ -2750,6 +2771,37 @@ End;
 { Dialogues : message, saisie                                           }
 { --------------------------------------------------------------------- }
 
+Function PtInRect(MX, MY, X1, Y1, X2, Y2: Integer): Boolean;
+Begin
+ PtInRect := (MX >= X1) And (MX <= X2) And (MY >= Y1) And (MY <= Y2);
+End;
+
+Procedure DrawButton(X1, Y1, X2, Y2: Integer;
+                     Const Caption: String; Focused: Boolean);
+Var TX, TY: Integer;
+Begin
+ SetFillStyle(SolidFill, LightGray);
+ Bar(X1+1, Y1+1, X2-1, Y2-1);
+ { Bord 3D releve }
+ SetColor(White);
+ Line(X1, Y1, X2, Y1);
+ Line(X1, Y1, X1, Y2);
+ SetColor(DarkGray);
+ Line(X1+1, Y2-1, X2-1, Y2-1);
+ Line(X2-1, Y1+1, X2-1, Y2-1);
+ SetColor(Black);
+ Line(X1, Y2, X2, Y2);
+ Line(X2, Y1, X2, Y2);
+ TX := (X1 + X2 - TextWidth(Caption)) Div 2;
+ TY := (Y1 + Y2 - TextHeight(Caption)) Div 2;
+ SetColor(Black);
+ OutTextXY(TX, TY, Caption);
+ If Focused Then Begin
+  SetColor(Black);
+  Rectangle(X1+3, Y1+3, X2-3, Y2-3);
+ End;
+End;
+
 Procedure DrawDialogBox(X1, Y1, X2, Y2: Integer; Const Title: String);
 Begin
  SetFillStyle(SolidFill, LightGray);
@@ -2766,10 +2818,14 @@ Begin
 End;
 
 Procedure ShowMessage(Const Title, Msg: String);
+Const BW = 70; BH = 22;
 Var
  X1, Y1, X2, Y2 : Integer;
+ BX1, BY1, BX2, BY2 : Integer;
  W : Integer;
  K : Char;
+ Done : Boolean;
+ LeftDown, OldLeft : Boolean;
 Begin
  W := TextWidth(Msg) + 40;
  If W < TextWidth(Title) + 40 Then W := TextWidth(Title) + 40;
@@ -2778,61 +2834,67 @@ Begin
  Y1 := (ScreenHeight - 110) Div 2;
  X2 := X1 + W;
  Y2 := Y1 + 110;
+ BX1 := (X1 + X2 - BW) Div 2; BY1 := Y2 - BH - 10;
+ BX2 := BX1 + BW;             BY2 := BY1 + BH;
  HideMouseCursor;
  DrawDialogBox(X1, Y1, X2, Y2, Title);
- OutTextXY(X1 + 20, Y1 + 35, Msg);
- SetFillStyle(SolidFill, DarkGray);
- Bar(X1 + W Div 2 - 28, Y2 - 28, X1 + W Div 2 + 28, Y2 - 10);
- SetColor(White);
- OutTextXY(X1 + W Div 2 - 8, Y2 - 24, 'OK');
  SetColor(Black);
+ OutTextXY(X1 + 20, Y1 + 35, Msg);
+ DrawButton(BX1, BY1, BX2, BY2, 'OK', True);
  ShowMouseCursor;
- Repeat
-  GetMouseLocal(MouseX, MouseY, MouseButtons);
-  If (MouseButtons And 1) = 0 Then Break;
-  Delay(10);
- Until False;
+ { Drainer clavier et boutons souris en attente }
  While KeyPressed Do Begin
-  K := ReadKey;
-  If K = #0 Then If KeyPressed Then ReadKey;
+  K := ReadKey; If K = #0 Then If KeyPressed Then ReadKey;
  End;
- OldMouseButtons := 0;
- Repeat
+ GetMouseLocal(MouseX, MouseY, MouseButtons);
+ OldLeft := (MouseButtons And 1) <> 0;
+ Done := False;
+ While Not Done Do Begin
   If KeyPressed Then Begin
    K := ReadKey;
    If K = #0 Then Begin
     If KeyPressed Then ReadKey;
    End
-   Else If (K = #13) Or (K = #27) Or (K = ' ') Then Break;
+   Else If (K = #13) Or (K = #27) Or (K = ' ') Then Done := True;
   End;
   GetMouseLocal(MouseX, MouseY, MouseButtons);
-  If ((MouseButtons And 1) <> 0) And ((OldMouseButtons And 1) = 0) Then Begin
-   OldMouseButtons := MouseButtons;
-   Break;
-  End;
-  OldMouseButtons := MouseButtons;
+  LeftDown := (MouseButtons And 1) <> 0;
+  If LeftDown And Not OldLeft And
+     PtInRect(MouseX, MouseY, BX1, BY1, BX2, BY2) Then
+   Done := True;
+  OldLeft := LeftDown;
   Delay(15);
- Until False;
+ End;
+ OldMouseButtons := MouseButtons;
 End;
 
 Function InputString(Const Title, Prompt: String;
                      Var Value: String): Boolean;
+Const BW = 80; BH = 22;
 Var
  X1, Y1, X2, Y2 : Integer;
+ BOk1, BOk2, BCa1, BCa2, BBY1, BBY2 : Integer;
  W              : Integer;
  K              : Char;
  Done, OK       : Boolean;
+ LeftDown, OldLeft : Boolean;
 Begin
  W := 400;
  X1 := (ScreenWidth - W) Div 2;
- Y1 := (ScreenHeight - 120) Div 2;
+ Y1 := (ScreenHeight - 140) Div 2;
  X2 := X1 + W;
- Y2 := Y1 + 120;
+ Y2 := Y1 + 140;
+ BBY1 := Y2 - BH - 10; BBY2 := BBY1 + BH;
+ BOk1 := X1 + W Div 2 - BW - 10; BOk2 := BOk1 + BW;
+ BCa1 := X1 + W Div 2 + 10;       BCa2 := BCa1 + BW;
  HideMouseCursor;
  DrawDialogBox(X1, Y1, X2, Y2, Title);
+ SetColor(Black);
  OutTextXY(X1 + 15, Y1 + 30, Prompt);
  Done := False;
  OK   := False;
+ GetMouseLocal(MouseX, MouseY, MouseButtons);
+ OldLeft := (MouseButtons And 1) <> 0;
  ShowMouseCursor;
  While Not Done Do Begin
   HideMouseCursor;
@@ -2841,8 +2903,26 @@ Begin
   SetColor(Black);
   Rectangle(X1 + 14, Y1 + 49, X2 - 14, Y1 + 71);
   OutTextXY(X1 + 18, Y1 + 56, Value + '_');
+  DrawButton(BOk1, BBY1, BOk2, BBY2, 'OK',      False);
+  DrawButton(BCa1, BBY1, BCa2, BBY2, 'Annuler', False);
   ShowMouseCursor;
-  While Not KeyPressed Do Delay(10);
+  { Poll clavier + souris }
+  Repeat
+   GetMouseLocal(MouseX, MouseY, MouseButtons);
+   LeftDown := (MouseButtons And 1) <> 0;
+   If LeftDown And Not OldLeft Then Begin
+    If PtInRect(MouseX, MouseY, BOk1, BBY1, BOk2, BBY2) Then Begin
+     Done := True; OK := True;
+    End
+    Else If PtInRect(MouseX, MouseY, BCa1, BBY1, BCa2, BBY2) Then Begin
+     Done := True; OK := False;
+    End;
+   End;
+   OldLeft := LeftDown;
+   If Done Or KeyPressed Then Break;
+   Delay(15);
+  Until False;
+  If Done Then Break;
   K := ReadKey;
   If K = #0 Then Begin
    ReadKey;
@@ -2855,6 +2935,7 @@ Begin
   Else If (Ord(K) >= 32) And (Length(Value) < 80) Then
    Value := Value + K;
  End;
+ OldMouseButtons := MouseButtons;
  InputString := OK;
 End;
 
@@ -2952,14 +3033,17 @@ End;
 
 Function FileOpenDialog(Const Title: String; Var FileName: String;
                         Const InitialMask: String): Boolean;
+Const BW = 80; BH = 22;
 Var
  X1, Y1, X2, Y2 : Integer;
  LX1, LY1, LX2, LY2 : Integer;
- K : Char;
+ BOu1, BOu2, BAn1, BAn2, BMa1, BMa2, BBY1, BBY2 : Integer;
+ K, SimK : Char;
  Done, Result : Boolean;
  OldDir, CurDir : String;
  NewMask : String;
  MaxLn : Integer;
+ LeftDown, OldLeft : Boolean;
 Begin
  FileOpenDialog := False;
  GetDir(0, OldDir);
@@ -2968,31 +3052,55 @@ Begin
  FDTop := 0; FDSel := 0;
  X1 := 60; Y1 := 60;
  X2 := ScreenWidth - 60; Y2 := ScreenHeight - 60;
- LX1 := X1 + 10; LY1 := Y1 + 50; LX2 := X2 - 10; LY2 := Y2 - 80;
+ LX1 := X1 + 10; LY1 := Y1 + 50; LX2 := X2 - 10; LY2 := Y2 - 90;
  MaxLn := (LY2 - LY1 - 2) Div 10;
+ BBY1 := Y2 - BH - 8; BBY2 := BBY1 + BH;
+ BOu1 := X2 - 3*(BW + 8) - 10; BOu2 := BOu1 + BW;
+ BAn1 := X2 - 2*(BW + 8) - 10; BAn2 := BAn1 + BW;
+ BMa1 := X2 -   (BW + 8) - 10; BMa2 := BMa1 + BW;
  HideMouseCursor;
  DrawDialogBox(X1, Y1, X2, Y2, Title);
  GetDir(0, CurDir);
+ SetColor(Black);
  OutTextXY(X1 + 10, Y1 + 22, 'Dossier : ' + CurDir);
  OutTextXY(X1 + 10, Y1 + 35, 'Masque : ' + FDMask);
  FD_DrawList(LX1, LY1, LX2, LY2);
- OutTextXY(X1 + 10, Y2 - 70, 'Fichier:');
- SetColor(Black);
- OutTextXY(X1 + 10, Y2 - 28, 'Enter=Ouvrir  Echap=Annuler  Tab=Masque  Fleches=Naviguer');
+ OutTextXY(X1 + 10, Y2 - 80, 'Fichier:');
+ DrawButton(BOu1, BBY1, BOu2, BBY2, 'Ouvrir',  True);
+ DrawButton(BAn1, BBY1, BAn2, BBY2, 'Annuler', False);
+ DrawButton(BMa1, BBY1, BMa2, BBY2, 'Masque',  False);
  ShowMouseCursor;
  Done := False; Result := False;
  FDFileName := '';
+ SimK := #0;
+ GetMouseLocal(MouseX, MouseY, MouseButtons);
+ OldLeft := (MouseButtons And 1) <> 0;
  While Not Done Do Begin
   HideMouseCursor;
   SetFillStyle(SolidFill, White);
-  Bar(X1 + 80, Y2 - 73, X2 - 10, Y2 - 60);
+  Bar(X1 + 80, Y2 - 83, X2 - 10, Y2 - 70);
   SetColor(Black);
-  Rectangle(X1 + 80, Y2 - 74, X2 - 9, Y2 - 59);
-  OutTextXY(X1 + 84, Y2 - 71, FDFileName + '_');
+  Rectangle(X1 + 80, Y2 - 84, X2 - 9, Y2 - 69);
+  OutTextXY(X1 + 84, Y2 - 81, FDFileName + '_');
   FD_DrawList(LX1, LY1, LX2, LY2);
   ShowMouseCursor;
-  While Not KeyPressed Do Delay(15);
-  K := ReadKey;
+  { Poll clavier + souris pour les boutons }
+  Repeat
+   GetMouseLocal(MouseX, MouseY, MouseButtons);
+   LeftDown := (MouseButtons And 1) <> 0;
+   If LeftDown And Not OldLeft Then Begin
+    If PtInRect(MouseX, MouseY, BOu1, BBY1, BOu2, BBY2) Then SimK := #13
+    Else If PtInRect(MouseX, MouseY, BAn1, BBY1, BAn2, BBY2) Then SimK := #27
+    Else If PtInRect(MouseX, MouseY, BMa1, BBY1, BMa2, BBY2) Then SimK := #9;
+   End;
+   OldLeft := LeftDown;
+   If KeyPressed Or (SimK <> #0) Then Break;
+   Delay(15);
+  Until False;
+  If SimK <> #0 Then Begin
+   K := SimK; SimK := #0;
+  End
+  Else K := ReadKey;
   If K = #0 Then Begin
    K := ReadKey;
    Case K Of
@@ -3055,11 +3163,13 @@ Begin
    End;
    HideMouseCursor;
    DrawDialogBox(X1, Y1, X2, Y2, Title);
+   SetColor(Black);
    OutTextXY(X1 + 10, Y1 + 22, 'Dossier : ' + CurDir);
    OutTextXY(X1 + 10, Y1 + 35, 'Masque : ' + FDMask);
-   OutTextXY(X1 + 10, Y2 - 70, 'Fichier:');
-   OutTextXY(X1 + 10, Y2 - 28,
-             'Enter=Ouvrir  Echap=Annuler  Tab=Masque  Fleches=Naviguer');
+   OutTextXY(X1 + 10, Y2 - 80, 'Fichier:');
+   DrawButton(BOu1, BBY1, BOu2, BBY2, 'Ouvrir',  True);
+   DrawButton(BAn1, BBY1, BAn2, BBY2, 'Annuler', False);
+   DrawButton(BMa1, BBY1, BMa2, BBY2, 'Masque',  False);
    ShowMouseCursor;
   End
   Else If K = #8 Then Begin
@@ -3547,7 +3657,7 @@ Begin
                    'central=Zoom');
     5: ShowMessage('A propos',
                    PROG_TITLE + #13 +
-                   'Auteur: Sylvain Maltais  (c) 2026');
+                   'Auteur: Sylvain Maltais 2026');
    End;
  End;
  NeedRedraw := True;
@@ -3935,7 +4045,7 @@ Begin
    End;
    NeedRedraw := True;
   End
-  Else If (MouseY > MENUBAR_HEIGHT) And (MouseY < CanvasBottom) Then Begin
+  Else If (MouseY > MenuBarHeight) And (MouseY < CanvasBottom) Then Begin
    DragMode := 1;
    DragStartX := MouseX; DragStartY := MouseY;
    DragStartRotX := RotX; DragStartRotY := RotY;
@@ -3943,7 +4053,7 @@ Begin
  End;
  { Front bouton droit }
  If RightDown And ((OldMouseButtons And 2) = 0) Then Begin
-  If (MouseY > MENUBAR_HEIGHT) And (MouseY < CanvasBottom) Then Begin
+  If (MouseY > MenuBarHeight) And (MouseY < CanvasBottom) Then Begin
    DragMode := 2;
    DragStartX := MouseX; DragStartY := MouseY;
    DragStartPanX := ViewPanX; DragStartPanY := ViewPanY;
@@ -4039,13 +4149,15 @@ Begin
  OldMouseButtons := 0;
  DragMode := 0;
 
- CanvasTop := MENUBAR_HEIGHT;
+ InitMenus;
+ LayoutMenuBar;
+
+ CanvasTop := MenuBarHeight;
  If ConsoleVisible Then
   CanvasBottom := ScreenHeight - STATUSBAR_HEIGHT - CONSOLE_HEIGHT - 1
  Else
   CanvasBottom := ScreenHeight - STATUSBAR_HEIGHT - 1;
 
- InitMenus;
  InitMouseDriver;
 
  ConsoleSay(PROG_TITLE);
