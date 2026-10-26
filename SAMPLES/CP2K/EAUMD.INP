@@ -1,0 +1,47 @@
+# Dynamique moleculaire ab initio (Born-Oppenheimer) de l'eau en Hartree-Fock / STO-3G
+# Le pas de temps est court : les forces sont obtenues par differences finies
+&GLOBAL
+  PROJECT EAUMD
+  RUN_TYPE MD
+  PRINT_LEVEL MEDIUM
+&END GLOBAL
+&FORCE_EVAL
+  METHOD QUICKSTEP
+  &DFT
+    &SCF
+      EPS_SCF 1.0E-7
+    &END SCF
+    &XC
+      &XC_FUNCTIONAL NONE
+      &END XC_FUNCTIONAL
+      &HF
+        FRACTION 1.0
+      &END HF
+    &END XC
+  &END DFT
+  &SUBSYS
+    &CELL
+      ABC [angstrom] 10.0 10.0 10.0
+      PERIODIC NONE
+    &END CELL
+    &COORD
+      O 0.000000 0.000000 0.117790
+      H 0.000000 0.855453 -0.471161
+      H 0.000000 -0.755453 -0.471161
+    &END COORD
+    &KIND H
+      BASIS_SET STO-3G
+    &END KIND
+    &KIND O
+      BASIS_SET STO-3G
+    &END KIND
+  &END SUBSYS
+&END FORCE_EVAL
+&MOTION
+  &MD
+    ENSEMBLE NVE
+    STEPS 20
+    TIMESTEP 0.2
+    TEMPERATURE 300
+  &END MD
+&END MOTION

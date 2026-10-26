@@ -1,0 +1,180 @@
+ **** **** ******  **  PROGRAM STARTED AT                2026-10-26 17:18:06.140
+ ***** ** ***  *** **   PROGRAM STARTED ON                             localhost
+ **    ****   ******    PROGRAM STARTED BY                                  user
+ ***** ** ** ** ** **   PROGRAM PROCESS ID                                     0
+  **** **  *******  **  PROGRAM STARTED IN       /home/user/QCHIMIE/SAMPLES/CP2K
+
+ CP2K| version string:                                       CP2K version 2024.1
+ CP2K| source code revision number:                          QChimie Pascal 1.00
+ CP2K| cp2kflags:                                                   pascal clone
+ CP2K| is freely available from                            https://www.cp2k.org/
+ CP2K| Program compiled on                                           Free Pascal
+ CP2K| Input file name                                                  AR32.INP
+
+ GLOBAL| Force Environment number                                              1
+ GLOBAL| Basis set file name                                           BASIS_SET
+ GLOBAL| Potential file name                                           POTENTIAL
+ GLOBAL| MM Potential file name                                     MM_POTENTIAL
+ GLOBAL| Coordinate file name                                      __STD_INPUT__
+ GLOBAL| Method name                                                        CP2K
+ GLOBAL| Project name                                                       AR32
+ GLOBAL| Run type                                                   ENERGY_FORCE
+ GLOBAL| Global print level                                               MEDIUM
+ GLOBAL| Total number of message passing processes                             1
+ GLOBAL| Number of threads for this process                                    1
+ GLOBAL| This output is from process                                           0
+
+
+ CELL| Volume [angstrom^3]:                                             1164.253
+ CELL| Vector a [angstrom]:      10.520     0.000     0.000    |a| =        10.520
+ CELL| Vector b [angstrom]:       0.000    10.520     0.000    |b| =        10.520
+ CELL| Vector c [angstrom]:       0.000     0.000    10.520    |c| =        10.520
+ CELL| Angle (b,c), alpha [degree]:                                       90.000
+ CELL| Angle (a,c), beta  [degree]:                                       90.000
+ CELL| Angle (a,b), gamma [degree]:                                       90.000
+ CELL| Requested initial symmetry:                                          NONE
+ CELL| Numerically orthorhombic:                                             YES
+ CELL| Periodicity:                                                          XYZ
+
+ TOPOLOGY INFO - GENERATE
+ TOPOLOGY| Number of atoms:                                                   32
+ TOPOLOGY| Number of bonds:                                                    0
+ TOPOLOGY| Number of molecules:                                               32
+
+
+ ATOMIC KIND INFORMATION
+
+  1. Atomic kind: Ar                   Number of atoms:     32
+
+     Atomic weight:                                 39.9480
+     Element symbol:                                                    Ar
+
+
+ MODULE FIST:  ATOMIC COORDINATES IN angstrom
+
+  Atom  Kind  Element       X           Y           Z          Z(eff)       Mass
+
+      1     1     Ar 18   -0.078611    0.013269   -0.039013      0.0000     39.9480
+      2     1     Ar 18    2.661176    2.667716   -0.130341      0.0000     39.9480
+      3     1     Ar 18    2.483950    0.101241    2.557806      0.0000     39.9480
+      4     1     Ar 18   -0.079701    2.778693    2.621079      0.0000     39.9480
+      5     1     Ar 18    0.100938   -0.007094    5.301720      0.0000     39.9480
+      6     1     Ar 18    2.525185    2.670458    5.370414      0.0000     39.9480
+      7     1     Ar 18    2.636954    0.072376    7.941423      0.0000     39.9480
+      8     1     Ar 18   -0.130791    2.707469    7.917330      0.0000     39.9480
+      9     1     Ar 18   -0.059620    5.119304    0.109658      0.0000     39.9480
+     10     1     Ar 18    2.621825    7.955647    0.113644      0.0000     39.9480
+     11     1     Ar 18    2.694239    5.386330    2.598489      0.0000     39.9480
+     12     1     Ar 18    0.090273    7.873386    2.760676      0.0000     39.9480
+     13     1     Ar 18    0.113660    5.139236    5.150791      0.0000     39.9480
+     14     1     Ar 18    2.545096    8.029644    5.240849      0.0000     39.9480
+     15     1     Ar 18    2.667994    5.200308    7.892173      0.0000     39.9480
+     16     1     Ar 18   -0.034240    7.845273    7.915522      0.0000     39.9480
+     17     1     Ar 18    5.285276    0.121261    0.054595      0.0000     39.9480
+     18     1     Ar 18    8.018684    2.736920    0.147297      0.0000     39.9480
+     19     1     Ar 18    7.941382   -0.101070    2.738191      0.0000     39.9480
+     20     1     Ar 18    5.399390    2.751409    2.650732      0.0000     39.9480
+     21     1     Ar 18    5.324145   -0.086663    5.359482      0.0000     39.9480
+     22     1     Ar 18    7.912060    2.565487    5.129038      0.0000     39.9480
+     23     1     Ar 18    7.996183    0.146942    7.766555      0.0000     39.9480
+     24     1     Ar 18    5.350179    2.603139    7.785230      0.0000     39.9480
+     25     1     Ar 18    5.198167    5.340638    0.111830      0.0000     39.9480
+     26     1     Ar 18    7.753257    7.924360   -0.136518      0.0000     39.9480
+     27     1     Ar 18    7.955532    5.209286    2.744272      0.0000     39.9480
+     28     1     Ar 18    5.404191    7.891626    2.779553      0.0000     39.9480
+     29     1     Ar 18    5.202901    5.133091    5.289929      0.0000     39.9480
+     30     1     Ar 18    7.749413    7.799215    5.232381      0.0000     39.9480
+     31     1     Ar 18    7.923140    5.156860    7.752731      0.0000     39.9480
+     32     1     Ar 18    5.370334    7.834149    8.027598      0.0000     39.9480
+
+
+ TOTAL NUMBERS AND MAXIMUM NUMBERS
+
+  Total number of            - Atomic kinds:                             1
+                             - Atoms:                                   32
+                             - Molecules:                               32
+                             - Bonds:                                    0
+
+ FIST| Cutoff radius [angstrom]:                                          5.0000
+ FIST| Number of Lennard-Jones/Williams kind pairs:                            1
+ FIST| Coulomb:                                                                F
+ FIST| Bonds / bends / torsions with parameters:                       0 / 0 / 0
+
+
+ FIST ENERGIES [hartree]
+
+ FIST| Bond energy:                                                 0.0000000000
+ FIST| Bend energy:                                                 0.0000000000
+ FIST| Torsion energy:                                              0.0000000000
+ FIST| Van der Waals energy:                                       -0.0388444046
+ FIST| Coulomb energy:                                              0.0000000000
+
+
+ ENERGY| Total FORCE_EVAL ( FIST ) energy [a.u.]:                  -0.0388444046
+
+ ATOMIC FORCES in [a.u.]
+
+ # Atom   Kind   Element          X              Y              Z
+     1      1      Ar         0.00011899    -0.00010040     0.00022530
+     2      1      Ar        -0.00009286    -0.00001475     0.00086461
+     3      1      Ar         0.00083071     0.00033226     0.00032368
+     4      1      Ar         0.00158463    -0.00204264     0.00044025
+     5      1      Ar        -0.00083810     0.00044108    -0.00007154
+     6      1      Ar         0.00092552    -0.00084870    -0.00075484
+     7      1      Ar         0.00004237    -0.00056527    -0.00002797
+     8      1      Ar         0.00113551    -0.00034276    -0.00018059
+     9      1      Ar         0.00095198     0.00224368    -0.00100713
+    10      1      Ar         0.00002586     0.00002977    -0.00069280
+    11      1      Ar        -0.00015163    -0.00078321     0.00047092
+    12      1      Ar        -0.00110558     0.00003519    -0.00092196
+    13      1      Ar        -0.00059936     0.00138447     0.00113875
+    14      1      Ar         0.00126150    -0.00088958     0.00068539
+    15      1      Ar        -0.00026262     0.00089601     0.00019808
+    16      1      Ar         0.00014830    -0.00014618    -0.00009083
+    17      1      Ar         0.00017579    -0.00021019    -0.00001602
+    18      1      Ar        -0.00186585    -0.00111277    -0.00100444
+    19      1      Ar         0.00018041     0.00037348    -0.00067910
+    20      1      Ar        -0.00123501    -0.00100383    -0.00022448
+    21      1      Ar        -0.00072650     0.00054050    -0.00040632
+    22      1      Ar         0.00016792     0.00010213     0.00069949
+    23      1      Ar        -0.00052153    -0.00103407     0.00072938
+    24      1      Ar        -0.00021472     0.00003872     0.00082533
+    25      1      Ar         0.00066617    -0.00048008    -0.00057586
+    26      1      Ar         0.00167956    -0.00009957     0.00152976
+    27      1      Ar        -0.00059886     0.00139420    -0.00045278
+    28      1      Ar        -0.00145213     0.00001049    -0.00127787
+    29      1      Ar         0.00001644     0.00088177    -0.00008084
+    30      1      Ar         0.00167608     0.00001326     0.00128285
+    31      1      Ar        -0.00032950     0.00065145     0.00051817
+    32      1      Ar        -0.00159349     0.00030555    -0.00146660
+ SUM OF ATOMIC FORCES       0.00000000     0.00000000     0.00000000     0.00000000
+
+
+ STRESS| Analytical stress tensor [GPa]
+ STRESS|                        x                   y                   z
+ STRESS|      x         0.340418234        -0.007018426         0.034284615
+ STRESS|      y        -0.007018426         0.328053992        -0.001128936
+ STRESS|      z         0.034284615        -0.001128936         0.333367859
+ STRESS| 1/3 Trace                    0.333946695
+
+
+ -------------------------------------------------------------------------------
+ -                                                                             -
+ -                                T I M I N G                                  -
+ -                                                                             -
+ -------------------------------------------------------------------------------
+ SUBROUTINE                       CALLS  ASD         SELF TIME        TOTAL TIME
+                                MAXIMUM       AVERAGE  MAXIMUM  AVERAGE  MAXIMUM
+ CP2K                                  1  1.0    0.000    0.000    0.010    0.010
+ force_env_calc_energy_force           1  1.0    0.000    0.000    0.010    0.010
+ fist_calc_energy_force                1  1.0    0.010    0.010    0.010    0.010
+ -------------------------------------------------------------------------------
+
+ The number of warnings for this run is : 0
+
+ -------------------------------------------------------------------------------
+ **** **** ******  **  PROGRAM ENDED AT                  2026-10-26 17:18:06.150
+ ***** ** ***  *** **   PROGRAM RAN ON                                 localhost
+ **    ****   ******    PROGRAM RAN BY                                      user
+ ***** ** ** ** ** **   PROGRAM PROCESS ID                                     0
+  **** **  *******  **  PROGRAM STOPPED IN       /home/user/QCHIMIE/SAMPLES/CP2K

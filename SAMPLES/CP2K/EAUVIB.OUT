@@ -1,0 +1,147 @@
+ **** **** ******  **  PROGRAM STARTED AT                2026-10-26 17:18:11.280
+ ***** ** ***  *** **   PROGRAM STARTED ON                             localhost
+ **    ****   ******    PROGRAM STARTED BY                                  user
+ ***** ** ** ** ** **   PROGRAM PROCESS ID                                     0
+  **** **  *******  **  PROGRAM STARTED IN       /home/user/QCHIMIE/SAMPLES/CP2K
+
+ CP2K| version string:                                       CP2K version 2024.1
+ CP2K| source code revision number:                          QChimie Pascal 1.00
+ CP2K| cp2kflags:                                                   pascal clone
+ CP2K| is freely available from                            https://www.cp2k.org/
+ CP2K| Program compiled on                                           Free Pascal
+ CP2K| Input file name                                                EAUVIB.INP
+
+ GLOBAL| Force Environment number                                              1
+ GLOBAL| Basis set file name                                           BASIS_SET
+ GLOBAL| Potential file name                                           POTENTIAL
+ GLOBAL| MM Potential file name                                     MM_POTENTIAL
+ GLOBAL| Coordinate file name                                      __STD_INPUT__
+ GLOBAL| Method name                                                        CP2K
+ GLOBAL| Project name                                                     EAUVIB
+ GLOBAL| Run type                                           VIBRATIONAL_ANALYSIS
+ GLOBAL| Global print level                                               MEDIUM
+ GLOBAL| Total number of message passing processes                             1
+ GLOBAL| Number of threads for this process                                    1
+ GLOBAL| This output is from process                                           0
+
+
+ CELL| Volume [angstrom^3]:                                             1000.000
+ CELL| Vector a [angstrom]:      10.000     0.000     0.000    |a| =        10.000
+ CELL| Vector b [angstrom]:       0.000    10.000     0.000    |b| =        10.000
+ CELL| Vector c [angstrom]:       0.000     0.000    10.000    |c| =        10.000
+ CELL| Angle (b,c), alpha [degree]:                                       90.000
+ CELL| Angle (a,c), beta  [degree]:                                       90.000
+ CELL| Angle (a,b), gamma [degree]:                                       90.000
+ CELL| Requested initial symmetry:                                          NONE
+ CELL| Numerically orthorhombic:                                             YES
+ CELL| Periodicity:                                                         NONE
+
+ TOPOLOGY INFO - GENERATE
+ TOPOLOGY| Number of atoms:                                                    3
+ TOPOLOGY| Number of bonds:                                                    0
+ TOPOLOGY| Number of molecules:                                                3
+
+
+ ATOMIC KIND INFORMATION
+
+  1. Atomic kind: H                    Number of atoms:      2
+
+     Atomic weight:                                  1.0079
+     Element symbol:                                                     H
+     Orbital basis set:                                                 STO-3G
+
+  2. Atomic kind: O                    Number of atoms:      1
+
+     Atomic weight:                                 15.9994
+     Element symbol:                                                     O
+     Orbital basis set:                                                 STO-3G
+
+
+ MODULE QUICKSTEP:  ATOMIC COORDINATES IN angstrom
+
+  Atom  Kind  Element       X           Y           Z          Z(eff)       Mass
+
+      1     2     O   8    0.000000    0.000000    0.149005      8.0000     15.9994
+      2     1     H   1    0.000000    0.758079   -0.486768      1.0000      1.0079
+      3     1     H   1    0.000000   -0.758079   -0.486768      1.0000      1.0079
+
+
+ TOTAL NUMBERS AND MAXIMUM NUMBERS
+
+  Total number of            - Atomic kinds:                             2
+                             - Atoms:                                    3
+                             - Molecules:                                3
+                             - Bonds:                                    0
+
+
+ DFT| Spin restricted Kohn-Sham (RKS) calculation                            RKS
+ DFT| Multiplicity                                                             1
+ DFT| Number of spin states                                                    1
+ DFT| Charge                                                                   0
+ DFT| Exchange-correlation functional                               HARTREE-FOCK
+ QS| Method:                                         GPW (all-electron Gaussian)
+ QS| Number of basis functions:                                                7
+ QS| Number of electrons:                                                     10
+ QS| EPS_SCF:                                                           1.00E-07
+
+
+ *******************************************************************************
+ ***                          VIBRATIONAL ANALYSIS                           ***
+ ***                     Finite difference of the forces                     ***
+ *******************************************************************************
+
+ SCF WAVEFUNCTION OPTIMIZATION
+
+  Step     Update method      Time    Convergence         Total energy    Change
+  -----------------------------------------------------------------------------
+     1 DIIS/Diag.  4.00E-01    0.0     0.21257861       -74.6273440128  0.00E+00
+     2 DIIS/Diag.  4.00E-01    0.0     0.05462582       -74.9469441777 -3.20E-01
+     3 DIIS/Diag.  4.00E-01    0.0     0.01483594       -74.9645843280 -1.76E-02
+     4 DIIS/Diag.  4.00E-01    0.0     0.00227578       -74.9658356928 -1.25E-03
+     5 DIIS/Diag.  4.00E-01    0.0     0.00053091       -74.9658983954 -6.27E-05
+     6 DIIS/Diag.  4.00E-01    0.0     0.00000443       -74.9659005859 -2.19E-06
+     7 DIIS/Diag.  4.00E-01    0.0     0.00000007       -74.9659005859 -7.25E-11
+     8 DIIS/Diag.  4.00E-01    0.0     0.00000000       -74.9659005859  8.53E-14
+
+ *** SCF run converged in    8 steps ***
+
+ ENERGY| Total FORCE_EVAL ( QS ) energy [a.u.]:                   -74.9659005859
+
+ VIB| Vibrational Analysis Info
+ VIB| Number of atoms:                                                         3
+ VIB| Degrees of freedom:                                                      9
+ VIB| Projected translations and rotations:                                    6
+ VIB| Finite difference step DX [bohr]:                                 0.010000
+
+ VIB| Frequencies after mass weighting and projection
+ VIB| Mode        Frequency [cm^-1]
+ VIB|    1              2169.614273
+ VIB|    2              4140.033769
+ VIB|    3              4391.089212
+
+ VIB| Zero point energy [cm^-1]:                                       5350.3686
+ VIB| Zero point energy [hartree]:                                  0.0243780732
+ VIB| Zero point energy [kcal/mol]:                                      15.2975
+
+
+ -------------------------------------------------------------------------------
+ -                                                                             -
+ -                                T I M I N G                                  -
+ -                                                                             -
+ -------------------------------------------------------------------------------
+ SUBROUTINE                       CALLS  ASD         SELF TIME        TOTAL TIME
+                                MAXIMUM       AVERAGE  MAXIMUM  AVERAGE  MAXIMUM
+ CP2K                                  1  1.0    0.000    0.000    3.090    3.090
+ force_env_calc_energy_force          20  1.0    0.000    0.000    3.090    3.090
+ qs_energies                          20  1.0    0.000    0.000    3.090    3.090
+ scf_env_do_scf                      400  1.0    3.090    3.090    3.090    3.090
+ -------------------------------------------------------------------------------
+
+ The number of warnings for this run is : 0
+
+ -------------------------------------------------------------------------------
+ **** **** ******  **  PROGRAM ENDED AT                  2026-10-26 17:18:14.370
+ ***** ** ***  *** **   PROGRAM RAN ON                                 localhost
+ **    ****   ******    PROGRAM RAN BY                                      user
+ ***** ** ** ** ** **   PROGRAM PROCESS ID                                     0
+  **** **  *******  **  PROGRAM STOPPED IN       /home/user/QCHIMIE/SAMPLES/CP2K

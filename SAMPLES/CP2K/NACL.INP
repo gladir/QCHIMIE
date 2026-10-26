@@ -1,0 +1,42 @@
+# Energie de Madelung du chlorure de sodium (sommation d'Ewald, charges +1 et -1)
+# Valeur attendue : -4 * 1,747565 / (2,82 angstroms) = -1,31173 hartree
+&GLOBAL
+  PROJECT NACL
+  RUN_TYPE ENERGY_FORCE
+  PRINT_LEVEL MEDIUM
+&END GLOBAL
+&FORCE_EVAL
+  METHOD FIST
+  &MM
+    &FORCEFIELD
+      &CHARGE
+        ATOM Na
+        CHARGE 1.0
+      &END CHARGE
+      &CHARGE
+        ATOM Cl
+        CHARGE -1.0
+      &END CHARGE
+    &END FORCEFIELD
+    &POISSON
+      &EWALD
+        EWALD_TYPE EWALD
+      &END EWALD
+    &END POISSON
+  &END MM
+  &SUBSYS
+    &CELL
+      ABC [angstrom] 5.6400 5.6400 5.6400
+    &END CELL
+    &COORD
+      Na 0.00000 0.00000 0.00000
+      Na 2.82000 2.82000 0.00000
+      Na 2.82000 0.00000 2.82000
+      Na 0.00000 2.82000 2.82000
+      Cl 2.82000 0.00000 0.00000
+      Cl 0.00000 2.82000 0.00000
+      Cl 0.00000 0.00000 2.82000
+      Cl 2.82000 2.82000 2.82000
+    &END COORD
+  &END SUBSYS
+&END FORCE_EVAL

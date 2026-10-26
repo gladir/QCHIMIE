@@ -1,0 +1,125 @@
+# Dynamique moleculaire NVT (thermostat de Nose-Hoover) de deux molecules de butane
+# Fichiers produits : BUTMD-pos-1.xyz, BUTMD-1.ener et BUTMD-1.restart
+&GLOBAL
+  PROJECT BUTMD
+  RUN_TYPE MD
+  PRINT_LEVEL MEDIUM
+&END GLOBAL
+&FORCE_EVAL
+  METHOD FIST
+  &MM
+    &FORCEFIELD
+      &CHARGE
+        ATOM CA
+        CHARGE -0.3
+      &END CHARGE
+      &CHARGE
+        ATOM CB
+        CHARGE 0.3
+      &END CHARGE
+      &NONBONDED
+        &LENNARD-JONES
+          ATOMS CA CA
+          EPSILON [kcalmol] 0.1
+          SIGMA [angstrom] 3.4
+          RCUT [angstrom] 6.5
+        &END LENNARD-JONES
+        &LENNARD-JONES
+          ATOMS CB CB
+          EPSILON [kcalmol] 0.1
+          SIGMA [angstrom] 3.4
+          RCUT [angstrom] 6.5
+        &END LENNARD-JONES
+        &LENNARD-JONES
+          ATOMS CA CB
+          EPSILON [kcalmol] 0.1
+          SIGMA [angstrom] 3.4
+          RCUT [angstrom] 6.5
+        &END LENNARD-JONES
+      &END NONBONDED
+      &BOND
+        ATOMS CA CB
+        KIND HARMONIC
+        K [kcalmol*angstrom^-2] 300
+        R0 [angstrom] 1.54
+      &END BOND
+      &BOND
+        ATOMS CB CB
+        KIND HARMONIC
+        K [kcalmol*angstrom^-2] 300
+        R0 [angstrom] 1.54
+      &END BOND
+      &BEND
+        ATOMS CA CB CB
+        KIND HARMONIC
+        K [kcalmol*rad^-2] 80
+        THETA0 [deg] 112
+      &END BEND
+      &TORSION
+        ATOMS CA CB CB CA
+        KIND CHARMM
+        K [kcalmol] 1.5
+        PHI0 [deg] 180
+        M 3
+      &END TORSION
+      &TORSION
+        ATOMS CA CB CB CA
+        KIND CHARMM
+        K [kcalmol] 0.7
+        PHI0 [deg] 0
+        M 1
+      &END TORSION
+    &END FORCEFIELD
+    &POISSON
+      &EWALD
+        EWALD_TYPE EWALD
+      &END EWALD
+    &END POISSON
+  &END MM
+  &SUBSYS
+    &CELL
+      ABC [angstrom] 14.0 14.0 14.0
+    &END CELL
+    &TOPOLOGY
+      CONN_FILE_FORMAT GENERATE
+    &END TOPOLOGY
+    &COORD
+      CA 2.000000 2.000000 2.000000
+      CB 3.540000 2.000000 2.000000
+      CB 4.116894 3.427863 2.000000
+      CA 3.671057 4.230194 3.236566
+      CA 8.000000 7.000000 6.000000
+      CB 9.540000 7.000000 6.000000
+      CB 10.116894 8.427863 6.000000
+      CA 10.562894 8.869868 4.593829
+    &END COORD
+    &KIND CA
+      ELEMENT C
+    &END KIND
+    &KIND CB
+      ELEMENT C
+    &END KIND
+  &END SUBSYS
+&END FORCE_EVAL
+&MOTION
+  &MD
+    ENSEMBLE NVT
+    STEPS 200
+    TIMESTEP 0.5
+    TEMPERATURE 300
+    &THERMOSTAT
+      TYPE NOSE
+      &NOSE
+        LENGTH 3
+        TIMECON 50
+      &END NOSE
+    &END THERMOSTAT
+  &END MD
+  &PRINT
+    &TRAJECTORY
+      &EACH
+        MD 2
+      &END EACH
+    &END TRAJECTORY
+  &END PRINT
+&END MOTION
