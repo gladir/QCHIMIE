@@ -6717,10 +6717,12 @@ Begin
   5: Begin
    ApplyScheme(CM_SCH_BALL);
    ApplyStruct(RIB_CARTOON); ApplyRibColor(0, 0);
+   { le squelette est represente par le ruban : seules les chaines laterales
+     restent en boules et batonnets }
    For I := 0 To NAtoms - 1 Do
-    If (Atoms^[I].Kind = ATOMK_PROT) And IsBackboneAtom(I) Then Begin
-     Atoms^[I].Sf := 0;
-    End;
+    If IsBackboneAtom(I) Then Atoms^[I].Sf := 0;
+   For I := 0 To NBonds - 1 Do
+    If IsBackboneAtom(Bonds^[I].A) And IsBackboneAtom(Bonds^[I].B) Then Bonds^[I].BR := 0;
   End;
   6: Begin
    ApplyScheme(CM_SCH_WIRE);
