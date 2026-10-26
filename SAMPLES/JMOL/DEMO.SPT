@@ -1,0 +1,40 @@
+# Demonstration de JMOL.PAS
+# Lancer avec :  JMOL SAMPLES\JMOL\DEMO.SPT    (Echap interrompt le script)
+load FAISCEAU.PDB
+echo Faisceau de quatre helices : rubans (cartoon) selon la structure secondaire
+cartoon
+spacefill 0
+wireframe off
+color cartoon structure
+rotate x -70
+delay 2
+echo Rubans en arc-en-ciel (du N-terminal vers le C-terminal)
+color cartoon group
+delay 2
+echo Rotation automatique
+spin y
+delay 4
+spin off
+load PEPTIDE.PDB
+echo Peptide : helices, feuillet beta et chaines laterales
+cartoon
+color cartoon structure
+select sidechain
+spacefill 20%
+wireframe 0.1
+color group
+select none
+hbonds on
+rotate x 25
+rotate y -35
+delay 3
+echo Mesure d'une distance entre deux atomes
+measure 2 3
+delay 2
+load METHANOL.XYZ
+echo Methanol : modes de vibration (panneau Vibration)
+label %e
+vibration on
+vector on
+vibration panel
+delay 6
