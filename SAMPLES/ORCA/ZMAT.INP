@@ -1,0 +1,7 @@
+# Eau en coordonnees internes (matrice Z)
+! HF 3-21G Opt
+* int 0 1
+O  0 0 0  0.000  0.00  0.00
+H  1 0 0  0.960  0.00  0.00
+H  1 2 0  0.960  104.50  0.00
+*

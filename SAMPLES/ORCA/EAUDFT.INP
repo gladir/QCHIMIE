@@ -1,0 +1,7 @@
+# Eau : DFT hybride B3LYP (grille de Becke)
+! B3LYP 6-31G TightSCF
+* xyz 0 1
+O   0.000000   0.000000   0.000000
+H   0.757000   0.586000   0.000000
+H  -0.757000   0.586000   0.000000
+*

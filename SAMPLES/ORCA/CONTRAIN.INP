@@ -1,0 +1,12 @@
+# Eau : optimisation avec l'angle H-O-H fige (contrainte)
+! HF STO-3G Opt
+%geom
+  Constraints
+    { A 1 0 2 C }
+  end
+end
+* xyz 0 1
+O   0.000000   0.000000   0.000000
+H   0.950000   0.000000   0.000000
+H  -0.300000   0.900000   0.000000
+*
