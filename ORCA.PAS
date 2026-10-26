@@ -9159,7 +9159,8 @@ BEGIN
  ERIThresh := 1E-11;
  Arg1 := ParamStr(1);
  If (Arg1 = '/?') Or (Arg1 = '--help') Or (Arg1 = '-h') Then Begin
-  WriteLn('ORCA - Clone du logiciel de chimie quantique ORCA (calculs ab initio et DFT).');
+  WriteLn('ORCA - Cette commande permet de lancer le clone du logiciel de chimie ',
+          'quantique ORCA (calculs ab initio et DFT).');
   WriteLn;
   WriteLn('Syntaxe : ORCA [fichier.INP | fichier.XYZ]');
   WriteLn('          ORCA /B fichier.INP [sortie.OUT]');
