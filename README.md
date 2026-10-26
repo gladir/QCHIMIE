@@ -12,6 +12,10 @@ Aperçu de la commande ChemDraw :
 
 <img width="640" height="480" alt="ChemDraw" src="SAMPLES/CHEMDRAW/APERCU.PNG" />
 
+Aperçu de la commande VCCTL :
+
+<img width="640" height="480" alt="VCCTL" src="SAMPLES/VCCTL/APERCU.PNG" />
+
 <h2>Liste des fichiers</h3>
 
 Voici la liste des différents fichiers proposés dans QChimie :
@@ -40,6 +44,10 @@ Voici la liste des différents fichiers proposés dans QChimie :
   <tr>
 	  <td><b>CHEMDRAW.PAS</b></td>
 	  <td>Cette commande permet de dessiner des structures chimiques en deux dimensions (molécules, réactions, flèches, cycles, groupes d'atomes), de les analyser (formule, poids moléculaire, masse exacte, spectre de masse, prédiction RMN ¹H et ¹³C, nom du composé, SMILES, InChI, stéréochimie R/S et E/Z) et de les importer ou exporter aux formats CDT, MOL, SMILES, InChI, SVG et BMP, à la manière du logiciel ChemDraw.</td>
+  </tr>
+  <tr>
+	  <td><b>VCCTL.PAS</b></td>
+	  <td>Cette commande permet de simuler, à la manière du logiciel VCCTL (Virtual Cement and Concrete Testing Laboratory), la microstructure 3D et l'hydratation d'une pâte de ciment (ciment Portland, cendres volantes, laitier, calcaire, fumée de silice) par automate cellulaire, puis d'estimer ses propriétés : degré d'hydratation, chaleur dégagée, retrait chimique, porosité, percolation, distribution des pores, modules élastiques, résistance à la compression, conductivité et diffusivité, zone de transition interfaciale. Elle comprend aussi une bibliothèque de matériaux, le calculateur de Bogue, l'empilement 3D de granulats, le calibrage de la cinétique et un mode lot (<code>VCCTL /B</code>).</td>
   </tr>
 </table>
 
