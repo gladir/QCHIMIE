@@ -337,7 +337,8 @@ Begin
  T := TrimStr(S);
  If T = '' Then Begin ParseInt := False; Exit; End;
  Val(T, R, Code);
- If (Code = 0) And (R >= -32000) And (R <= 32000) Then Begin V := R; ParseInt := True; End
+ If (Code = 0) And (R >= -32000) And (R <= 32000) Then Begin V := R; ParseInt :=
+   True; End
  Else ParseInt := False;
 End;
 
@@ -345,7 +346,8 @@ Function ExtractExt(Const FN: String): String;
 Var I: Integer;
 Begin
  I := Length(FN);
- While (I > 0) And (FN[I] <> '.') And (FN[I] <> '\') And (FN[I] <> '/') Do Dec(I);
+ While (I > 0) And (FN[I] <> '.') And (FN[I] <> '\') And (FN[I] <> '/') Do
+   Dec(I);
  If (I > 0) And (FN[I] = '.') Then ExtractExt := UpStr(Copy(FN, I, 255))
  Else ExtractExt := '';
 End;
@@ -354,7 +356,8 @@ Function ChangeExt(Const FN, Ext: String): String;
 Var I: Integer;
 Begin
  I := Length(FN);
- While (I > 0) And (FN[I] <> '.') And (FN[I] <> '\') And (FN[I] <> '/') Do Dec(I);
+ While (I > 0) And (FN[I] <> '.') And (FN[I] <> '\') And (FN[I] <> '/') Do
+   Dec(I);
  If (I > 0) And (FN[I] = '.') Then ChangeExt := Copy(FN, 1, I - 1) + Ext
  Else ChangeExt := FN + Ext;
 End;
@@ -914,28 +917,32 @@ Begin
    Sh1(0, 0.2979640, 1.0);
   End;
   6: Begin
-   Sh6(0, 3047.5249000, 0.0018347, 457.3695100, 0.0140373, 103.9486900, 0.0688426,
+   Sh6(0, 3047.5249000, 0.0018347, 457.3695100, 0.0140373, 103.9486900,
+     0.0688426,
           29.2101550, 0.2321844, 9.2866630, 0.4679413, 3.1639270, 0.3623120);
    SP3(7.8682724, -0.1193324, 0.0689991, 1.8812885, -0.1608542, 0.3164240,
        0.5442493, 1.1434564, 0.7443083);
    SP1(0.1687144);
   End;
   7: Begin
-   Sh6(0, 4173.5110000, 0.0018348, 627.4579000, 0.0139950, 142.9021000, 0.0685870,
+   Sh6(0, 4173.5110000, 0.0018348, 627.4579000, 0.0139950, 142.9021000,
+     0.0685870,
           40.2343300, 0.2322410, 12.8202100, 0.4690700, 4.3904370, 0.3604550);
    SP3(11.6263580, -0.1149610, 0.0675800, 2.7162800, -0.1691180, 0.3239070,
        0.7722180, 1.1458520, 0.7408950);
    SP1(0.2120313);
   End;
   8: Begin
-   Sh6(0, 5484.6717000, 0.0018311, 825.2349500, 0.0139501, 188.0469600, 0.0684451,
+   Sh6(0, 5484.6717000, 0.0018311, 825.2349500, 0.0139501, 188.0469600,
+     0.0684451,
           52.9645000, 0.2327143, 16.8975700, 0.4701930, 5.7996353, 0.3585209);
    SP3(15.5396160, -0.1107775, 0.0708743, 3.5999336, -0.1480263, 0.3397528,
        1.0137618, 1.1307670, 0.7271586);
    SP1(0.2700058);
   End;
   9: Begin
-   Sh6(0, 7001.7130000, 0.0018196169, 1051.3660000, 0.01391608, 239.2857000, 0.06840532,
+   Sh6(0, 7001.7130000, 0.0018196169, 1051.3660000, 0.01391608, 239.2857000,
+     0.06840532,
           67.3974400, 0.2331858, 21.5199600, 0.4712674, 7.4031010, 0.3566185);
    SP3(20.8479500, -0.1085070, 0.0716287, 4.8083080, -0.1464517, 0.3459121,
        1.3440700, 1.1286886, 0.7224700);
@@ -1073,7 +1080,8 @@ Begin
  End;
 End;
 
-{ Table de Boys : F_m(T) pour T = i * BOYS_DT, m = 0..BOYS_NM ; interpolation de Taylor }
+{ Table de Boys : F_m(T) pour T = i * BOYS_DT, m = 0..BOYS_NM ; interpolation de
+  Taylor }
 Const
  BOYS_NM = 10;
  {$IFDEF FPC}
@@ -1113,8 +1121,10 @@ Begin
  I := Round(T / BOYS_DT);
  X := I * BOYS_DT - T;
  For K := 0 To M Do
-  F[K] := BoysTab^[I, K] + X * (BoysTab^[I, K + 1] + X / 2 * (BoysTab^[I, K + 2] +
-          X / 3 * (BoysTab^[I, K + 3] + X / 4 * (BoysTab^[I, K + 4] + X / 5 * (BoysTab^[I, K + 5] +
+  F[K] := BoysTab^[I, K] + X * (BoysTab^[I, K + 1] + X / 2 * (BoysTab^[I, K + 2]
+    +
+          X / 3 * (BoysTab^[I, K + 3] + X / 4 * (BoysTab^[I, K + 4] + X / 5 *
+            (BoysTab^[I, K + 5] +
           X / 6 * BoysTab^[I, K + 6])))));
 End;
 
@@ -1158,7 +1168,8 @@ End;
 Function Kin1D(I, J: Integer; Q, A, B: Real): Real;
 Var R: Real;
 Begin
- R := -2 * B * B * Ovl1D(I, J + 2, Q, A, B) + B * (2 * J + 1) * Ovl1D(I, J, Q, A, B);
+ R := -2 * B * B * Ovl1D(I, J + 2, Q, A, B) + B * (2 * J + 1) * Ovl1D(I, J, Q,
+   A, B);
  If J >= 2 Then R := R - 0.5 * J * (J - 1) * Ovl1D(I, J - 2, Q, A, B);
  Kin1D := R;
 End;
@@ -1195,7 +1206,8 @@ Begin
    TX := Kin1D(BFL[M,1], BFL[N,1], QX, A, B);
    TY := Kin1D(BFL[M,2], BFL[N,2], QY, A, B);
    TZ := Kin1D(BFL[M,3], BFL[N,3], QZ, A, B);
-   S := S + BFC[M, K] * BFC[N, L] * (TX * SY * SZ + SX * TY * SZ + SX * SY * TZ);
+   S := S + BFC[M, K] * BFC[N, L] * (TX * SY * SZ + SX * TY * SZ + SX * SY *
+     TZ);
   End;
  KinRaw := S;
 End;
@@ -1209,7 +1221,8 @@ Begin
  BuildBasis := False;
  For A := 1 To NAt Do Begin
   If Not GetShells(AtBas[A], AtZ[A]) Then Begin
-   Err := 'La base ' + BasisNames[AtBas[A]] + ' n''est pas definie pour l''element ' +
+   Err := 'La base ' + BasisNames[AtBas[A]] +
+     ' n''est pas definie pour l''element ' +
           ElemStr(AtZ[A]);
    Exit;
   End;
@@ -1272,7 +1285,8 @@ Begin
    PairI[Idx] := M; PairJ[Idx] := N;
    NP := BFNP[M] * BFNP[N];
    PairNP[Idx] := NP;
-   PairL[Idx] := BFL[M,1] + BFL[M,2] + BFL[M,3] + BFL[N,1] + BFL[N,2] + BFL[N,3];
+   PairL[Idx] := BFL[M,1] + BFL[M,2] + BFL[M,3] + BFL[N,1] + BFL[N,2] +
+     BFL[N,3];
    GetMem(PairP[Idx], NP * SizeOf(TPrimPair));
    QX := AtX[BFAtom[M],1] - AtX[BFAtom[N],1];
    QY := AtX[BFAtom[M],2] - AtX[BFAtom[N],2];
@@ -1299,7 +1313,8 @@ Begin
       For U := 0 To 2 Do
        For V := 0 To 2 Do Begin
         PP^.E[T * 9 + U * 3 + V] := C * EX[T] * EY[U] * EZ[V];
-        If Abs(PP^.E[T * 9 + U * 3 + V]) > PP^.Cm Then PP^.Cm := Abs(PP^.E[T * 9 + U * 3 + V]);
+        If Abs(PP^.E[T * 9 + U * 3 + V]) > PP^.Cm Then PP^.Cm := Abs(PP^.E[T * 9
+          + U * 3 + V]);
        End;
     End;
   End;
@@ -1324,7 +1339,8 @@ Begin
   For I2 := 1 To PairNP[PB] Do Begin
    PP2 := PPrim(@PairP[PB]^[I2]);
    Q := PP2^.P;
-   If PP1^.Cm * PP2^.Cm * TWO_PI_52 / (P * Q * Sqrt(P + Q)) < 1E-13 Then Continue;
+   If PP1^.Cm * PP2^.Cm * TWO_PI_52 / (P * Q * Sqrt(P + Q)) < 1E-13 Then
+     Continue;
    Al := P * Q / (P + Q);
    BuildR(LT, Al, PP1^.PX - PP2^.PX, PP1^.PY - PP2^.PY, PP1^.PZ - PP2^.PZ);
    Sm := 0;
@@ -1431,7 +1447,8 @@ Begin
  LDL := LD;
  For I := 1 To N Do
   For J := 1 To N Do
-   If I = J Then V^[(I - 1) * LDL + J - 1] := 1 Else V^[(I - 1) * LDL + J - 1] := 0;
+   If I = J Then V^[(I - 1) * LDL + J - 1] := 1 Else V^[(I - 1) * LDL + J - 1]
+     := 0;
  For Sweep := 1 To 60 Do Begin
   Off := 0;
   For P := 1 To N - 1 Do
@@ -1694,7 +1711,8 @@ Begin
    DZ := DZ + (PP^.E[1] + PP^.PZ * PP^.E[0]) * PF;
    L := PairL[IJ];
    For C := 1 To NAt Do Begin
-    BuildR(L, PP^.P, PP^.PX - AtX[C, 1], PP^.PY - AtX[C, 2], PP^.PZ - AtX[C, 3]);
+    BuildR(L, PP^.P, PP^.PX - AtX[C, 1], PP^.PY - AtX[C, 2], PP^.PZ - AtX[C,
+      3]);
     Sm := 0;
     For T := 0 To L Do
      For U := 0 To L - T Do
@@ -1920,7 +1938,8 @@ Begin
  Closed := (NOccA = NOccB);
  HistN := 0;
  Guessed := False;
- If UseGuess And OrbsValid And (OrbN = NBF) And (OrbOA = NOccA) And (OrbOB = NOccB) Then
+ If UseGuess And OrbsValid And (OrbN = NBF) And (OrbOA = NOccA) And (OrbOB =
+   NOccB) Then
   Guessed := GuessFromOrbs;
  If Not Guessed Then Begin
   GuessGWH;
@@ -1933,7 +1952,8 @@ Begin
   EmitBlank;
   Emit(' SCF WAVEFUNCTION OPTIMIZATION');
   EmitBlank;
-  Emit('  Step     Update method      Time    Convergence         Total energy    Change');
+  Emit('  Step     Update method      Time    Convergence         Total ' +
+    'energy    Change');
   Emit('  ' + Rep('-', 77));
   ScfTi := NowMs;
  End;
@@ -1973,7 +1993,8 @@ Begin
      If Not Closed Then Sum := Sum + MatDot(DiisE[I, 2], DiisE[J, 2]);
      Bm[I, J] := Sum; Bm[J, I] := Sum;
     End;
-   For I := 1 To DiisN Do Begin Bm[I, DiisN + 1] := -1; Bm[DiisN + 1, I] := -1; Rhs[I] := 0; End;
+   For I := 1 To DiisN Do Begin Bm[I, DiisN + 1] := -1; Bm[DiisN + 1, I] := -1;
+     Rhs[I] := 0; End;
    Bm[DiisN + 1, DiisN + 1] := 0; Rhs[DiisN + 1] := -1;
    If SolveSmall(DiisN + 1, Bm, Rhs) Then Begin
     MatZero(MFa);
@@ -1982,7 +2003,8 @@ Begin
      For I := 1 To NBF Do
       For J := 1 To NBF Do Begin
        MFa^[I, J] := MFa^[I, J] + Rhs[K] * DiisF[K, 1]^[I, J];
-       If Not Closed Then MFb^[I, J] := MFb^[I, J] + Rhs[K] * DiisF[K, 2]^[I, J];
+       If Not Closed Then MFb^[I, J] := MFb^[I, J] + Rhs[K] * DiisF[K, 2]^[I,
+         J];
       End;
    End
    Else DiisN := 0;
@@ -2006,11 +2028,13 @@ Begin
   If Iter = 1 Then DE := 0;
   If Iter <= MAX_HIST Then Begin HistE[Iter - 1] := E; HistN := Iter; End;
   If Verbose Then Begin
-   Emit(ISt(Iter, 6) + ' ' + PadR('DIIS/Diag.', 11) + ' ' + PadL(EStr(0.4, 2), 8) + FR(ElapsedMs(ScfTi) / 1000.0, 7, 1) +
+   Emit(ISt(Iter, 6) + ' ' + PadR('DIIS/Diag.', 11) + ' ' + PadL(EStr(0.4, 2),
+     8) + FR(ElapsedMs(ScfTi) / 1000.0, 7, 1) +
         FR(ErrMax, 15, 8) + FR(E, 21, 10) + PadL(EStr(DE, 2), 10));
    ScfTi := NowMs;
   End;
-  If (Iter > 1) And (Abs(DE) < ScfTolE) And (RmsD < ScfTolD) And (ErrMax < ScfTolErr) Then Done := True;
+  If (Iter > 1) And (Abs(DE) < ScfTolE) And (RmsD < ScfTolD) And (ErrMax <
+    ScfTolErr) Then Done := True;
   EOld := E;
   ShowProgress('SCF iteration ' + IStr(Iter), 0);
   If UserAbort Then Begin Done := True; End;
@@ -2137,7 +2161,8 @@ Begin
   BFCut2[I] := 0;
   For K := 1 To BFNP[I] Do Begin
    R := 0.2;
-   While (R < 40) And (Abs(BFC[I, K]) * (1 + R) * ExpS(-BFA[I, K] * R * R) > 1E-11) Do R := R + 0.2;
+   While (R < 40) And (Abs(BFC[I, K]) * (1 + R) * ExpS(-BFA[I, K] * R * R) >
+     1E-11) Do R := R + 0.2;
    If R * R > BFCut2[I] Then BFCut2[I] := R * R;
   End;
  End;
@@ -2286,7 +2311,8 @@ Begin
  X0X := X0 * X0 + B * X0 + C;
  Q := Sqrt(4 * C - B * B);
  VWNF := A * (Ln(X * X / XX) + 2 * B / Q * ArcTan(Q / (2 * X + B))
-          - B * X0 / X0X * (Ln(Sqr(X - X0) / XX) + 2 * (B + 2 * X0) / Q * ArcTan(Q / (2 * X + B))));
+          - B * X0 / X0X * (Ln(Sqr(X - X0) / XX) + 2 * (B + 2 * X0) / Q *
+            ArcTan(Q / (2 * X + B))));
 End;
 
 { Energie de correlation VWN5 par electron }
@@ -2351,7 +2377,8 @@ Begin
  T := Sqrt(GR2) / (2 * Phi * KS * R);
  T2 := T * T;
  A := Beta / Gam / (Exp(-Eps / (Gam * Phi * Phi * Phi)) - 1);
- H := Gam * Phi * Phi * Phi * Ln(1 + Beta / Gam * T2 * (1 + A * T2) / (1 + A * T2 + A * A * T2 * T2));
+ H := Gam * Phi * Phi * Phi * Ln(1 + Beta / Gam * T2 * (1 + A * T2) / (1 + A *
+   T2 + A * A * T2 * T2));
  EcPBE := R * (Eps + H);
 End;
 
@@ -2370,7 +2397,8 @@ Begin
  ST := Saa + 2 * Sab + Sbb;
  If ST < 0 Then ST := 0;
  T1 := -LA * 4 / Den * Ra * Rb / R;
- T2 := -LA * LB * Om * (Ra * Rb * (Pw(2, 11 / 3) * CF * (Pw(Ra, 8 / 3) + Pw(Rb, 8 / 3))
+ T2 := -LA * LB * Om * (Ra * Rb * (Pw(2, 11 / 3) * CF * (Pw(Ra, 8 / 3) + Pw(Rb,
+   8 / 3))
         + (47 / 18 - 7 * Dl / 18) * ST - (2.5 - Dl / 18) * (Saa + Sbb)
         - (Dl - 11) / 9 * (Ra / R * Saa + Rb / R * Sbb))
         - 2 / 3 * R * R * ST + (2 / 3 * R * R - Ra * Ra) * Sbb
@@ -2396,10 +2424,14 @@ Begin
   F_LDA:   ExcDens := ExSlater(Ra, Rb) + EcVWN(Ra, Rb);
   F_BLYP:  ExcDens := ExSlater(Ra, Rb) + ExB88Spin(Ra, Saa) + ExB88Spin(Rb, Sbb)
                       + EcLYP(Ra, Rb, Saa, Sab, Sbb);
-  F_B3LYP: ExcDens := 0.8 * ExSlater(Ra, Rb) + 0.72 * (ExB88Spin(Ra, Saa) + ExB88Spin(Rb, Sbb))
-                      + 0.19 * EcVWN(Ra, Rb) + 0.81 * EcLYP(Ra, Rb, Saa, Sab, Sbb);
-  F_PBE:   ExcDens := ExPBESpin(Ra, Saa) + ExPBESpin(Rb, Sbb) + EcPBE(Ra, Rb, Saa, Sab, Sbb);
-  F_PBE0:  ExcDens := 0.75 * (ExPBESpin(Ra, Saa) + ExPBESpin(Rb, Sbb)) + EcPBE(Ra, Rb, Saa, Sab, Sbb);
+  F_B3LYP: ExcDens := 0.8 * ExSlater(Ra, Rb) + 0.72 * (ExB88Spin(Ra, Saa) +
+    ExB88Spin(Rb, Sbb))
+                      + 0.19 * EcVWN(Ra, Rb) + 0.81 * EcLYP(Ra, Rb, Saa, Sab,
+                        Sbb);
+  F_PBE:   ExcDens := ExPBESpin(Ra, Saa) + ExPBESpin(Rb, Sbb) + EcPBE(Ra, Rb,
+    Saa, Sab, Sbb);
+  F_PBE0:  ExcDens := 0.75 * (ExPBESpin(Ra, Saa) + ExPBESpin(Rb, Sbb)) +
+    EcPBE(Ra, Rb, Saa, Sab, Sbb);
  Else ExcDens := 0;
  End;
 End;
@@ -2410,7 +2442,8 @@ Begin
  Case Func Of
   F_LDA:   ExPart := ExSlater(Ra, Rb);
   F_BLYP:  ExPart := ExSlater(Ra, Rb) + ExB88Spin(Ra, Saa) + ExB88Spin(Rb, Sbb);
-  F_B3LYP: ExPart := 0.8 * ExSlater(Ra, Rb) + 0.72 * (ExB88Spin(Ra, Saa) + ExB88Spin(Rb, Sbb));
+  F_B3LYP: ExPart := 0.8 * ExSlater(Ra, Rb) + 0.72 * (ExB88Spin(Ra, Saa) +
+    ExB88Spin(Rb, Sbb));
   F_PBE:   ExPart := ExPBESpin(Ra, Saa) + ExPBESpin(Rb, Sbb);
   F_PBE0:  ExPart := 0.75 * (ExPBESpin(Ra, Saa) + ExPBESpin(Rb, Sbb));
  Else ExPart := 0;
@@ -2418,7 +2451,8 @@ Begin
 End;
 
 { Derivee numerique d'une variable par differences centrees }
-Procedure XCDeriv(Ra, Rb, Saa, Sab, Sbb: Real; Var E, VRa, VRb, VSaa, VSab, VSbb: Real);
+Procedure XCDeriv(Ra, Rb, Saa, Sab, Sbb: Real; Var E, VRa, VRb, VSaa, VSab,
+  VSbb: Real);
 Var H, Ep, Em: Real;
 Begin
  E := ExcDens(Ra, Rb, Saa, Sab, Sbb);
@@ -2480,7 +2514,8 @@ Begin
  At := ArcTan(Q / (2 * X + B));
  LXX := Ln(XX);
  EpsVWNp := A * (2 * Ln(X) - LXX + 2 * B / Q * At
-            - B * X0 / X0X * (2 * Ln(Abs(X - X0)) - LXX + 2 * (B + 2 * X0) / Q * At));
+            - B * X0 / X0X * (2 * Ln(Abs(X - X0)) - LXX + 2 * (B + 2 * X0) / Q *
+              At));
 End;
 
 { Correction de gradient B88 pour un spin (x43 = rho_s^(4/3)) }
@@ -2512,7 +2547,8 @@ Begin
  LYPc := T1 + T2;
 End;
 
-{ Echange PBE pour un spin (Ra = rho_s, X43 = rho_s^(4/3), Kf1 = (3 pi^2 2 rho_s)^(1/3)) }
+{ Echange PBE pour un spin (Ra = rho_s, X43 = rho_s^(4/3), Kf1 = (3 pi^2 2
+  rho_s)^(1/3)) }
 Function PBExc(Ra, X43, Kf1, S: Real): Real;
 Var N43, SS, FX, EL: Real;
 Begin
@@ -2523,7 +2559,8 @@ Begin
  PBExc := 0.5 * EL * FX;
 End;
 
-{ Correlation PBE a couche fermee (Rs, Kf = (3 pi^2 rho)^(1/3), ST = |grad rho|^2) }
+{ Correlation PBE a couche fermee (Rs, Kf = (3 pi^2 rho)^(1/3), ST = |grad
+  rho|^2) }
 Function PBEcc(R, Rs, Kf, ST: Real): Real;
 Var Eps, KS, T2, A, H: Real;
 Begin
@@ -2532,7 +2569,8 @@ Begin
  If ST < 0 Then ST := 0;
  T2 := ST / (4 * KS * KS * R * R);
  A := PBE_BETA / PBE_GAM / (Exp(-Eps / PBE_GAM) - 1);
- H := PBE_GAM * Ln(1 + PBE_BETA / PBE_GAM * T2 * (1 + A * T2) / (1 + A * T2 + A * A * T2 * T2));
+ H := PBE_GAM * Ln(1 + PBE_BETA / PBE_GAM * T2 * (1 + A * T2) / (1 + A * T2 + A
+   * A * T2 * T2));
  PBEcc := R * (Eps + H);
 End;
 
@@ -2546,9 +2584,11 @@ Begin
  Rs := RS_C * Rm13;
  Case Func Of
   F_LDA:   E := -2 * CX_LDA * X43 + 2 * Ra * EpsVWNp(Rs);
-  F_BLYP:  E := -2 * CX_LDA * X43 + 2 * B88c(X43, Saa) + LYPc(Ra, X43, Rm13, Saa, Sab);
+  F_BLYP:  E := -2 * CX_LDA * X43 + 2 * B88c(X43, Saa) + LYPc(Ra, X43, Rm13,
+    Saa, Sab);
   F_B3LYP: E := -1.6 * CX_LDA * X43 + 1.44 * B88c(X43, Saa)
-                + 0.19 * 2 * Ra * EpsVWNp(Rs) + 0.81 * LYPc(Ra, X43, Rm13, Saa, Sab);
+                + 0.19 * 2 * Ra * EpsVWNp(Rs) + 0.81 * LYPc(Ra, X43, Rm13, Saa,
+                  Sab);
   F_PBE, F_PBE0: Begin
    Kf := KF_C / Rm13;                           { (3 pi^2 rho)^(1/3) }
    E := PBEcc(2 * Ra, Rs, Kf, 2 * Saa + 2 * Sab);
@@ -2571,7 +2611,8 @@ Begin
   F_B3LYP: ExPartC := -1.6 * CX_LDA * X43 + 1.44 * B88c(X43, Saa);
   F_PBE, F_PBE0: Begin
    Kf := Pw(3 * Pi * Pi * 2 * Ra, 1 / 3);
-   If Func = F_PBE Then ExPartC := 2 * PBExc(Ra, X43, Kf, Saa) Else ExPartC := 1.5 * PBExc(Ra, X43, Kf, Saa);
+   If Func = F_PBE Then ExPartC := 2 * PBExc(Ra, X43, Kf, Saa) Else ExPartC :=
+     1.5 * PBExc(Ra, X43, Kf, Saa);
   End;
  Else ExPartC := 0;
  End;
@@ -2629,10 +2670,12 @@ Begin
     If Not Closed Then TB := TB + MDb^[Idx[I - 1], Idx[J - 1]] * Phi[J];
    End;
    Ra := Ra + TA * Phi[I];
-   Gax := Gax + 2 * TA * GX[I]; Gay := Gay + 2 * TA * GY[I]; Gaz := Gaz + 2 * TA * GZ[I];
+   Gax := Gax + 2 * TA * GX[I]; Gay := Gay + 2 * TA * GY[I]; Gaz := Gaz + 2 * TA
+     * GZ[I];
    If Not Closed Then Begin
     Rb := Rb + TB * Phi[I];
-    Gbx := Gbx + 2 * TB * GX[I]; Gby := Gby + 2 * TB * GY[I]; Gbz := Gbz + 2 * TB * GZ[I];
+    Gbx := Gbx + 2 * TB * GX[I]; Gby := Gby + 2 * TB * GY[I]; Gbz := Gbz + 2 *
+      TB * GZ[I];
    End;
   End;
   If Closed Then Begin Rb := Ra; Gbx := Gax; Gby := Gay; Gbz := Gaz; End;
@@ -2650,14 +2693,17 @@ Begin
   End
   Else XCDeriv(Ra, Rb, Saa, Sab, Sbb, E, VRa, VRb, VSaa, VSab, VSbb);
   Exc := Exc + W * E;
-  If Closed Then EXdft := EXdft + W * ExPartC(Ra, Saa) Else EXdft := EXdft + W * ExPart(Ra, Rb, Saa, Sbb);
+  If Closed Then EXdft := EXdft + W * ExPartC(Ra, Saa) Else EXdft := EXdft + W *
+    ExPart(Ra, Rb, Saa, Sbb);
   { vecteurs de gradient effectifs }
-  QAx := 2 * VSaa * Gax + VSab * Gbx; QAy := 2 * VSaa * Gay + VSab * Gby; QAz := 2 * VSaa * Gaz + VSab * Gbz;
+  QAx := 2 * VSaa * Gax + VSab * Gbx; QAy := 2 * VSaa * Gay + VSab * Gby; QAz :=
+    2 * VSaa * Gaz + VSab * Gbz;
   QBx := 2 * VSbb * Gbx + VSab * Gax; QBy := 2 * VSbb * Gby + VSab * Gay;
   QBz := 2 * VSbb * Gbz + VSab * Gaz;
   For I := 1 To NL Do Begin
    AA[I] := W * (0.5 * VRa * Phi[I] + QAx * GX[I] + QAy * GY[I] + QAz * GZ[I]);
-   If Not Closed Then AB[I] := W * (0.5 * VRb * Phi[I] + QBx * GX[I] + QBy * GY[I] + QBz * GZ[I]);
+   If Not Closed Then AB[I] := W * (0.5 * VRb * Phi[I] + QBx * GX[I] + QBy *
+     GY[I] + QBz * GZ[I]);
   End;
   For I := 1 To NL Do
    For J := 1 To I Do Begin
@@ -2690,7 +2736,8 @@ Var
  BondOrd : Array[1..MAX_AT, 1..MAX_AT] Of Real;
  Dip     : TVec3;
  DipTot  : Real;
- OrbMullPct : Array[1..MAX_BF, 1..MAX_AT] Of Real;   { contribution des atomes aux MOs }
+ OrbMullPct : Array[1..MAX_BF, 1..MAX_AT] Of Real;   { contribution des atomes
+   aux MOs }
 
 Procedure PopAnalysis;
 Var A, B, I, J, K: Integer;
@@ -2728,7 +2775,8 @@ Begin
   For A := 1 To NAt Do OrbMullPct[K, A] := 0;
  For K := 1 To NBF Do
   For I := 1 To NBF Do
-   OrbMullPct[K, BFAtom[I]] := OrbMullPct[K, BFAtom[I]] + MCa^[I, K] * MT1^[I, K];
+   OrbMullPct[K, BFAtom[I]] := OrbMullPct[K, BFAtom[I]] + MCa^[I, K] * MT1^[I,
+     K];
 End;
 
 Procedure ComputeDipole;
@@ -2763,22 +2811,28 @@ End;
 { Evaluation de l'energie pour la geometrie courante                     }
 { --------------------------------------------------------------------- }
 
-Function EvalEnergy(Verbose, UseGuess: Boolean; Var E: Real; Var Err: String): Boolean;
+Function EvalEnergy(Verbose, UseGuess: Boolean; Var E: Real; Var Err: String):
+  Boolean;
 Begin
  EvalEnergy := False;
  Err := '';
  InitBoysTable;
  BuildPairs;
  BuildOneElectron;
- If Not ComputeERI Then Begin Err := 'Memoire insuffisante pour les integrales bielectroniques'; Exit; End;
- If Not BuildOrtho Then Begin Err := 'Dependance lineaire dans la base'; Exit; End;
+ If Not ComputeERI Then Begin Err :=
+   'Memoire insuffisante pour les integrales bielectroniques'; Exit; End;
+ If Not BuildOrtho Then Begin Err := 'Dependance lineaire dans la base'; Exit;
+   End;
  Enuc := NucRepulsion;
  If Meth = M_DFT Then Begin
   BuildGrid;
-  If GridFull Then Begin Err := 'Grille DFT trop grande pour cette molecule (utilisez la grille normale)'; Exit; End;
+  If GridFull Then Begin Err :=
+    'Grille DFT trop grande pour cette molecule (utilisez la grille normale)';
+    Exit; End;
  End;
  If Not ScfRun(Verbose, UseGuess) Then Begin
-  If UserAbort Then Err := 'Calcul interrompu' Else Err := 'Le SCF n''a pas converge';
+  If UserAbort Then Err := 'Calcul interrompu' Else Err :=
+    'Le SCF n''a pas converge';
   Exit;
  End;
  ETot := EScf;
@@ -2908,8 +2962,10 @@ Begin
   If Q <> #0 Then Begin
    If S[I] = Q Then Q := #0;
   End
-  Else If ((S[I] = '"') Or (S[I] = '''')) And ((I = 1) Or (S[I - 1] <= ' ')) Then Q := S[I]
-  Else If (S[I] = '#') Or ((S[I] = '!') And Not ((I < Length(S)) And (S[I + 1] = '='))) Then Begin
+  Else If ((S[I] = '"') Or (S[I] = '''')) And ((I = 1) Or (S[I - 1] <= ' '))
+    Then Q := S[I]
+  Else If (S[I] = '#') Or ((S[I] = '!') And Not ((I < Length(S)) And (S[I + 1] =
+    '='))) Then Begin
    StripComment := TrimStr(Copy(S, 1, I - 1));
    Exit;
   End;
@@ -2929,12 +2985,15 @@ Begin
  ReadReal := False;
  If T = '' Then Exit;
  If (T[1] = '.') Then T := '0' + T;
- If (Length(T) > 1) And (T[1] = '-') And (T[2] = '.') Then T := '-0' + Copy(T, 2, 255);
+ If (Length(T) > 1) And (T[1] = '-') And (T[2] = '.') Then T := '-0' + Copy(T,
+   2, 255);
  If (Length(T) > 1) And (T[1] = '+') Then T := Copy(T, 2, 255);
  { refuse nan, inf et les valeurs hors limites }
- If Not ((T[1] In ['0'..'9', '.']) Or ((Length(T) > 1) And (T[1] = '-') And (T[2] In ['0'..'9', '.']))) Then Exit;
+ If Not ((T[1] In ['0'..'9', '.']) Or ((Length(T) > 1) And (T[1] = '-') And
+   (T[2] In ['0'..'9', '.']))) Then Exit;
  Val(T, R, Code);
- If (Code = 0) And (R = R) And (Abs(R) < 1E300) Then Begin V := R; ReadReal := True; End;
+ If (Code = 0) And (R = R) And (Abs(R) < 1E300) Then Begin V := R; ReadReal :=
+   True; End;
 End;
 
 Function ReadInt(Const S: String; Var V: LongInt): Boolean;
@@ -2946,7 +3005,8 @@ Begin
  Val(T, R, Code);
  If Code = 0 Then Begin V := R; ReadInt := True; Exit; End;
  If ReadReal(T, X) Then Begin
-  If (Abs(X) < 2E9) And (Abs(X - Round(X)) < 1E-9) Then Begin V := Round(X); ReadInt := True; End;
+  If (Abs(X) < 2E9) And (Abs(X - Round(X)) < 1E-9) Then Begin V := Round(X);
+    ReadInt := True; End;
  End;
 End;
 
@@ -2976,7 +3036,8 @@ Begin
  If Line > 0 Then ConMsg('ERREUR (ligne ' + IStr(Line) + ') : ' + Msg)
  Else ConMsg('ERREUR : ' + Msg);
  If OutOpen Then Begin
-  If Line > 0 Then Emit(' *** ERROR in line ' + IStr(Line) + ' :: ' + Msg + ' ***')
+  If Line > 0 Then Emit(' *** ERROR in line ' + IStr(Line) + ' :: ' + Msg +
+    ' ***')
   Else Emit(' *** ERROR :: ' + Msg + ' ***');
  End;
 End;
@@ -3030,13 +3091,15 @@ Begin
    If S[I + 1] = '{' Then Begin
     J := I + 2;
     N := '';
-    While (J <= Length(S)) And (S[J] <> '}') Do Begin N := N + S[J]; Inc(J); End;
+    While (J <= Length(S)) And (S[J] <> '}') Do Begin N := N + S[J]; Inc(J);
+      End;
     I := J + 1;
    End
    Else Begin
     J := I + 1;
     N := '';
-    While (J <= Length(S)) And IsIdChar(S[J]) Do Begin N := N + S[J]; Inc(J); End;
+    While (J <= Length(S)) And IsIdChar(S[J]) Do Begin N := N + S[J]; Inc(J);
+      End;
     I := J;
    End;
    If GetPVar(TrimStr(N), V) Then R := R + V
@@ -3076,8 +3139,10 @@ Begin
                    (UpStr(C) = '.FALSE.') Or (UpStr(C) = 'NO'));
   Exit;
  End;
- If (Length(A) > 1) And ((A[1] = '"') Or (A[1] = '''')) Then A := Copy(A, 2, Length(A) - 2);
- If (Length(B) > 1) And ((B[1] = '"') Or (B[1] = '''')) Then B := Copy(B, 2, Length(B) - 2);
+ If (Length(A) > 1) And ((A[1] = '"') Or (A[1] = '''')) Then A := Copy(A, 2,
+   Length(A) - 2);
+ If (Length(B) > 1) And ((B[1] = '"') Or (B[1] = '''')) Then B := Copy(B, 2,
+   Length(B) - 2);
  OkA := ReadReal(A, X);
  OkB := ReadReal(B, Y);
  If OkA And OkB Then Begin
@@ -3174,7 +3239,8 @@ Var
     Rest := Subst(Rest, No);
     Nm := GetTok(Rest);
     Val2 := TrimStr(Rest);
-    If (Length(Val2) > 1) And ((Val2[1] = '"') Or (Val2[1] = '''')) Then Val2 := GetTok(Val2);
+    If (Length(Val2) > 1) And ((Val2[1] = '"') Or (Val2[1] = '''')) Then Val2 :=
+      GetTok(Val2);
     SetPVar(Nm, Val2);
     Exit;
    End;
@@ -3218,10 +3284,12 @@ Begin
  While Not Eof(Fi) Do Begin
   ReadLn(Fi, Raw);
   Inc(LNo);
-  If Length(Raw) >= 255 Then InErr(LNo, 'Ligne trop longue (255 caracteres au plus)');
+  If Length(Raw) >= 255 Then InErr(LNo,
+    'Ligne trop longue (255 caracteres au plus)');
   Raw := StripComment(Raw);
   If Pend <> '' Then Begin
-   If Length(Pend) + Length(Raw) > 245 Then InErr(PendNo, 'Ligne logique trop longue (245 caracteres au plus)');
+   If Length(Pend) + Length(Raw) > 245 Then InErr(PendNo,
+     'Ligne logique trop longue (245 caracteres au plus)');
    Raw := Copy(Pend + ' ' + Raw, 1, 250);
    StartNo := PendNo;
   End
@@ -3331,7 +3399,8 @@ Begin
   End;
  End;
  If Cur <> Root Then
-  InErr(SecLine[Cur], 'Section &' + SecName[Cur] + ' non fermee (&END manquant)');
+  InErr(SecLine[Cur], 'Section &' + SecName[Cur] +
+    ' non fermee (&END manquant)');
 End;
 
 Procedure ParseTree;
@@ -3372,7 +3441,8 @@ Begin
  Rest := Path;
  While (Rest <> '') And (Cur >= 0) Do Begin
   P := Pos('/', Rest);
-  If P > 0 Then Begin Nm := Copy(Rest, 1, P - 1); Rest := Copy(Rest, P + 1, 255); End
+  If P > 0 Then Begin Nm := Copy(Rest, 1, P - 1); Rest := Copy(Rest, P + 1,
+    255); End
   Else Begin Nm := Rest; Rest := ''; End;
   Cur := FindSec(Cur, Nm, 1);
   If Cur = 0 Then Begin SecPath := 0; Exit; End;
@@ -3397,7 +3467,8 @@ Var I: Integer; U: String;
 Begin
  U := UpStr(Nm);
  For I := 1 To NKw Do
-  If (KwTab[I]^.Sec = Sec) And (KwTab[I]^.U = U) Then Begin KwIdx := I; Exit; End;
+  If (KwTab[I]^.Sec = Sec) And (KwTab[I]^.U = U) Then Begin KwIdx := I; Exit;
+    End;
  KwIdx := 0;
 End;
 
@@ -3407,7 +3478,8 @@ Begin
 End;
 
 { Valeur brute (sans l'unite) ; Un recoit l'unite entre crochets }
-Function KwRaw(Sec: Integer; Const Nm: String; Var Un: String; Var Found: Boolean): String;
+Function KwRaw(Sec: Integer; Const Nm: String; Var Un: String; Var Found:
+  Boolean): String;
 Var I, P: Integer; V: String;
 Begin
  Un := '';
@@ -3464,7 +3536,8 @@ Begin
  Else Begin
   If Not ((V = 'F') Or (V = '.FALSE.') Or (V = 'FALSE') Or (V = 'NO') Or
           (V = 'OFF') Or (V = '0') Or (V = '.F.')) Then
-   InErr(KwTab[KwIdx(Sec, Nm)]^.Line, 'Valeur logique invalide pour ' + UpStr(Nm) + ' : ' + V);
+   InErr(KwTab[KwIdx(Sec, Nm)]^.Line, 'Valeur logique invalide pour ' +
+     UpStr(Nm) + ' : ' + V);
   KwBool := False;
  End;
 End;
@@ -3476,21 +3549,24 @@ Begin
  V := GetTok(W);
  If Fd And ReadInt(V, R) Then KwInt := R
  Else Begin
-  If Fd Then InErr(KwTab[KwIdx(Sec, Nm)]^.Line, 'Entier invalide pour ' + UpStr(Nm) + ' : ' + V);
+  If Fd Then InErr(KwTab[KwIdx(Sec, Nm)]^.Line, 'Entier invalide pour ' +
+    UpStr(Nm) + ' : ' + V);
   KwInt := Def;
  End;
 End;
 
 { Reel avec unite : Def est exprime dans l'unite DU ; le resultat est en
   unites atomiques (ou brut si DU est vide ou K) }
-Function KwReal(Sec: Integer; Const Nm: String; Def: Real; Const DU: String): Real;
+Function KwReal(Sec: Integer; Const Nm: String; Def: Real; Const DU: String):
+  Real;
 Var Un, V: String; Fd, Ok: Boolean; R, Fac: Real;
 Begin
  V := KwRaw(Sec, Nm, Un, Fd);
  Ok := True;
  If Not Fd Then R := Def
  Else If Not ReadReal(GetTok(V), R) Then Begin
-  InErr(KwTab[KwIdx(Sec, Nm)]^.Line, 'Valeur numerique invalide pour ' + UpStr(Nm));
+  InErr(KwTab[KwIdx(Sec, Nm)]^.Line, 'Valeur numerique invalide pour ' +
+    UpStr(Nm));
   R := Def;
  End
  Else If Un <> '' Then Begin
@@ -3557,17 +3633,22 @@ Begin
        (KwTab[I]^.U = 'COORD_FILE_FORMAT')) Then Skip := True;
     If (SecName[S] = 'MD') And ((KwTab[I]^.U = 'STEP_START_VAL') Or
        (KwTab[I]^.U = 'TIME_START_VAL')) Then Skip := True;
-    If (SecName[S] = 'GEO_OPT') And (KwTab[I]^.U = 'STEP_START_VAL') Then Skip := True;
+    If (SecName[S] = 'GEO_OPT') And (KwTab[I]^.U = 'STEP_START_VAL') Then Skip
+      := True;
     If SecName[S] = 'COORD' Then Skip := True;
-    If (SecName[S] = 'CELL') And ((KwTab[I]^.U = 'ABC') Or (KwTab[I]^.U = 'ALPHA_BETA_GAMMA') Or
-       (KwTab[I]^.U = 'A') Or (KwTab[I]^.U = 'B') Or (KwTab[I]^.U = 'C')) And RestartCellKnown Then Skip := True;
+    If (SecName[S] = 'CELL') And ((KwTab[I]^.U = 'ABC') Or (KwTab[I]^.U =
+      'ALPHA_BETA_GAMMA') Or
+       (KwTab[I]^.U = 'A') Or (KwTab[I]^.U = 'B') Or (KwTab[I]^.U = 'C')) And
+         RestartCellKnown Then Skip := True;
    End;
    If Not Skip Then Begin
-    If KwTab[I]^.V <> '' Then Emit(Pad + '   ' + KwTab[I]^.O + ' ' + KwTab[I]^.V)
+    If KwTab[I]^.V <> '' Then Emit(Pad + '   ' + KwTab[I]^.O + ' ' +
+      KwTab[I]^.V)
     Else Emit(Pad + '   ' + KwTab[I]^.O);
    End;
   End;
- If RestartMode And RestartCellKnown And (SecName[S] = 'CELL') Then DumpCellVectors(Pad + '   ');
+ If RestartMode And RestartCellKnown And (SecName[S] = 'CELL') Then
+   DumpCellVectors(Pad + '   ');
  If RestartMode And (SecName[S] = 'MD') Then Begin
   Emit(Pad + '   STEP_START_VAL ' + IStr(RestartStep));
   Emit(Pad + '   TIME_START_VAL ' + RStr(RestartTime / FS_AU, 8));
@@ -3578,7 +3659,8 @@ Begin
   If SecParent[I] = S Then Begin
    If RestartMode And ((SecName[I] = 'COORD') Or (SecName[I] = 'VELOCITY')) And
       (SecName[S] = 'SUBSYS') Then Continue;
-   If RestartMode And ((SecName[I] = 'EXT_RESTART') Or (SecName[I] = 'RESTART_DATA')) Then Continue;
+   If RestartMode And ((SecName[I] = 'EXT_RESTART') Or (SecName[I] =
+     'RESTART_DATA')) Then Continue;
    If S = 0 Then DumpSec(I, 0) Else DumpSec(I, Ind + 3);
   End;
  If RestartMode And (SecName[S] = 'SUBSYS') Then DumpCoordSections(Ind + 3);
@@ -3640,7 +3722,8 @@ Var A: String; I, Z1, Z2: Integer;
 Begin
  A := '';
  I := 1;
- While (I <= Length(L)) And (UpStr(L[I]) >= 'A') And (UpStr(L[I]) <= 'Z') Do Begin
+ While (I <= Length(L)) And (UpStr(L[I]) >= 'A') And (UpStr(L[I]) <= 'Z') Do
+   Begin
   A := A + L[I];
   Inc(I);
  End;
@@ -3785,7 +3868,8 @@ End;
 Function CellAngle(I, J: Integer): Real;
 Var D: Real;
 Begin
- D := (CellH[I,1] * CellH[J,1] + CellH[I,2] * CellH[J,2] + CellH[I,3] * CellH[J,3]) /
+ D := (CellH[I,1] * CellH[J,1] + CellH[I,2] * CellH[J,2] + CellH[I,3] *
+   CellH[J,3]) /
       (CellLen(I) * CellLen(J));
  CellAngle := ArcCos(D) * 180 / Pi;
 End;
@@ -3810,13 +3894,16 @@ Begin
   Exit;
  End;
  P := KwWord(Sc, 'PERIODIC', 'XYZ');
- If Not ((P = 'XYZ') Or (P = 'XY') Or (P = 'XZ') Or (P = 'YZ') Or (P = 'X') Or (P = 'Y') Or
+ If Not ((P = 'XYZ') Or (P = 'XY') Or (P = 'XZ') Or (P = 'YZ') Or (P = 'X') Or
+   (P = 'Y') Or
          (P = 'Z') Or (P = 'NONE')) Then Begin
   InErr(SecLine[Sc], 'PERIODIC invalide : ' + P);
   P := 'NONE';
  End;
- Per[1] := Pos('X', P) > 0; Per[2] := Pos('Y', P) > 0; Per[3] := Pos('Z', P) > 0;
- If P = 'NONE' Then Begin Per[1] := False; Per[2] := False; Per[3] := False; End;
+ Per[1] := Pos('X', P) > 0; Per[2] := Pos('Y', P) > 0; Per[3] := Pos('Z', P) >
+   0;
+ If P = 'NONE' Then Begin Per[1] := False; Per[2] := False; Per[3] := False;
+   End;
  PerStr := P;
  UseVec := KwHas(Sc, 'A') And KwHas(Sc, 'B') And KwHas(Sc, 'C');
  If UseVec Then Begin
@@ -3824,13 +3911,15 @@ Begin
    For J := 1 To 3 Do Begin
     V := 0;
     If Not KwRealN(Sc, Chr(Ord('A') + I - 1), J, 'angstrom', V) Then
-     InErr(SecLine[Sc], 'Vecteur de cellule ' + Chr(Ord('A') + I - 1) + ' incomplet');
+     InErr(SecLine[Sc], 'Vecteur de cellule ' + Chr(Ord('A') + I - 1) +
+       ' incomplet');
     CellH[I,J] := V;
    End;
  End
  Else If KwHas(Sc, 'ABC') Then Begin
   A := 0; B := 0; C := 0;
-  If Not (KwRealN(Sc, 'ABC', 1, 'angstrom', A) And KwRealN(Sc, 'ABC', 2, 'angstrom', B) And
+  If Not (KwRealN(Sc, 'ABC', 1, 'angstrom', A) And KwRealN(Sc, 'ABC', 2,
+    'angstrom', B) And
           KwRealN(Sc, 'ABC', 3, 'angstrom', C)) Then Begin
    InErr(SecLine[Sc], 'ABC doit contenir trois valeurs');
    Exit;
@@ -3845,8 +3934,10 @@ Begin
     InErr(SecLine[Sc], 'ALPHA_BETA_GAMMA doit contenir trois angles');
     Exit;
    End;
-   If (Al < 0.01) Or (Al > Pi - 0.01) Or (Be < 0.01) Or (Be > Pi - 0.01) Or (Ga < 0.01) Or (Ga > Pi - 0.01) Then Begin
-    InErr(SecLine[Sc], 'Les angles de la cellule doivent etre compris entre 0 et 180 degres');
+   If (Al < 0.01) Or (Al > Pi - 0.01) Or (Be < 0.01) Or (Be > Pi - 0.01) Or (Ga
+     < 0.01) Or (Ga > Pi - 0.01) Then Begin
+    InErr(SecLine[Sc],
+      'Les angles de la cellule doivent etre compris entre 0 et 180 degres');
     Exit;
    End;
   End;
@@ -3860,14 +3951,16 @@ Begin
    Al := Pi / 2; Be := Pi / 2; Ga := Pi / 2;
   End;
   CosA := Cos(Al); CosB := Cos(Be); CosG := Cos(Ga); SinG := Sin(Ga);
-  If SinG < 1E-6 Then Begin InErr(SecLine[Sc], 'Cellule degeneree (gamma)'); Exit; End;
+  If SinG < 1E-6 Then Begin InErr(SecLine[Sc], 'Cellule degeneree (gamma)');
+    Exit; End;
   CellH[1,1] := A;
   CellH[2,1] := B * CosG;
   CellH[2,2] := B * SinG;
   Cx := C * CosB;
   Cy := C * (CosA - CosB * CosG) / SinG;
   Cz := C * C - Cx * Cx - Cy * Cy;
-  If Cz < 1E-12 * C * C Then Begin InErr(SecLine[Sc], 'Cellule degeneree (angles incompatibles)'); Exit; End;
+  If Cz < 1E-12 * C * C Then Begin InErr(SecLine[Sc],
+    'Cellule degeneree (angles incompatibles)'); Exit; End;
   CellH[3,1] := Cx;
   CellH[3,2] := Cy;
   CellH[3,3] := Sqrt(Cz);
@@ -3910,7 +4003,8 @@ Begin
  Inc(NKinds);
  KName[NKinds] := Lbl;
  KZ[NKinds] := Z;
- If Z > 0 Then KMassA[NKinds] := PtMass[Z] * AMU_AU Else KMassA[NKinds] := AMU_AU;
+ If Z > 0 Then KMassA[NKinds] := PtMass[Z] * AMU_AU Else KMassA[NKinds] :=
+   AMU_AU;
  KQ[NKinds] := 0;
  KBas[NKinds] := -1;
  KBasName[NKinds] := '';
@@ -3926,7 +4020,8 @@ Begin
  BasisFromName := -1;
  If (Pos('STO-3G', N) > 0) Or (Pos('STO3G', N) > 0) Or (Pos('SZV', N) > 0) Then
   BasisFromName := B_STO3G
- Else If (Pos('3-21G', N) > 0) Or (Pos('321G', N) > 0) Then BasisFromName := B_321G
+ Else If (Pos('3-21G', N) > 0) Or (Pos('321G', N) > 0) Then BasisFromName :=
+   B_321G
  Else If (Pos('6-31G', N) > 0) Or (Pos('631G', N) > 0) Or (Pos('DZV', N) > 0) Or
          (Pos('TZV', N) > 0) Or (Pos('QZV', N) > 0) Or (Pos('MOLOPT', N) > 0) Or
          (Pos('DZ', N) > 0) Then BasisFromName := B_631G;
@@ -3972,18 +4067,21 @@ Begin
   Exit;
  End;
  If (NN < 1) Or (NN > MAX_ATOM) Then Begin
-  InErr(0, 'Nombre d''atomes invalide dans ' + FN + ' (1 a ' + IStr(MAX_ATOM) + ')');
+  InErr(0, 'Nombre d''atomes invalide dans ' + FN + ' (1 a ' + IStr(MAX_ATOM) +
+    ')');
   Close(Fi);
   Exit;
  End;
  N := NN;
  ReadLn(Fi, Ln);
  For I := 1 To N Do Begin
-  If Eof(Fi) Then Begin InErr(0, 'Fichier XYZ tronque : ' + FN); Close(Fi); Exit; End;
+  If Eof(Fi) Then Begin InErr(0, 'Fichier XYZ tronque : ' + FN); Close(Fi);
+    Exit; End;
   ReadLn(Fi, Ln);
   T := TrimStr(Ln);
   Lbl := GetTok(T);
-  If Not (ReadReal(GetTok(T), X) And ReadReal(GetTok(T), Y) And ReadReal(GetTok(T), Z)) Then Begin
+  If Not (ReadReal(GetTok(T), X) And ReadReal(GetTok(T), Y) And
+    ReadReal(GetTok(T), Z)) Then Begin
    InErr(0, 'Ligne XYZ invalide : ' + Ln);
    Close(Fi);
    Exit;
@@ -4022,7 +4120,8 @@ Begin
    El := TrimStr(Copy(Ln, 77, 2));
    If (El = '') Or (ElemOfSym(El) = 0) Then Begin
     Lbl := TrimStr(Copy(Ln, 13, 4));
-    While (Lbl <> '') And (Lbl[1] >= '0') And (Lbl[1] <= '9') Do Delete(Lbl, 1, 1);
+    While (Lbl <> '') And (Lbl[1] >= '0') And (Lbl[1] <= '9') Do Delete(Lbl, 1,
+      1);
     El := Lbl;
     If ElemFromLabel(El) > 0 Then El := PtSym[ElemFromLabel(El)];
    End;
@@ -4055,7 +4154,8 @@ Begin
     If (KwTab[I]^.U = 'UNIT') Or (KwTab[I]^.U = 'SCALED') Then Continue;
     T := KwTab[I]^.V;
     Lbl := KwTab[I]^.O;
-    If Not (ReadReal(GetTok(T), X) And ReadReal(GetTok(T), Y) And ReadReal(GetTok(T), Z)) Then Begin
+    If Not (ReadReal(GetTok(T), X) And ReadReal(GetTok(T), Y) And
+      ReadReal(GetTok(T), Z)) Then Begin
      InErr(KwTab[I]^.Line, 'Coordonnees invalides pour l''atome ' + Lbl);
      Continue;
     End;
@@ -4076,7 +4176,8 @@ Begin
   Else If Fmt = 'PDB' Then ReadPDBCoords(FN)
   Else InErr(SecLine[St], 'Format de coordonnees non pris en charge : ' + Fmt);
  End
- Else InErr(SecLine[SrcSec], 'Aucune coordonnee : &COORD ou COORD_FILE_NAME requis');
+ Else InErr(SecLine[SrcSec],
+   'Aucune coordonnee : &COORD ou COORD_FILE_NAME requis');
 End;
 
 { Charge les vitesses depuis &VELOCITY (une ligne par atome) ; renvoie
@@ -4091,7 +4192,8 @@ Begin
  For I := 1 To NKw Do
   If KwTab[I]^.Sec = Sv Then Begin
    T := KwTab[I]^.O + ' ' + KwTab[I]^.V;
-   If Not (ReadReal(GetTok(T), X) And ReadReal(GetTok(T), Y) And ReadReal(GetTok(T), Z)) Then Begin
+   If Not (ReadReal(GetTok(T), X) And ReadReal(GetTok(T), Y) And
+     ReadReal(GetTok(T), Z)) Then Begin
     InErr(KwTab[I]^.Line, 'Vitesse invalide');
     Continue;
    End;
@@ -4101,7 +4203,8 @@ Begin
    End;
   End;
  If N <> NAtoms Then Begin
-  InErr(SecLine[Sv], 'Nombre de vitesses (' + IStr(N) + ') different du nombre d''atomes (' +
+  InErr(SecLine[Sv], 'Nombre de vitesses (' + IStr(N) +
+    ') different du nombre d''atomes (' +
         IStr(NAtoms) + ')');
   Exit;
  End;
@@ -4118,7 +4221,8 @@ Procedure DumpCellVectors(Const Pad: String);
 Var K: Integer;
 Begin
  For K := 1 To 3 Do
-  Emit(Pad + Chr(Ord('A') + K - 1) + ' [angstrom] ' + FR(CellH[K,1] * BOHR_ANG, 18, 10) +
+  Emit(Pad + Chr(Ord('A') + K - 1) + ' [angstrom] ' + FR(CellH[K,1] * BOHR_ANG,
+    18, 10) +
        FR(CellH[K,2] * BOHR_ANG, 18, 10) + FR(CellH[K,3] * BOHR_ANG, 18, 10));
 End;
 
@@ -4131,11 +4235,13 @@ Begin
  Emit(P2 + 'UNIT angstrom');
  For I := 1 To NAtoms Do
   Emit(P2 + PadR(SLab[I], 6) + ' ' + FR(SPos[I,1] * BOHR_ANG, 20, 12) + ' ' +
-       FR(SPos[I,2] * BOHR_ANG, 20, 12) + ' ' + FR(SPos[I,3] * BOHR_ANG, 20, 12));
+       FR(SPos[I,2] * BOHR_ANG, 20, 12) + ' ' + FR(SPos[I,3] * BOHR_ANG, 20,
+         12));
  Emit(P1 + '&END COORD');
  Emit(P1 + '&VELOCITY');
  For I := 1 To NAtoms Do
-  Emit(P2 + PadL(EStr(SVel[I,1], 13), 21) + PadL(EStr(SVel[I,2], 13), 21) + PadL(EStr(SVel[I,3], 13), 21));
+  Emit(P2 + PadL(EStr(SVel[I,1], 13), 21) + PadL(EStr(SVel[I,2], 13), 21) +
+    PadL(EStr(SVel[I,3], 13), 21));
  Emit(P1 + '&END VELOCITY');
 End;
 
@@ -4181,7 +4287,8 @@ Var I: Integer;
 Begin
  For I := 1 To NKinds Do
   If KZ[I] = 0 Then
-   InErr(0, 'Element indetermine pour la sorte ' + KName[I] + ' (utilisez ELEMENT)');
+   InErr(0, 'Element indetermine pour la sorte ' + KName[I] +
+     ' (utilisez ELEMENT)');
 End;
 
 { Remplit les tableaux par atome a partir des sortes }
@@ -4237,7 +4344,8 @@ Begin
      If W = '' Then Break;
      P := Pos('..', W);
      If P > 0 Then Begin
-      If Not (ReadInt(Copy(W, 1, P - 1), LA) And ReadInt(Copy(W, P + 2, 20), LB)) Then Begin
+      If Not (ReadInt(Copy(W, 1, P - 1), LA) And ReadInt(Copy(W, P + 2, 20),
+        LB)) Then Begin
        InErr(KwTab[I]^.Line, 'Intervalle invalide dans LIST : ' + W);
        Continue;
       End;
@@ -4248,7 +4356,8 @@ Begin
      End
      Else LB := LA;
      If (LA < 1) Or (LB > NAtoms) Or (LA > LB) Then Begin
-      InErr(KwTab[I]^.Line, 'Intervalle ' + IStr(LA) + '..' + IStr(LB) + ' hors de la plage 1..' + IStr(NAtoms));
+      InErr(KwTab[I]^.Line, 'Intervalle ' + IStr(LA) + '..' + IStr(LB) +
+        ' hors de la plage 1..' + IStr(NAtoms));
       Continue;
      End;
      For AA := LA To LB Do Begin
@@ -4288,7 +4397,8 @@ Begin
   Exit;
  End;
  If (AdjN[A] >= MAX_NB) Or (AdjN[B] >= MAX_NB) Then Begin
-  If Not NbWarned Then Warn('Plus de ' + IStr(MAX_NB) + ' liaisons pour un atome : liaisons en trop ignorees');
+  If Not NbWarned Then Warn('Plus de ' + IStr(MAX_NB) +
+    ' liaisons pour un atome : liaisons en trop ignorees');
   NbWarned := True;
   Exit;
  End;
@@ -4306,7 +4416,8 @@ Begin
  For I := 1 To NAtoms Do AdjN[I] := 0;
  For I := 1 To NAtoms - 1 Do
   For J := I + 1 To NAtoms Do Begin
-   DX := SPos[I,1] - SPos[J,1]; DY := SPos[I,2] - SPos[J,2]; DZ := SPos[I,3] - SPos[J,3];
+   DX := SPos[I,1] - SPos[J,1]; DY := SPos[I,2] - SPos[J,2]; DZ := SPos[I,3] -
+     SPos[J,3];
    MinImg(DX, DY, DZ);
    R := Sqrt(DX * DX + DY * DY + DZ * DZ);
    Lim := (PtRad[SZ[I]] + PtRad[SZ[J]]) * ANG2BOHR * Factor;
@@ -4371,7 +4482,9 @@ Begin
   End;
   For J := I + 1 To NAtoms Do
    If (Dist[J] > 0) And (ExN[I] >= MAX_EXCL) Then Begin
-    If Not ExWarned Then Warn('Liste d''exclusions trop longue pour un atome : paires en trop ignorees');
+    If Not ExWarned Then
+      Warn('Liste d''exclusions trop longue pour un atome : paires en trop ' +
+        'ignorees');
     ExWarned := True;
    End
    Else If Dist[J] > 0 Then Begin
@@ -4449,7 +4562,8 @@ Begin
  For I := 1 To 3 Do
   Emit(' CELL| Vector ' + Chr(Ord('a') + I - 1) + ' [angstrom]:' +
        FR(CellH[I,1] * BOHR_ANG, 12, 3) + FR(CellH[I,2] * BOHR_ANG, 10, 3) +
-       FR(CellH[I,3] * BOHR_ANG, 10, 3) + '    |' + Chr(Ord('a') + I - 1) + '| = ' +
+       FR(CellH[I,3] * BOHR_ANG, 10, 3) + '    |' + Chr(Ord('a') + I - 1) +
+         '| = ' +
        FR(CellLen(I) * BOHR_ANG, 13, 3));
  Info('CELL', 'Angle (b,c), alpha [degree]:', FR(CellAngle(2, 3), 20, 3));
  Info('CELL', 'Angle (a,c), beta  [degree]:', FR(CellAngle(1, 3), 20, 3));
@@ -4467,13 +4581,16 @@ Begin
  Emit(' ATOMIC KIND INFORMATION');
  EmitBlank;
  For K := 1 To NKinds Do Begin
-  Emit(' ' + ISt(K, 2) + '. Atomic kind: ' + PadR(KName[K], 20) + ' Number of atoms: ' + ISt(KCount[K], 6));
+  Emit(' ' + ISt(K, 2) + '. Atomic kind: ' + PadR(KName[K], 20) +
+    ' Number of atoms: ' + ISt(KCount[K], 6));
   EmitBlank;
   Emit('     Atomic weight:' + FR(KMassA[K] / AMU_AU, 40, 4));
-  If KZ[K] > 0 Then Emit('     Element symbol: ' + Rep(' ', 50) + PadL(PtSym[KZ[K]], 3));
+  If KZ[K] > 0 Then Emit('     Element symbol: ' + Rep(' ', 50) +
+    PadL(PtSym[KZ[K]], 3));
   If KBasName[K] <> '' Then Begin
    Emit('     Orbital basis set:' + PadL(KBasName[K], 55));
-   If (KBas[K] >= 0) And (FEMethod = FE_QS) And (UpStr(KBasName[K]) <> UpStr(BasisNames[KBas[K]])) Then
+   If (KBas[K] >= 0) And (FEMethod = FE_QS) And (UpStr(KBasName[K]) <>
+     UpStr(BasisNames[KBas[K]])) Then
     Emit('     Engine basis set:' + PadL(BasisNames[KBas[K]], 56));
   End;
   EmitBlank;
@@ -4491,12 +4608,16 @@ Begin
  EmitBlank;
  Emit(' MODULE ' + Title + ':  ATOMIC COORDINATES IN angstrom');
  EmitBlank;
- Emit('  Atom  Kind  Element       X           Y           Z          Z(eff)       Mass');
+ Emit('  Atom  Kind  Element       X           Y           Z          Z(eff) ' +
+   ' ' +
+   '     Mass');
  EmitBlank;
  For I := 1 To NAtoms Do
-  Emit(ISt(I, 7) + ISt(SKind[I], 6) + '     ' + PadR(PtSym[SZ[I]], 2) + ISt(SZ[I], 3) +
+  Emit(ISt(I, 7) + ISt(SKind[I], 6) + '     ' + PadR(PtSym[SZ[I]], 2) +
+    ISt(SZ[I], 3) +
        FR(SPos[I,1] * BOHR_ANG, 12, 6) + FR(SPos[I,2] * BOHR_ANG, 12, 6) +
-       FR(SPos[I,3] * BOHR_ANG, 12, 6) + FR(ZEff(I, NuclearZ), 12, 4) + FR(SMass[I] / AMU_AU, 12, 4));
+       FR(SPos[I,3] * BOHR_ANG, 12, 6) + FR(ZEff(I, NuclearZ), 12, 4) +
+         FR(SMass[I] / AMU_AU, 12, 4));
  EmitBlank;
 End;
 
@@ -4544,7 +4665,8 @@ Var
  ErfcReady    : Boolean;
 
  { potentiels non lies }
- LJType  : Array[1..MAX_KIND, 1..MAX_KIND] Of Integer;  { 0 aucun, 1 LJ, 2 Williams }
+ LJType  : Array[1..MAX_KIND, 1..MAX_KIND] Of Integer;  { 0 aucun, 1 LJ, 2
+   Williams }
  LJEps   : Array[1..MAX_KIND, 1..MAX_KIND] Of Real;
  LJSig   : Array[1..MAX_KIND, 1..MAX_KIND] Of Real;
  LJRc    : Array[1..MAX_KIND, 1..MAX_KIND] Of Real;
@@ -4628,7 +4750,8 @@ Begin
  H10 := T3 - 2 * T2 + T;
  H01 := -2 * T3 + 3 * T2;
  H11 := T3 - T2;
- ErfcT := H00 * ErfcF[I] + H10 * ERFC_H * ErfcD[I] + H01 * ErfcF[I + 1] + H11 * ERFC_H * ErfcD[I + 1];
+ ErfcT := H00 * ErfcF[I] + H10 * ERFC_H * ErfcD[I] + H01 * ErfcF[I + 1] + H11 *
+   ERFC_H * ErfcD[I + 1];
 End;
 
 { --------------------------------------------------------------------- }
@@ -4652,7 +4775,8 @@ Var
   For Q := 1 To Cnt Do Begin
    Names[Q] := GetTok(U);
    If Names[Q] = '' Then Begin
-    InErr(SecLine[Sc], 'ATOMS doit contenir ' + IStr(Cnt) + ' sortes d''atomes');
+    InErr(SecLine[Sc], 'ATOMS doit contenir ' + IStr(Cnt) +
+      ' sortes d''atomes');
     Exit;
    End;
   End;
@@ -4662,7 +4786,8 @@ Var
  Var Z: Integer;
  Begin
   Z := FindKind(S);
-  If Z = 0 Then Warn('Sorte d''atome ' + S + ' inconnue dans le champ de force (ligne ' +
+  If Z = 0 Then Warn('Sorte d''atome ' + S +
+    ' inconnue dans le champ de force (ligne ' +
                      IStr(SecLine[Sc]) + ')');
   KindOrWarn := Z;
  End;
@@ -4681,7 +4806,8 @@ Begin
  RcutNB := 10.0 * ANG2BOHR;
  Sff := FindSec(SecMM, 'FORCEFIELD', 1);
  If Sff = 0 Then Begin
-  InErr(SecLine[SecMM], 'La section &FORCEFIELD est obligatoire pour METHOD FIST');
+  InErr(SecLine[SecMM],
+    'La section &FORCEFIELD est obligatoire pour METHOD FIST');
   Exit;
  End;
  ShiftCut := KwBool(Sff, 'SHIFT_CUTOFF', True);
@@ -4697,7 +4823,8 @@ Begin
   Sc := FindSec(Sff, 'CHARGE', I);
   Nm := KwStr(Sc, 'ATOM', '');
   A := FindKind(Nm);
-  If A = 0 Then Begin Warn('Charge pour la sorte inconnue ' + Nm); Continue; End;
+  If A = 0 Then Begin Warn('Charge pour la sorte inconnue ' + Nm); Continue;
+    End;
   KQ[A] := KwReal(Sc, 'CHARGE', 0.0, '');
  End;
  { Lennard-Jones et Williams }
@@ -4727,9 +4854,12 @@ Begin
    Rc := KwReal(Sc, 'RCUT', 0.0, 'bohr');
    If Rc <= 0 Then Rc := RcutNB;
    LJType[Ka, Kb] := 2; LJType[Kb, Ka] := 2;
-   WilA[Ka, Kb] := KwReal(Sc, 'A', 0.0, 'hartree'); WilA[Kb, Ka] := WilA[Ka, Kb];
-   WilB[Ka, Kb] := KwReal(Sc, 'B', 0.0, 'bohr^-1'); WilB[Kb, Ka] := WilB[Ka, Kb];
-   WilC[Ka, Kb] := KwReal(Sc, 'C', 0.0, 'hartree*bohr^6'); WilC[Kb, Ka] := WilC[Ka, Kb];
+   WilA[Ka, Kb] := KwReal(Sc, 'A', 0.0, 'hartree'); WilA[Kb, Ka] := WilA[Ka,
+     Kb];
+   WilB[Ka, Kb] := KwReal(Sc, 'B', 0.0, 'bohr^-1'); WilB[Kb, Ka] := WilB[Ka,
+     Kb];
+   WilC[Ka, Kb] := KwReal(Sc, 'C', 0.0, 'hartree*bohr^6'); WilC[Kb, Ka] :=
+     WilC[Ka, Kb];
    LJRc[Ka, Kb] := Rc; LJRc[Kb, Ka] := Rc;
   End;
  End;
@@ -4737,14 +4867,18 @@ Begin
  Mixed := False;
  For A := 1 To NKinds Do
   For B := A + 1 To NKinds Do
-   If (LJType[A, B] = 0) And (LJType[A, A] = 1) And (LJType[B, B] = 1) Then Begin
+   If (LJType[A, B] = 0) And (LJType[A, A] = 1) And (LJType[B, B] = 1) Then
+     Begin
     LJType[A, B] := 1; LJType[B, A] := 1;
     LJEps[A, B] := Sqrt(LJEps[A, A] * LJEps[B, B]); LJEps[B, A] := LJEps[A, B];
-    LJSig[A, B] := 0.5 * (LJSig[A, A] + LJSig[B, B]); LJSig[B, A] := LJSig[A, B];
+    LJSig[A, B] := 0.5 * (LJSig[A, A] + LJSig[B, B]); LJSig[B, A] := LJSig[A,
+      B];
     LJRc[A, B] := RMin(LJRc[A, A], LJRc[B, B]); LJRc[B, A] := LJRc[A, B];
     Mixed := True;
    End;
- If Mixed Then Warn('Parametres Lennard-Jones croises generes (regles de Lorentz-Berthelot)');
+ If Mixed Then
+   Warn('Parametres Lennard-Jones croises generes (regles de ' +
+     'Lorentz-Berthelot)');
  { decalage des potentiels a la coupure }
  RcMax := 0;
  NPairsLJ := 0;
@@ -4760,7 +4894,8 @@ Begin
      LJSh[A, B] := 4 * LJEps[A, B] * (V * V - V);
     End
     Else
-     LJSh[A, B] := WilA[A, B] * Exp(-WilB[A, B] * Rc) - WilC[A, B] / Cu(Rc * Rc);
+     LJSh[A, B] := WilA[A, B] * Exp(-WilB[A, B] * Rc) - WilC[A, B] / Cu(Rc *
+       Rc);
    End;
   End;
  { liaisons }
@@ -4770,13 +4905,15 @@ Begin
   If Not AtomsOf(Sc, 2) Then Continue;
   Ka := KindOrWarn(Names[1], Sc); Kb := KindOrWarn(Names[2], Sc);
   If (Ka = 0) Or (Kb = 0) Then Continue;
-  If NBP >= MAX_PTAB Then Begin InErr(SecLine[Sc], 'Trop de parametres de liaison'); Break; End;
+  If NBP >= MAX_PTAB Then Begin InErr(SecLine[Sc],
+    'Trop de parametres de liaison'); Break; End;
   Inc(NBP);
   BPA[NBP] := Ka; BPB[NBP] := Kb;
   Kd2 := KwWord(Sc, 'KIND', 'HARMONIC');
   If Kd2 = 'HARMONIC' Then BPKind[NBP] := 0
   Else If (Kd2 = 'CHARMM') Or (Kd2 = 'AMBER') Then BPKind[NBP] := 1
-  Else Begin InErr(SecLine[Sc], 'KIND de liaison non pris en charge : ' + Kd2); BPKind[NBP] := 0; End;
+  Else Begin InErr(SecLine[Sc], 'KIND de liaison non pris en charge : ' + Kd2);
+    BPKind[NBP] := 0; End;
   BPK[NBP] := KwReal(Sc, 'K', 0.0, 'hartree*bohr^-2');
   BPR0[NBP] := KwReal(Sc, 'R0', 0.0, 'bohr');
  End;
@@ -4785,15 +4922,18 @@ Begin
  For I := 1 To N Do Begin
   Sc := FindSec(Sff, 'BEND', I);
   If Not AtomsOf(Sc, 3) Then Continue;
-  Ka := KindOrWarn(Names[1], Sc); Kb := KindOrWarn(Names[2], Sc); Kc := KindOrWarn(Names[3], Sc);
+  Ka := KindOrWarn(Names[1], Sc); Kb := KindOrWarn(Names[2], Sc); Kc :=
+    KindOrWarn(Names[3], Sc);
   If (Ka = 0) Or (Kb = 0) Or (Kc = 0) Then Continue;
-  If NAP >= MAX_PTAB Then Begin InErr(SecLine[Sc], 'Trop de parametres d''angle'); Break; End;
+  If NAP >= MAX_PTAB Then Begin InErr(SecLine[Sc],
+    'Trop de parametres d''angle'); Break; End;
   Inc(NAP);
   APA[NAP] := Ka; APB[NAP] := Kb; APC[NAP] := Kc;
   Kd2 := KwWord(Sc, 'KIND', 'HARMONIC');
   If Kd2 = 'HARMONIC' Then APKind[NAP] := 0
   Else If (Kd2 = 'CHARMM') Or (Kd2 = 'AMBER') Then APKind[NAP] := 1
-  Else Begin InErr(SecLine[Sc], 'KIND d''angle non pris en charge : ' + Kd2); APKind[NAP] := 0; End;
+  Else Begin InErr(SecLine[Sc], 'KIND d''angle non pris en charge : ' + Kd2);
+    APKind[NAP] := 0; End;
   APK[NAP] := KwReal(Sc, 'K', 0.0, 'hartree*rad^-2');
   APT0[NAP] := KwReal(Sc, 'THETA0', 0.0, 'rad');
  End;
@@ -4805,7 +4945,8 @@ Begin
   Ka := KindOrWarn(Names[1], Sc); Kb := KindOrWarn(Names[2], Sc);
   Kc := KindOrWarn(Names[3], Sc); Kd := KindOrWarn(Names[4], Sc);
   If (Ka = 0) Or (Kb = 0) Or (Kc = 0) Or (Kd = 0) Then Continue;
-  If NTP >= MAX_PTAB Then Begin InErr(SecLine[Sc], 'Trop de parametres de torsion'); Break; End;
+  If NTP >= MAX_PTAB Then Begin InErr(SecLine[Sc],
+    'Trop de parametres de torsion'); Break; End;
   Inc(NTP);
   TPA[NTP] := Ka; TPB[NTP] := Kb; TPC[NTP] := Kc; TPD[NTP] := Kd;
   TPK[NTP] := KwReal(Sc, 'K', 0.0, 'hartree');
@@ -4817,7 +4958,8 @@ Begin
   End;
   TPM[NTP] := MmL;
   Kd2 := KwWord(Sc, 'KIND', 'CHARMM');
-  If (Kd2 <> 'CHARMM') And (Kd2 <> 'AMBER') Then InErr(SecLine[Sc], 'KIND de torsion non pris en charge : ' + Kd2);
+  If (Kd2 <> 'CHARMM') And (Kd2 <> 'AMBER') Then InErr(SecLine[Sc],
+    'KIND de torsion non pris en charge : ' + Kd2);
  End;
  { charges et Coulomb }
  MMCharged := False;
@@ -4832,20 +4974,25 @@ Begin
  If Se > 0 Then Wrd := KwWord(Se, 'EWALD_TYPE', 'SPME');
  EwAlpha := 0;
  If Se > 0 Then EwAlpha := KwReal(Se, 'ALPHA', 0.0, 'angstrom^-1');
- If (Per[1] Or Per[2] Or Per[3]) And MMCharged And (Wrd <> 'NONE') Then EwaldOn := True;
+ If (Per[1] Or Per[2] Or Per[3]) And MMCharged And (Wrd <> 'NONE') Then EwaldOn
+   := True;
  If EwaldOn And Not (Per[1] And Per[2] And Per[3]) Then
-  InErr(SecLine[SecMM], 'La sommation d''Ewald exige une periodicite XYZ (ou EWALD_TYPE NONE)');
+  InErr(SecLine[SecMM],
+    'La sommation d''Ewald exige une periodicite XYZ (ou EWALD_TYPE NONE)');
  { verification de la cellule pour les potentiels non lies }
  If HasCell Then
   For I := 1 To 3 Do
    If Per[I] And (RcMax > 0) And (CellWidth(I) < 2 * RcMax - 1E-9) Then
-    InErr(SecLine[SecMM], 'La coupure (' + RStr(RcMax * BOHR_ANG, 3) + ' angstrom) depasse la moitie de la largeur de la cellule (' +
-          RStr(CellWidth(I) * 0.5 * BOHR_ANG, 3) + ' angstrom) selon la direction ' + IStr(I));
+    InErr(SecLine[SecMM], 'La coupure (' + RStr(RcMax * BOHR_ANG, 3) +
+      ' angstrom) depasse la moitie de la largeur de la cellule (' +
+          RStr(CellWidth(I) * 0.5 * BOHR_ANG, 3) +
+            ' angstrom) selon la direction ' + IStr(I));
  If EwaldOn Then Begin
   If RcutNB <= 0 Then RcutNB := 10.0 * ANG2BOHR;
   EwRc := RcutNB;
   For I := 1 To 3 Do
-   If Per[I] And (0.5 * CellWidth(I) - 1E-9 < EwRc) Then EwRc := 0.5 * CellWidth(I) - 1E-9;
+   If Per[I] And (0.5 * CellWidth(I) - 1E-9 < EwRc) Then EwRc := 0.5 *
+     CellWidth(I) - 1E-9;
   If EwAlpha = 0 Then EwAlpha := 4.0 / EwRc;
   
   EwKc := 2 * EwAlpha * Sqrt(-Ln(1E-9));
@@ -4856,7 +5003,8 @@ Begin
   BondP[I] := 0;
   A := SKind[BondA[I]]; B := SKind[BondB[I]];
   For J := 1 To NBP Do
-   If ((BPA[J] = A) And (BPB[J] = B)) Or ((BPA[J] = B) And (BPB[J] = A)) Then Begin
+   If ((BPA[J] = A) And (BPB[J] = B)) Or ((BPA[J] = B) And (BPB[J] = A)) Then
+     Begin
     BondP[I] := J;
     Break;
    End;
@@ -4868,11 +5016,13 @@ Begin
    For J := I + 1 To AdjN[C] Do Begin
     A := Adj[C, I]; B := Adj[C, J];
     For D := 1 To NAP Do
-     If (APB[D] = SKind[C]) And (((APA[D] = SKind[A]) And (APC[D] = SKind[B])) Or
+     If (APB[D] = SKind[C]) And (((APA[D] = SKind[A]) And (APC[D] = SKind[B]))
+       Or
         ((APA[D] = SKind[B]) And (APC[D] = SKind[A]))) Then Begin
       If NBend >= MAX_BENDS Then Begin InErr(0, 'Trop d''angles'); Exit; End;
       Inc(NBend);
-      BendA[NBend] := A; BendB[NBend] := C; BendC[NBend] := B; BendP[NBend] := D;
+      BendA[NBend] := A; BendB[NBend] := C; BendC[NBend] := B; BendP[NBend] :=
+        D;
       Break;
      End;
    End;
@@ -4885,11 +5035,14 @@ Begin
     D := Adj[C, Cnt];
     If (D = B) Or (D = A) Then Continue;
     For N := 1 To NTP Do
-     If ((TPA[N] = SKind[A]) And (TPB[N] = SKind[B]) And (TPC[N] = SKind[C]) And (TPD[N] = SKind[D])) Or
-        ((TPA[N] = SKind[D]) And (TPB[N] = SKind[C]) And (TPC[N] = SKind[B]) And (TPD[N] = SKind[A])) Then Begin
+     If ((TPA[N] = SKind[A]) And (TPB[N] = SKind[B]) And (TPC[N] = SKind[C]) And
+       (TPD[N] = SKind[D])) Or
+        ((TPA[N] = SKind[D]) And (TPB[N] = SKind[C]) And (TPC[N] = SKind[B]) And
+          (TPD[N] = SKind[A])) Then Begin
       If NTors >= MAX_TORS Then Begin InErr(0, 'Trop de torsions'); Exit; End;
       Inc(NTors);
-      TorA[NTors] := A; TorB[NTors] := B; TorC[NTors] := C; TorD[NTors] := D; TorP[NTors] := N;
+      TorA[NTors] := A; TorB[NTors] := B; TorC[NTors] := C; TorD[NTors] := D;
+        TorP[NTors] := N;
      End;
    End;
   End;
@@ -4944,7 +5097,8 @@ Begin
    End;
   End;
   For J := I + 1 To NAtoms Do Begin
-   DX := SPos[I,1] - SPos[J,1]; DY := SPos[I,2] - SPos[J,2]; DZ := SPos[I,3] - SPos[J,3];
+   DX := SPos[I,1] - SPos[J,1]; DY := SPos[I,2] - SPos[J,2]; DZ := SPos[I,3] -
+     SPos[J,3];
    MinImg(DX, DY, DZ);
    R2 := DX * DX + DY * DY + DZ * DZ;
    Sv := MkVdw[J]; Se := MkEi[J];
@@ -4982,7 +5136,8 @@ Begin
       MMEEwReal := MMEEwReal + Er;
       A2 := EwAlpha * EwAlpha;
       { -dE/dr / r }
-      Fs := Fs + Qq * ((Ec - (1 - Se)) / (R2 * R) + 2 * EwAlpha / SQRT_PI * Exp(-A2 * R2) / R2);
+      Fs := Fs + Qq * ((Ec - (1 - Se)) / (R2 * R) + 2 * EwAlpha / SQRT_PI *
+        Exp(-A2 * R2) / R2);
      End;
     End
     Else Begin
@@ -4997,7 +5152,8 @@ Begin
     Er := Qq * (Ec - 1) / R;
     MMEEwReal := MMEEwReal + Er;
     A2 := EwAlpha * EwAlpha;
-    Fs := Fs + Qq * ((Ec - 1) / (R2 * R) + 2 * EwAlpha / SQRT_PI * Exp(-A2 * R2) / R2);
+    Fs := Fs + Qq * ((Ec - 1) / (R2 * R) + 2 * EwAlpha / SQRT_PI * Exp(-A2 * R2)
+      / R2);
    End;
    If Fs <> 0 Then Begin
     Fx := Fs * DX; Fy := Fs * DY; Fz := Fs * DZ;
@@ -5023,7 +5179,8 @@ Var
  Cs, Sn: Array[1..3] Of PRealArr;
  Sz, I: LongInt;
  S: Array[1..3] Of Real;
- X, Y, Z, TwoPi, K2, Af, Sc, Ss, Pref, EK, Gk, C1, S1, C2, S2, C3, S3, Cp, Sp, Th, Dd, Alp2: Real;
+ X, Y, Z, TwoPi, K2, Af, Sc, Ss, Pref, EK, Gk, C1, S1, C2, S2, C3, S3, Cp, Sp,
+   Th, Dd, Alp2: Real;
  PC, PS: PRealArr;
  Sgn2, Sgn3: Real;
  HK: TVec3;
@@ -5038,7 +5195,8 @@ Begin
  Ebg := -Pi * Qtot * Qtot / (2 * CellVol * Alp2);
  MMEEwSelf := MMEEwSelf + Ebg;
  { le fond neutralisant depend de 1/V : dE/d(eps) = -Ebg delta }
- DEps[1,1] := DEps[1,1] - Ebg; DEps[2,2] := DEps[2,2] - Ebg; DEps[3,3] := DEps[3,3] - Ebg;
+ DEps[1,1] := DEps[1,1] - Ebg; DEps[2,2] := DEps[2,2] - Ebg; DEps[3,3] :=
+   DEps[3,3] - Ebg;
  For A := 1 To 3 Do Begin
   If Per[A] Then Begin
    Len[A] := CellLen(A);
@@ -5065,7 +5223,8 @@ Begin
    End;
    For N1 := 2 To NMax[A] Do Begin
     C1 := Cs[A]^[LongInt(N) + J - 1]; S1 := Sn[A]^[LongInt(N) + J - 1];
-    Cp := Cs[A]^[LongInt(N1 - 1) * N + J - 1]; Sp := Sn[A]^[LongInt(N1 - 1) * N + J - 1];
+    Cp := Cs[A]^[LongInt(N1 - 1) * N + J - 1]; Sp := Sn[A]^[LongInt(N1 - 1) * N
+      + J - 1];
     Cs[A]^[LongInt(N1) * N + J - 1] := Cp * C1 - Sp * S1;
     Sn[A]^[LongInt(N1) * N + J - 1] := Sp * C1 + Cp * S1;
    End;
@@ -5088,9 +5247,12 @@ Begin
     M2 := Abs(N2); M3 := Abs(N3);
     Sc := 0; Ss := 0;
     For J := 1 To N Do Begin
-     C1 := Cs[1]^[LongInt(N1) * N + J - 1]; S1 := Sn[1]^[LongInt(N1) * N + J - 1];
-     C2 := Cs[2]^[LongInt(M2) * N + J - 1]; S2 := Sgn2 * Sn[2]^[LongInt(M2) * N + J - 1];
-     C3 := Cs[3]^[LongInt(M3) * N + J - 1]; S3 := Sgn3 * Sn[3]^[LongInt(M3) * N + J - 1];
+     C1 := Cs[1]^[LongInt(N1) * N + J - 1]; S1 := Sn[1]^[LongInt(N1) * N + J -
+       1];
+     C2 := Cs[2]^[LongInt(M2) * N + J - 1]; S2 := Sgn2 * Sn[2]^[LongInt(M2) * N
+       + J - 1];
+     C3 := Cs[3]^[LongInt(M3) * N + J - 1]; S3 := Sgn3 * Sn[3]^[LongInt(M3) * N
+       + J - 1];
      Cp := C1 * C2 - S1 * S2;
      Sp := S1 * C2 + C1 * S2;
      PC^[J - 1] := Cp * C3 - Sp * S3;
@@ -5211,13 +5373,16 @@ Begin
  { torsions }
  For I := 1 To NTors Do Begin
   P := TorP[I];
-  B1[1] := SPos[TorB[I],1] - SPos[TorA[I],1]; B1[2] := SPos[TorB[I],2] - SPos[TorA[I],2];
+  B1[1] := SPos[TorB[I],1] - SPos[TorA[I],1]; B1[2] := SPos[TorB[I],2] -
+    SPos[TorA[I],2];
   B1[3] := SPos[TorB[I],3] - SPos[TorA[I],3];
   MinImg(B1[1], B1[2], B1[3]);
-  B2[1] := SPos[TorC[I],1] - SPos[TorB[I],1]; B2[2] := SPos[TorC[I],2] - SPos[TorB[I],2];
+  B2[1] := SPos[TorC[I],1] - SPos[TorB[I],1]; B2[2] := SPos[TorC[I],2] -
+    SPos[TorB[I],2];
   B2[3] := SPos[TorC[I],3] - SPos[TorB[I],3];
   MinImg(B2[1], B2[2], B2[3]);
-  B3[1] := SPos[TorD[I],1] - SPos[TorC[I],1]; B3[2] := SPos[TorD[I],2] - SPos[TorC[I],2];
+  B3[1] := SPos[TorD[I],1] - SPos[TorC[I],1]; B3[2] := SPos[TorD[I],2] -
+    SPos[TorC[I],2];
   B3[3] := SPos[TorD[I],3] - SPos[TorC[I],3];
   MinImg(B3[1], B3[2], B3[3]);
   { F = r_i - r_j, G = r_j - r_k, H = r_l - r_k }
@@ -5273,7 +5438,8 @@ Begin
  PairTerms(NeedF);
  If EwaldOn Then EwaldRecip(NeedF);
  BondedTerms(NeedF);
- MMEval := MMEBond + MMEBend + MMETors + MMEVdw + MMECoul + MMEEwReal + MMEEwRecip + MMEEwSelf;
+ MMEval := MMEBond + MMEBend + MMETors + MMEVdw + MMECoul + MMEEwReal +
+   MMEEwRecip + MMEEwSelf;
 End;
 
 
@@ -5317,36 +5483,47 @@ Begin
  HasPBE := (Sf > 0) And (FindSec(Sf, 'PBE', 1) > 0);
  HasB88 := (Sf > 0) And (FindSec(Sf, 'BECKE88', 1) > 0);
  HasLYP := (Sf > 0) And (FindSec(Sf, 'LYP', 1) > 0);
- HasPade := (Sf > 0) And ((FindSec(Sf, 'PADE', 1) > 0) Or (FindSec(Sf, 'LDA_X', 1) > 0) Or
+ HasPade := (Sf > 0) And ((FindSec(Sf, 'PADE', 1) > 0) Or (FindSec(Sf, 'LDA_X',
+   1) > 0) Or
                          (FindSec(Sf, 'SLATER', 1) > 0));
  If (Short = 'NONE') Or ((Sf = 0) And HasHF) Then Begin
   If HasHF Then Begin
    Meth := M_HF; Func := F_NONE; HFExch := 1.0; QSFuncName := 'HARTREE-FOCK';
-   If Abs(Frac - 1.0) > 1E-9 Then Warn('FRACTION de &HF ignoree sans fonctionnelle : Hartree-Fock complet');
+   If Abs(Frac - 1.0) > 1E-9 Then
+     Warn('FRACTION de &HF ignoree sans fonctionnelle : Hartree-Fock complet');
   End
   Else Begin
    Warn('Aucune fonctionnelle d''echange-correlation : PBE utilisee');
   End;
   Exit;
  End;
- If (Short = 'PBE') Or ((Short = '') And HasPBE) Or ((Short = 'NO_SHORTCUT') And HasPBE) Then Begin
+ If (Short = 'PBE') Or ((Short = '') And HasPBE) Or ((Short = 'NO_SHORTCUT') And
+   HasPBE) Then Begin
   Func := F_PBE; HFExch := 0.0; QSFuncName := 'PBE';
   If HasHF Then Begin
-   If Abs(Frac - 0.25) < 0.01 Then Begin Func := F_PBE0; HFExch := 0.25; QSFuncName := 'PBE0'; End
-   Else Warn('Fraction d''echange HF ' + RStr(Frac, 3) + ' non prise en charge avec PBE : ignoree');
+   If Abs(Frac - 0.25) < 0.01 Then Begin Func := F_PBE0; HFExch := 0.25;
+     QSFuncName := 'PBE0'; End
+   Else Warn('Fraction d''echange HF ' + RStr(Frac, 3) +
+     ' non prise en charge avec PBE : ignoree');
   End;
  End
- Else If Short = 'PBE0' Then Begin Func := F_PBE0; HFExch := 0.25; QSFuncName := 'PBE0'; End
- Else If Short = 'BLYP' Then Begin Func := F_BLYP; HFExch := 0.0; QSFuncName := 'BLYP'; End
- Else If Short = 'B3LYP' Then Begin Func := F_B3LYP; HFExch := 0.2; QSFuncName := 'B3LYP'; End
- Else If (Short = 'LDA') Or (Short = 'PADE') Or (Short = 'SVWN') Or HasPade Then Begin
+ Else If Short = 'PBE0' Then Begin Func := F_PBE0; HFExch := 0.25; QSFuncName :=
+   'PBE0'; End
+ Else If Short = 'BLYP' Then Begin Func := F_BLYP; HFExch := 0.0; QSFuncName :=
+   'BLYP'; End
+ Else If Short = 'B3LYP' Then Begin Func := F_B3LYP; HFExch := 0.2; QSFuncName
+   := 'B3LYP'; End
+ Else If (Short = 'LDA') Or (Short = 'PADE') Or (Short = 'SVWN') Or HasPade Then
+   Begin
   Func := F_LDA; HFExch := 0.0; QSFuncName := 'LDA (PADE)';
  End
  Else If HasB88 And HasLYP Then Begin
   Func := F_BLYP; HFExch := 0.0; QSFuncName := 'BLYP';
   If HasHF Then Begin
-   If Abs(Frac - 0.2) < 0.01 Then Begin Func := F_B3LYP; HFExch := 0.2; QSFuncName := 'B3LYP'; End
-   Else Warn('Fraction d''echange HF ' + RStr(Frac, 3) + ' non prise en charge avec BLYP : ignoree');
+   If Abs(Frac - 0.2) < 0.01 Then Begin Func := F_B3LYP; HFExch := 0.2;
+     QSFuncName := 'B3LYP'; End
+   Else Warn('Fraction d''echange HF ' + RStr(Frac, 3) +
+     ' non prise en charge avec BLYP : ignoree');
   End;
  End
  Else Begin
@@ -5364,16 +5541,20 @@ Begin
  Sq := FindSec(SecDFT, 'QS', 1);
  QSMethName := 'GPW';
  If Sq > 0 Then QSMethName := KwWord(Sq, 'METHOD', 'GPW');
- If (QSMethName <> 'GPW') And (QSMethName <> 'GAPW') And (QSMethName <> 'GAPW_XC') Then
-  InErr(SecLine[Sq], 'METHOD ' + QSMethName + ' non pris en charge (seules GPW et GAPW sont emulees)');
+ If (QSMethName <> 'GPW') And (QSMethName <> 'GAPW') And (QSMethName <>
+   'GAPW_XC') Then
+  InErr(SecLine[Sq], 'METHOD ' + QSMethName +
+    ' non pris en charge (seules GPW et GAPW sont emulees)');
  Charge := KwInt(SecDFT, 'CHARGE', 0);
  Nel := 0;
  For I := 1 To NAtoms Do Nel := Nel + SZ[I];
  Nel := Nel - Charge;
- If KwHas(SecDFT, 'MULTIPLICITY') And (KwInt(SecDFT, 'MULTIPLICITY', 0) > 0) Then
+ If KwHas(SecDFT, 'MULTIPLICITY') And (KwInt(SecDFT, 'MULTIPLICITY', 0) > 0)
+   Then
   Mult := KwInt(SecDFT, 'MULTIPLICITY', 1)
  Else If Odd(Nel) Then Mult := 2 Else Mult := 1;
- UnrestrictedFlag := KwBool(SecDFT, 'UKS', False) Or KwBool(SecDFT, 'LSD', False) Or (Mult > 1);
+ UnrestrictedFlag := KwBool(SecDFT, 'UKS', False) Or KwBool(SecDFT, 'LSD',
+   False) Or (Mult > 1);
  QSEps := 1E-5;
  QSMaxScf := 50;
  Sc := FindSec(SecDFT, 'SCF', 1);
@@ -5397,17 +5578,21 @@ Begin
  QSSetupSystem := False;
  Err := '';
  If NAtoms > MAX_AT Then Begin
-  Err := 'Le moteur Quickstep est limite a ' + IStr(MAX_AT) + ' atomes (' + IStr(NAtoms) + ' fournis)';
+  Err := 'Le moteur Quickstep est limite a ' + IStr(MAX_AT) + ' atomes (' +
+    IStr(NAtoms) + ' fournis)';
   Exit;
  End;
  NAt := NAtoms;
  If Per[1] Or Per[2] Or Per[3] Then
-  Warn('Le moteur Quickstep ne gere pas la periodicite : systeme traite comme isole (utilisez PERIODIC NONE)');
+  Warn('Le moteur Quickstep ne gere pas la periodicite : systeme traite ' +
+    'comme ' +
+    'isole (utilisez PERIODIC NONE)');
  QSPotIgnored := False;
  For I := 1 To NKinds Do If KPotName[I] <> '' Then QSPotIgnored := True;
  For I := 1 To NAtoms Do Begin
   If (SZ[I] < 1) Or (SZ[I] > 18) Then Begin
-   Err := 'L''element ' + PtSym[SZ[I]] + ' n''est pas pris en charge par le moteur Quickstep (H a Ar)';
+   Err := 'L''element ' + PtSym[SZ[I]] +
+     ' n''est pas pris en charge par le moteur Quickstep (H a Ar)';
    Exit;
   End;
   AtZ[I] := SZ[I];
@@ -5415,13 +5600,15 @@ Begin
   Else Begin
    AtBas[I] := B_STO3G;
    If KBasName[SKind[I]] = '' Then Begin
-    Warn('BASIS_SET manquant pour la sorte ' + KName[SKind[I]] + ' : STO-3G utilisee');
+    Warn('BASIS_SET manquant pour la sorte ' + KName[SKind[I]] +
+      ' : STO-3G utilisee');
     KBasName[SKind[I]] := 'STO-3G';
     KBas[SKind[I]] := B_STO3G;
    End;
   End;
   If Not BasisSupports(AtBas[I], AtZ[I]) Then Begin
-   Err := 'La base ' + BasisNames[AtBas[I]] + ' n''est pas definie pour l''element ' + PtSym[SZ[I]];
+   Err := 'La base ' + BasisNames[AtBas[I]] +
+     ' n''est pas definie pour l''element ' + PtSym[SZ[I]];
    Exit;
   End;
  End;
@@ -5473,9 +5660,11 @@ Begin
   For K := 1 To 3 Do Begin
    X0 := SPos[A, K];
    SPos[A, K] := X0 + H;
-   If Not QSCalc(False, True, Ep) Then Begin SPos[A, K] := X0; QSTight(False); Exit; End;
+   If Not QSCalc(False, True, Ep) Then Begin SPos[A, K] := X0; QSTight(False);
+     Exit; End;
    SPos[A, K] := X0 - H;
-   If Not QSCalc(False, True, Em) Then Begin SPos[A, K] := X0; QSTight(False); Exit; End;
+   If Not QSCalc(False, True, Em) Then Begin SPos[A, K] := X0; QSTight(False);
+     Exit; End;
    SPos[A, K] := X0;
    SFrc[A, K] := -(Ep - Em) / (2 * H);
   End;
@@ -5495,25 +5684,32 @@ Begin
  EmitBlank;
  Emit('  Core Hamiltonian energy:' + FR(EOne, 49, 10));
  Emit('  Hartree energy:' + FR(ECoul, 58, 10));
- If Abs(HFExch) > 1E-12 Then Emit('  Hartree-Fock exchange energy:' + FR(EExch, 44, 10));
- If Meth = M_DFT Then Emit('  Exchange-correlation energy:' + FR(EXCdft, 45, 10));
+ If Abs(HFExch) > 1E-12 Then Emit('  Hartree-Fock exchange energy:' + FR(EExch,
+   44, 10));
+ If Meth = M_DFT Then Emit('  Exchange-correlation energy:' + FR(EXCdft, 45,
+   10));
  Emit('  Nuclear repulsion energy:' + FR(Enuc, 48, 10));
  EmitBlank;
  Emit('  Total energy:' + FR(EScf, 60, 10));
  EmitBlank;
  Emit(' Mulliken Population Analysis');
  EmitBlank;
- Emit(' #  Atom  Element  Kind  Atomic population                           Net charge');
+ Emit(' #  Atom  Element  Kind  Atomic population                           ' +
+   'Net charge');
  For I := 1 To NAtoms Do Begin
   Pop := SZ[I] - QMull[I];
-  Emit(' ' + ISt(I, 1) + PadL(IStr(I), 6 - Length(IStr(I)) + Length(IStr(I))) + '  ' +
-       PadR(PtSym[SZ[I]], 8) + PadR(IStr(SKind[I]), 4) + FR(Pop, 20, 8) + FR(QMull[I], 32, 8));
+  Emit(' ' + ISt(I, 1) + PadL(IStr(I), 6 - Length(IStr(I)) + Length(IStr(I))) +
+    '  ' +
+       PadR(PtSym[SZ[I]], 8) + PadR(IStr(SKind[I]), 4) + FR(Pop, 20, 8) +
+         FR(QMull[I], 32, 8));
  End;
  Emit(' # Total charge' + FR(Charge, 61, 8));
  EmitBlank;
  Emit('  Dipole moment [Debye]');
- Emit('     X=' + FR(Dip[1] * BOHR_DEBYE, 15, 8) + ' Y=' + FR(Dip[2] * BOHR_DEBYE, 15, 8) +
-      ' Z=' + FR(Dip[3] * BOHR_DEBYE, 15, 8) + '     Total=' + FR(DipTot * BOHR_DEBYE, 15, 8));
+ Emit('     X=' + FR(Dip[1] * BOHR_DEBYE, 15, 8) + ' Y=' + FR(Dip[2] *
+   BOHR_DEBYE, 15, 8) +
+      ' Z=' + FR(Dip[3] * BOHR_DEBYE, 15, 8) + '     Total=' + FR(DipTot *
+        BOHR_DEBYE, 15, 8));
  EmitBlank;
  If PrintLevel >= PL_HIGH Then Begin
   Emit(' MO EIGENVALUES AND MO OCCUPATION NUMBERS');
@@ -5523,13 +5719,15 @@ Begin
   For I := 1 To NBF Do Begin
    If I <= NOccA Then Pop := 1 Else Pop := 0;
    If NOccA = NOccB Then Pop := 2 * Pop;
-   Emit(ISt(I, 10) + FR(EpsA[I], 20, 8) + FR(EpsA[I] * HARTREE_EV, 18, 6) + FR(Pop, 14, 6));
+   Emit(ISt(I, 10) + FR(EpsA[I], 20, 8) + FR(EpsA[I] * HARTREE_EV, 18, 6) +
+     FR(Pop, 14, 6));
   End;
   If NOccA <> NOccB Then Begin
    Emit('  Spin beta');
    For I := 1 To NBF Do Begin
     If I <= NOccB Then Pop := 1 Else Pop := 0;
-    Emit(ISt(I, 10) + FR(EpsB[I], 20, 8) + FR(EpsB[I] * HARTREE_EV, 18, 6) + FR(Pop, 14, 6));
+    Emit(ISt(I, 10) + FR(EpsB[I], 20, 8) + FR(EpsB[I] * HARTREE_EV, 18, 6) +
+      FR(Pop, 14, 6));
    End;
   End;
   EmitBlank;
@@ -5594,7 +5792,8 @@ End;
 
 Procedure PrintEnergyLine;
 Begin
- Info('ENERGY', 'Total FORCE_EVAL ( ' + FEName + ' ) energy [a.u.]:', FR(ECur, 20, 10));
+ Info('ENERGY', 'Total FORCE_EVAL ( ' + FEName + ' ) energy [a.u.]:', FR(ECur,
+   20, 10));
 End;
 
 Procedure PrintForces(Const Title: String);
@@ -5606,7 +5805,8 @@ Begin
  Emit(' # Atom   Kind   Element          X              Y              Z');
  SX := 0; SY := 0; SZ2 := 0;
  For I := 1 To NAtoms Do Begin
-  Emit(ISt(I, 6) + ISt(SKind[I], 7) + PadL(PtSym[SZ[I]], 8) + FR(SFrc[I,1], 19, 8) +
+  Emit(ISt(I, 6) + ISt(SKind[I], 7) + PadL(PtSym[SZ[I]], 8) + FR(SFrc[I,1], 19,
+    8) +
        FR(SFrc[I,2], 15, 8) + FR(SFrc[I,3], 15, 8));
   SX := SX + SFrc[I,1]; SY := SY + SFrc[I,2]; SZ2 := SZ2 + SFrc[I,3];
  End;
@@ -5620,13 +5820,17 @@ Procedure PrintStress;
 Var A, B: Integer; Pr: TMat3; Tr: Real;
 Begin
  For A := 1 To 3 Do
-  For B := 1 To 3 Do Pr[A,B] := -0.5 * (DEps[A,B] + DEps[B,A]) / CellVol / GPA_AU;
+  For B := 1 To 3 Do Pr[A,B] := -0.5 * (DEps[A,B] + DEps[B,A]) / CellVol /
+    GPA_AU;
  EmitBlank;
  Emit(' STRESS| Analytical stress tensor [GPa]');
- Emit(' STRESS|                        x                   y                   z');
+ Emit(' STRESS|                        x                   y                 ' +
+   ' ' +
+   ' z');
  Tr := 0;
  For A := 1 To 3 Do Begin
-  Emit(' STRESS|      ' + Chr(Ord('x') + A - 1) + FR(Pr[A,1], 20, 9) + FR(Pr[A,2], 20, 9) + FR(Pr[A,3], 20, 9));
+  Emit(' STRESS|      ' + Chr(Ord('x') + A - 1) + FR(Pr[A,1], 20, 9) +
+    FR(Pr[A,2], 20, 9) + FR(Pr[A,3], 20, 9));
   Tr := Tr + Pr[A,A];
  End;
  Emit(' STRESS| 1/3 Trace' + FR(Tr / 3, 31, 9));
@@ -5668,7 +5872,8 @@ End;
 
 Function InstTemp: Real;
 Begin
- If MDDof > 0 Then InstTemp := 2 * KinEnergy / (MDDof * KB_AU) Else InstTemp := 0;
+ If MDDof > 0 Then InstTemp := 2 * KinEnergy / (MDDof * KB_AU) Else InstTemp :=
+   0;
 End;
 
 Procedure RemoveComVel;
@@ -5740,7 +5945,8 @@ End;
 
 { Ouvre un fichier de sortie (en ajout lors d'une reprise) ; Fresh vrai si le
   fichier a ete (re)cree }
-Function OpenOut(Var F: Text; Const Nm: String; App: Boolean; Var Fresh: Boolean): Boolean;
+Function OpenOut(Var F: Text; Const Nm: String; App: Boolean; Var Fresh:
+  Boolean): Boolean;
 Begin
  Assign(F, Nm);
  Fresh := True;
@@ -5763,7 +5969,8 @@ Begin
  Rewrite(RedirF);
  {$I+}
  Ok := IOResult;
- If Ok <> 0 Then Begin Warn('Impossible d''ecrire ' + ProjFile('-1.restart')); Exit; End;
+ If Ok <> 0 Then Begin Warn('Impossible d''ecrire ' + ProjFile('-1.restart'));
+   Exit; End;
  RedirOn := True;
  RestartMode := True;
  RestartStep := Step;
@@ -5818,7 +6025,8 @@ Begin
   PrintEnergyLine;
   If WithForces And (PrintLevel >= PL_MEDIUM) Then Begin
    PrintForces('ATOMIC FORCES in [a.u.]');
-   If (FEMethod = FE_FIST) And HasCell And (Per[1] Or Per[2] Or Per[3]) Then PrintStress;
+   If (FEMethod = FE_FIST) And HasCell And (Per[1] Or Per[2] Or Per[3]) Then
+     PrintStress;
   End;
  End
  Else EvalAll(WithForces, False);
@@ -5864,7 +6072,8 @@ Begin
  If SY <= 1E-12 * Sqrt(DotV(N, S, S) * DotV(N, Y, Y)) Then Exit;
  If HN = LBM Then Begin
   P1 := HS[1]; P2 := HY[1];
-  For I := 1 To LBM - 1 Do Begin HS[I] := HS[I + 1]; HY[I] := HY[I + 1]; HRho[I] := HRho[I + 1]; End;
+  For I := 1 To LBM - 1 Do Begin HS[I] := HS[I + 1]; HY[I] := HY[I + 1]; HRho[I]
+    := HRho[I + 1]; End;
   HS[LBM] := P1; HY[LBM] := P2;
   HN := LBM - 1;
  End;
@@ -5921,9 +6130,12 @@ Begin
   For K := 1 To 3 Do SPos[I, K] := SPos[I, K] + Alpha * D^[(I - 1) * 3 + K - 1];
 End;
 
-Procedure PrintOptBlock(Step: Integer; Const MethodName: String; E, DE, Pred, Scale, StepSize,
-                        Trust: Real; Decr: Boolean; UsedT, MaxStep, RmsStep, MaxG, RmsG,
-                        LimDr, LimRms, LimF, LimRmsF: Real; Cs, Cr, Cg, Crg: Boolean);
+Procedure PrintOptBlock(Step: Integer; Const MethodName: String; E, DE, Pred,
+  Scale, StepSize,
+                        Trust: Real; Decr: Boolean; UsedT, MaxStep, RmsStep,
+                          MaxG, RmsG,
+                        LimDr, LimRms, LimF, LimRmsF: Real; Cs, Cr, Cg, Crg:
+                          Boolean);
  Procedure L(Const Lbl: String; V: Real; Dec: Integer);
  Begin
   Emit('  ' + PadR(Lbl, 27) + '= ' + FR(V, 22, Dec));
@@ -5974,10 +6186,12 @@ Var
  Fx: Text; Ok: Integer; A, B: Integer;
 Begin
  Smo := SecMotion;
- If CellToo Then Sgo := FindSec(Smo, 'CELL_OPT', 1) Else Sgo := FindSec(Smo, 'GEO_OPT', 1);
+ If CellToo Then Sgo := FindSec(Smo, 'CELL_OPT', 1) Else Sgo := FindSec(Smo,
+   'GEO_OPT', 1);
  If Smo = 0 Then Sgo := 0;
  Opt := 'BFGS';
- MaxIter := 200; MaxDr := 0.003; RmsDr := 0.0015; MaxF := 0.00045; RmsF := 0.0003;
+ MaxIter := 200; MaxDr := 0.003; RmsDr := 0.0015; MaxF := 0.00045; RmsF :=
+   0.0003;
  TrustR := 0.3; PressTol := 100.0 * BAR_AU; Pext := 100.0 * BAR_AU;
  Step0 := 0;
  If Sgo > 0 Then Begin
@@ -5997,9 +6211,12 @@ Begin
  End;
  If (Opt <> 'BFGS') And (Opt <> 'CG') And (Opt <> 'LBFGS') Then
   Abort('OPTIMIZER ' + Opt + ' non pris en charge (BFGS, CG, LBFGS)');
- If (Opt <> 'BFGS') Then Warn('OPTIMIZER ' + Opt + ' remplace par BFGS a memoire limitee');
+ If (Opt <> 'BFGS') Then Warn('OPTIMIZER ' + Opt +
+   ' remplace par BFGS a memoire limitee');
  If CellToo Then Begin
-  If FEMethod <> FE_FIST Then Abort('CELL_OPT n''est disponible qu''avec METHOD FIST (tenseur des contraintes)');
+  If FEMethod <> FE_FIST Then
+    Abort('CELL_OPT n''est disponible qu''avec METHOD FIST (tenseur des ' +
+      'contraintes)');
   If Not HasCell Then Abort('CELL_OPT exige une section &CELL');
   Title := 'CELL';
  End
@@ -6009,7 +6226,8 @@ Begin
  If CellToo Then Nv := N3 + 6;
  Ls := Exp(Ln(CellVol + 1E-30) / 3);
  If Not CellToo Then Ls := 1;
- G := NewVec(Nv); Gn := NewVec(Nv); D := NewVec(Nv); Sv := NewVec(Nv); Yv := NewVec(Nv);
+ G := NewVec(Nv); Gn := NewVec(Nv); D := NewVec(Nv); Sv := NewVec(Nv); Yv :=
+   NewVec(Nv);
  For I := 1 To LBM Do Begin HS[I] := NewVec(Nv); HY[I] := NewVec(Nv); End;
  HN := 0;
  EmitBlank;
@@ -6066,7 +6284,8 @@ Begin
   If Tries >= 8 Then Begin
    { aucun pas ne fait baisser l'energie : on revient au point precedent }
    EvalAll(True, False);
-   Emit(' *** WARNING :: la recherche de pas n''a pas reduit l''energie : optimisation arretee ***');
+   Emit(' *** WARNING :: la recherche de pas n''a pas reduit l''energie : ' +
+     'optimisation arretee ***');
    Warn('Optimisation arretee : aucun pas ne reduit l''energie');
    Break;
   End;
@@ -6104,12 +6323,16 @@ Begin
   End;
   If PrintLevel >= PL_MEDIUM Then Begin
    PrintOptBlock(It, Opt, ECur, En - E, Pred, 0.0, StepMax, TrustR, Decr,
-                 RunSec - T1, StepMax, StepRms, GMax, GRms, MaxDr, RmsDr, MaxF, RmsF,
+                 RunSec - T1, StepMax, StepRms, GMax, GRms, MaxDr, RmsDr, MaxF,
+                   RmsF,
                  Cs, Cr, Cg, Crg);
    If CellToo Then Begin
-    Emit('  ' + PadR('Pressure deviation [bar]', 27) + '= ' + FR(PMaxDev / BAR_AU, 22, 7));
-    Emit('  ' + PadR('Pressure tolerance [bar]', 27) + '= ' + FR(PressTol / BAR_AU, 22, 7));
-    Emit('  ' + PadR('Convergence in pressure', 27) + '= ' + PadL(YesNo(Cp), 22));
+    Emit('  ' + PadR('Pressure deviation [bar]', 27) + '= ' + FR(PMaxDev /
+      BAR_AU, 22, 7));
+    Emit('  ' + PadR('Pressure tolerance [bar]', 27) + '= ' + FR(PressTol /
+      BAR_AU, 22, 7));
+    Emit('  ' + PadR('Convergence in pressure', 27) + '= ' + PadL(YesNo(Cp),
+      22));
    End;
    If PrintLevel >= PL_HIGH Then PrintForces('ATOMIC FORCES in [a.u.]');
   End;
@@ -6126,12 +6349,14 @@ Begin
   Emit('                    Reevaluating energy at the minimum');
  End
  Else Begin
-  BoxBanner('MAXIMUM NUMBER OF OPTIMIZATION STEPS REACHED', 'OPTIMIZATION NOT CONVERGED');
+  BoxBanner('MAXIMUM NUMBER OF OPTIMIZATION STEPS REACHED',
+    'OPTIMIZATION NOT CONVERGED');
   Warn('Optimisation non convergee apres ' + IStr(It) + ' iterations');
  End;
  EvalAll(True, PrintLevel >= PL_MEDIUM);
  If PrintLevel >= PL_MEDIUM Then Begin
-  If FEMethod = FE_QS Then PrintCoords('QUICKSTEP', True) Else PrintCoords('FIST', False);
+  If FEMethod = FE_QS Then PrintCoords('QUICKSTEP', True) Else
+    PrintCoords('FIST', False);
   PrintFinalSystem;
   If CellToo Then PrintCell;
  End;
@@ -6139,12 +6364,14 @@ Begin
  PrintEnergyLine;
  If PrintLevel >= PL_MEDIUM Then Begin
   PrintForces('ATOMIC FORCES in [a.u.]');
-  If (FEMethod = FE_FIST) And HasCell And (Per[1] Or Per[2] Or Per[3]) Then PrintStress;
+  If (FEMethod = FE_FIST) And HasCell And (Per[1] Or Per[2] Or Per[3]) Then
+    PrintStress;
  End;
  For I := 1 To NAtoms Do For K := 1 To 3 Do SVel[I, K] := 0;
  WriteRestart(Step0 + It, 0);
  For I := 1 To LBM Do Begin FreeVec(HS[I], Nv); FreeVec(HY[I], Nv); End;
- FreeVec(G, Nv); FreeVec(Gn, Nv); FreeVec(D, Nv); FreeVec(Sv, Nv); FreeVec(Yv, Nv);
+ FreeVec(G, Nv); FreeVec(Gn, Nv); FreeVec(D, Nv); FreeVec(Sv, Nv); FreeVec(Yv,
+   Nv);
 End;
 
 { --------------------------------------------------------------------- }
@@ -6185,7 +6412,8 @@ Begin
  End;
  Sc := Exp(-W2 * NhV[1]);
  For I := 1 To NAtoms Do Begin
-  SVel[I,1] := SVel[I,1] * Sc; SVel[I,2] := SVel[I,2] * Sc; SVel[I,3] := SVel[I,3] * Sc;
+  SVel[I,1] := SVel[I,1] * Sc; SVel[I,2] := SVel[I,2] * Sc; SVel[I,3] :=
+    SVel[I,3] * Sc;
  End;
  K2 := K2 * Sc * Sc;
  For J := 1 To NhM Do NhXi[J] := NhXi[J] + NhV[J] * W2;
@@ -6230,11 +6458,13 @@ Begin
  R1 := Gauss;
  S := 0;
  For J := 2 To MDDof Do S := S + Sqr(Gauss);
- Kn := K + (1 - C) * (Kt / MDDof * (R1 * R1 + S) - K) + 2 * R1 * Sqrt(K * Kt / MDDof * (1 - C) * C);
+ Kn := K + (1 - C) * (Kt / MDDof * (R1 * R1 + S) - K) + 2 * R1 * Sqrt(K * Kt /
+   MDDof * (1 - C) * C);
  If Kn < 0 Then Kn := 0;
  Alpha := Sqrt(Kn / K);
  For I := 1 To NAtoms Do Begin
-  SVel[I,1] := SVel[I,1] * Alpha; SVel[I,2] := SVel[I,2] * Alpha; SVel[I,3] := SVel[I,3] * Alpha;
+  SVel[I,1] := SVel[I,1] * Alpha; SVel[I,2] := SVel[I,2] * Alpha; SVel[I,3] :=
+    SVel[I,3] * Alpha;
  End;
  CsvrE := CsvrE + (K - Kn);
 End;
@@ -6244,7 +6474,8 @@ Var
  Smd, Sth, Sn, Sbar, Sp: Integer;
  Ens, ThType: String;
  NSteps, Step, Step0, EachRes: LongInt;
- Dt, Temp0, TimeNow, Time0, TauT, TauP, PrefP, Cons, Cons0, KinE, PotE, Tmp, Pres, Mu, T1: Real;
+ Dt, Temp0, TimeNow, Time0, TauT, TauP, PrefP, Cons, Cons0, KinE, PotE, Tmp,
+   Pres, Mu, T1: Real;
  SumPot, SumKin, SumTmp, SumPres, SumCpu, DriftAt: Real;
  NVT, NPT, DoCsvr, HaveVel: Boolean;
  I, K, J: Integer;
@@ -6270,12 +6501,15 @@ Begin
  NPT := (Ens = 'NPT_I') Or (Ens = 'NPT_F');
  If (Ens <> 'NVE') And Not NVT And Not NPT Then
   Abort('ENSEMBLE ' + Ens + ' non pris en charge (NVE, NVT, NPT_I)');
- If NPT And (FEMethod <> FE_FIST) Then Abort('L''ensemble NPT exige METHOD FIST');
- If NPT And Not (HasCell And Per[1] And Per[2] And Per[3]) Then Abort('L''ensemble NPT exige une cellule periodique (PERIODIC XYZ)');
+ If NPT And (FEMethod <> FE_FIST) Then
+   Abort('L''ensemble NPT exige METHOD FIST');
+ If NPT And Not (HasCell And Per[1] And Per[2] And Per[3]) Then
+   Abort('L''ensemble NPT exige une cellule periodique (PERIODIC XYZ)');
  If Dt <= 0 Then Abort('TIMESTEP doit etre positif');
  If NSteps < 0 Then Abort('STEPS doit etre positif ou nul');
  If Temp0 < 0 Then Abort('TEMPERATURE doit etre positive');
- If (NVT Or NPT) And (Temp0 <= 0) Then Abort('TEMPERATURE doit etre strictement positive pour un thermostat');
+ If (NVT Or NPT) And (Temp0 <= 0) Then
+   Abort('TEMPERATURE doit etre strictement positive pour un thermostat');
  If NFixComp > 0 Then MDDof := 3 * NAtoms - NFixComp
  Else If NAtoms > 1 Then MDDof := 3 * NAtoms - 3
  Else MDDof := 3;
@@ -6291,12 +6525,14 @@ Begin
    Sn := FindSec(Sth, 'NOSE', 1);
    If Sn > 0 Then Begin
     NhL := KwInt(Sn, 'LENGTH', 3);
-    If (NhL < 1) Or (NhL > 10) Then Abort('LENGTH du thermostat de Nose doit etre compris entre 1 et 10');
+    If (NhL < 1) Or (NhL > 10) Then
+      Abort('LENGTH du thermostat de Nose doit etre compris entre 1 et 10');
     NhM := NhL;
     TauT := KwReal(Sn, 'TIMECON', 1000.0, 'fs');
    End;
    Sn := FindSec(Sth, 'CSVR', 1);
-   If (Sn > 0) And (ThType = 'CSVR') Then TauT := KwReal(Sn, 'TIMECON', 1000.0, 'fs');
+   If (Sn > 0) And (ThType = 'CSVR') Then TauT := KwReal(Sn, 'TIMECON', 1000.0,
+     'fs');
   End;
   If (ThType <> 'NOSE') And (ThType <> 'CSVR') And (ThType <> 'NONE') Then
    Abort('Thermostat ' + ThType + ' non pris en charge (NOSE, CSVR)');
@@ -6352,23 +6588,35 @@ Begin
   Emit(' INITIAL POTENTIAL ENERGY[hartree]     =' + FR(PotE, 20, 10));
   Emit(' INITIAL KINETIC ENERGY[hartree]       =' + FR(KinE, 20, 10));
   Emit(' INITIAL TEMPERATURE[K]                =' + FR(InstTemp, 20, 4));
-  If NPT Then Emit(' INITIAL PRESSURE[bar]                 =' + FR(InstPressure / BAR_AU, 20, 4));
+  If NPT Then Emit(' INITIAL PRESSURE[bar]                 =' + FR(InstPressure
+    / BAR_AU, 20, 4));
   Emit(' ' + Rep('*', 79));
   EmitBlank;
  End;
  { fichiers }
  OkE := OpenOut(Fe, ProjFile('-1.ener'), Step0 > 0, FrE);
  OkP := OpenOut(Fp, ProjFile('-pos-1.xyz'), Step0 > 0, FrP);
- OkC := False; OkV := False; OkF := False; FrC := True; FrV := True; FrF := True;
+ OkC := False; OkV := False; OkF := False; FrC := True; FrV := True; FrF :=
+   True;
  If NPT Then OkC := OpenOut(Fc, ProjFile('-1.cell'), Step0 > 0, FrC);
  If WantVel Then OkV := OpenOut(Fv, ProjFile('-vel-1.xyz'), Step0 > 0, FrV);
  If WantFrc Then OkF := OpenOut(Ff, ProjFile('-frc-1.xyz'), Step0 > 0, FrF);
- If OkE And FrE Then WriteLn(Fe, '#     Step Nr.          Time[fs]        Kin.[a.u.]          Temp[K]            Pot.[a.u.]        Cons Qty[a.u.]        UsedTime[s]');
- If OkC And FrC Then WriteLn(Fc, '#   Step Nr.   Time[fs]           Ax [Angstrom]      Ay [Angstrom]      Az [Angstrom]      Bx [Angstrom]      By [Angstrom]      Bz [Angstrom]      Cx [Angstrom]      Cy [Angstrom]      Cz [Angstrom]   Volume [Angstrom^3]');
+ If OkE And FrE Then WriteLn(Fe,
+   '#     Step Nr.          Time[fs]        Kin.[a.u.]          Temp[K]      ' +
+   ' ' +
+   '     Pot.[a.u.]        Cons Qty[a.u.]        UsedTime[s]');
+ If OkC And FrC Then WriteLn(Fc,
+   '#   Step Nr.   Time[fs]           Ax [Angstrom]      Ay [Angstrom]      ' +
+   'Az [Angstrom]      Bx [Angstrom]      By [Angstrom]      Bz [Angstrom]   ' +
+   ' ' +
+   '  Cx [Angstrom]      Cy [Angstrom]      Cz [Angstrom]   ' +
+   'Volume [Angstrom^3]');
  { image initiale }
- If OkE And FrE Then WriteLn(Fe, Step0:10, FR(TimeNow / FS_AU, 18, 6), FR(KinE, 20, 9), FR(InstTemp, 20, 9),
+ If OkE And FrE Then WriteLn(Fe, Step0:10, FR(TimeNow / FS_AU, 18, 6), FR(KinE,
+   20, 9), FR(InstTemp, 20, 9),
                       FR(PotE, 20, 9), FR(Cons0, 20, 9), FR(0, 20, 9));
- If OkP And FrP Then WriteXYZFrame(Fp, ' i =' + ISt(Step0, 9) + ', time =' + FR(TimeNow / FS_AU, 13, 3) + ', E =' + FR(PotE, 20, 10));
+ If OkP And FrP Then WriteXYZFrame(Fp, ' i =' + ISt(Step0, 9) + ', time =' +
+   FR(TimeNow / FS_AU, 13, 3) + ', E =' + FR(PotE, 20, 10));
  SumPot := 0; SumKin := 0; SumTmp := 0; SumPres := 0; SumCpu := 0;
  LastStep := Step0;
  For Step := Step0 + 1 To Step0 + NSteps Do Begin
@@ -6389,7 +6637,8 @@ Begin
   EvalAll(True, False);
   PotE := ECur;
   For I := 1 To NAtoms Do
-   For K := 1 To 3 Do SVel[I, K] := SVel[I, K] + 0.5 * Dt * SFrc[I, K] / SMass[I];
+   For K := 1 To 3 Do SVel[I, K] := SVel[I, K] + 0.5 * Dt * SFrc[I, K] /
+     SMass[I];
   If NhOn Then NhcHalf(Dt);
   If DoCsvr Then CsvrApply(Dt / 2, TauT, Temp0);
   If NPT Then Begin
@@ -6417,7 +6666,8 @@ Begin
   Cons := PotE + KinE;
   If NhOn Then Cons := Cons + NhEnergy;
   If DoCsvr Then Cons := Cons + CsvrE;
-  SumPot := SumPot + PotE; SumKin := SumKin + KinE; SumTmp := SumTmp + Tmp; SumPres := SumPres + Pres;
+  SumPot := SumPot + PotE; SumKin := SumKin + KinE; SumTmp := SumTmp + Tmp;
+    SumPres := SumPres + Pres;
   SumCpu := SumCpu + (RunSec - T1);
   Jn := Step - Step0;
   DriftAt := (Cons - Cons0) / (NAtoms * KB_AU);
@@ -6429,37 +6679,50 @@ Begin
    Emit(' CONSERVED QUANTITY [hartree] =' + FR(Cons, 38, 9));
    EmitBlank;
    Emit(Rep(' ', 47) + 'INSTANTANEOUS             AVERAGES');
-   Emit(' CPU TIME [s]                 =' + FR(RunSec - T1, 22, 2) + FR(SumCpu / Jn, 22, 2));
-   Emit(' ENERGY DRIFT PER ATOM [K]    =' + PadL(EStr(DriftAt, 9), 22) + PadL(EStr(DriftAt, 9), 22));
-   Emit(' POTENTIAL ENERGY[hartree]    =' + PadL(EStr(PotE, 9), 22) + PadL(EStr(SumPot / Jn, 9), 22));
-   Emit(' KINETIC ENERGY [hartree]     =' + PadL(EStr(KinE, 9), 22) + PadL(EStr(SumKin / Jn, 9), 22));
-   Emit(' TEMPERATURE [K]              =' + FR(Tmp, 22, 2) + FR(SumTmp / Jn, 22, 2));
+   Emit(' CPU TIME [s]                 =' + FR(RunSec - T1, 22, 2) + FR(SumCpu /
+     Jn, 22, 2));
+   Emit(' ENERGY DRIFT PER ATOM [K]    =' + PadL(EStr(DriftAt, 9), 22) +
+     PadL(EStr(DriftAt, 9), 22));
+   Emit(' POTENTIAL ENERGY[hartree]    =' + PadL(EStr(PotE, 9), 22) +
+     PadL(EStr(SumPot / Jn, 9), 22));
+   Emit(' KINETIC ENERGY [hartree]     =' + PadL(EStr(KinE, 9), 22) +
+     PadL(EStr(SumKin / Jn, 9), 22));
+   Emit(' TEMPERATURE [K]              =' + FR(Tmp, 22, 2) + FR(SumTmp / Jn, 22,
+     2));
    If FEMethod = FE_FIST Then
-    Emit(' PRESSURE [bar]               =' + FR(Pres / BAR_AU, 22, 3) + FR(SumPres / Jn / BAR_AU, 22, 3));
-   If NPT Then Emit(' VOLUME [angstrom^3]          =' + FR(CellVol * Cu(BOHR_ANG), 38, 4));
+    Emit(' PRESSURE [bar]               =' + FR(Pres / BAR_AU, 22, 3) +
+      FR(SumPres / Jn / BAR_AU, 22, 3));
+   If NPT Then Emit(' VOLUME [angstrom^3]          =' + FR(CellVol *
+     Cu(BOHR_ANG), 38, 4));
    Emit(' ' + Rep('*', 79));
    EmitBlank;
   End;
-  If OkE Then WriteLn(Fe, Step:10, FR(TimeNow / FS_AU, 18, 6), FR(KinE, 20, 9), FR(Tmp, 20, 9),
+  If OkE Then WriteLn(Fe, Step:10, FR(TimeNow / FS_AU, 18, 6), FR(KinE, 20, 9),
+    FR(Tmp, 20, 9),
                        FR(PotE, 20, 9), FR(Cons, 20, 9), FR(SumCpu, 20, 9));
   If OkP And (Jn Mod EachTraj = 0) Then
-   WriteXYZFrame(Fp, ' i =' + ISt(Step, 9) + ', time =' + FR(TimeNow / FS_AU, 13, 3) + ', E =' + FR(PotE, 20, 10));
+   WriteXYZFrame(Fp, ' i =' + ISt(Step, 9) + ', time =' + FR(TimeNow / FS_AU,
+     13, 3) + ', E =' + FR(PotE, 20, 10));
   If OkC Then Begin
    Write(Fc, Step:8, FR(TimeNow / FS_AU, 12, 3));
-   For I := 1 To 3 Do For K := 1 To 3 Do Write(Fc, FR(CellH[I, K] * BOHR_ANG, 19, 9));
+   For I := 1 To 3 Do For K := 1 To 3 Do Write(Fc, FR(CellH[I, K] * BOHR_ANG,
+     19, 9));
    WriteLn(Fc, FR(CellVol * Cu(BOHR_ANG), 20, 9));
   End;
   If OkV And (Jn Mod EachVelo = 0) Then Begin
    WriteLn(Fv, NAtoms:7);
    WriteLn(Fv, ' i =' + ISt(Step, 9) + ', time =' + FR(TimeNow / FS_AU, 13, 3));
    For I := 1 To NAtoms Do
-    WriteLn(Fv, ' ', PadR(PtSym[SZ[I]], 2), FR(SVel[I,1], 20, 10), FR(SVel[I,2], 20, 10), FR(SVel[I,3], 20, 10));
+    WriteLn(Fv, ' ', PadR(PtSym[SZ[I]], 2), FR(SVel[I,1], 20, 10), FR(SVel[I,2],
+      20, 10), FR(SVel[I,3], 20, 10));
   End;
   If OkF And (Jn Mod EachFrc = 0) Then Begin
    WriteLn(Ff, NAtoms:7);
-   WriteLn(Ff, ' i =' + ISt(Step, 9) + ', time =' + FR(TimeNow / FS_AU, 13, 3) + ', E =' + FR(PotE, 20, 10));
+   WriteLn(Ff, ' i =' + ISt(Step, 9) + ', time =' + FR(TimeNow / FS_AU, 13, 3) +
+     ', E =' + FR(PotE, 20, 10));
    For I := 1 To NAtoms Do
-    WriteLn(Ff, ' ', PadR(PtSym[SZ[I]], 2), FR(SFrc[I,1], 20, 10), FR(SFrc[I,2], 20, 10), FR(SFrc[I,3], 20, 10));
+    WriteLn(Ff, ' ', PadR(PtSym[SZ[I]], 2), FR(SFrc[I,1], 20, 10), FR(SFrc[I,2],
+      20, 10), FR(SFrc[I,3], 20, 10));
   End;
   If (Jn Mod EachRes = 0) Then WriteRestart(Step, TimeNow);
  End;
@@ -6495,7 +6758,8 @@ Var
  Tmp: Real;
  Cnt: Integer;
 Begin
- If NAtoms > MAX_VIB Then Abort('Analyse vibrationnelle limitee a ' + IStr(MAX_VIB) + ' atomes');
+ If NAtoms > MAX_VIB Then Abort('Analyse vibrationnelle limitee a ' +
+   IStr(MAX_VIB) + ' atomes');
  Sv := FindSec(0, 'VIBRATIONAL_ANALYSIS', 1);
  Dx := 0.01;
  Full := False;
@@ -6504,7 +6768,8 @@ Begin
   Full := KwBool(Sv, 'FULLY_PERIODIC', False);
  End;
  N3 := 3 * NAtoms;
- If NFixComp > 0 Then Warn('Les atomes fixes sont ignores par VIBRATIONAL_ANALYSIS');
+ If NFixComp > 0 Then
+   Warn('Les atomes fixes sont ignores par VIBRATIONAL_ANALYSIS');
  FixActive := False;
  EmitBlank;
  BoxBanner('VIBRATIONAL ANALYSIS', 'Finite difference of the forces');
@@ -6512,10 +6777,13 @@ Begin
  EmitBlank;
  PrintEnergyLine;
  Fmax := 0;
- For I := 1 To NAtoms Do For K := 1 To 3 Do If Abs(SFrc[I, K]) > Fmax Then Fmax := Abs(SFrc[I, K]);
+ For I := 1 To NAtoms Do For K := 1 To 3 Do If Abs(SFrc[I, K]) > Fmax Then Fmax
+   := Abs(SFrc[I, K]);
  If Fmax > 1E-3 Then
-  Warn('Les forces ne sont pas nulles (max ' + EStr(Fmax, 3) + ' Ha/bohr) : la geometrie n''est pas un minimum');
- H := NewVec(N3 * N3); V := NewVec(N3 * N3); W := NewVec(N3); A := NewVec(N3 * N3); Pj := NewVec(N3 * N3);
+  Warn('Les forces ne sont pas nulles (max ' + EStr(Fmax, 3) +
+    ' Ha/bohr) : la geometrie n''est pas un minimum');
+ H := NewVec(N3 * N3); V := NewVec(N3 * N3); W := NewVec(N3); A := NewVec(N3 *
+   N3); Pj := NewVec(N3 * N3);
  Fp := NewVec(N3); Fm := NewVec(N3);
  For I := 1 To N3 Do Begin
   K := (I - 1) Mod 3 + 1; J := (I - 1) Div 3 + 1;
@@ -6528,7 +6796,8 @@ Begin
   For L := 0 To N3 - 1 Do Fm^[L] := SFrc[L Div 3 + 1, L Mod 3 + 1];
   SPos[J, K] := X0;
   For L := 0 To N3 - 1 Do H^[(I - 1) * N3 + L] := -(Fp^[L] - Fm^[L]) / (2 * Dx);
-  If PrintLevel >= PL_HIGH Then Emit(' VIB| Displacement ' + IStr(I) + '/' + IStr(N3) + ' done');
+  If PrintLevel >= PL_HIGH Then Emit(' VIB| Displacement ' + IStr(I) + '/' +
+    IStr(N3) + ' done');
  End;
  EvalAll(True, False);
  { symetrisation et ponderation par les masses }
@@ -6581,7 +6850,8 @@ Begin
   For J := 0 To N3 - 1 Do Begin
    Pj^[I * N3 + J] := 0;
    If I = J Then Pj^[I * N3 + J] := 1;
-   For L := 1 To NP Do Pj^[I * N3 + J] := Pj^[I * N3 + J] - Bas[L]^[I] * Bas[L]^[J];
+   For L := 1 To NP Do Pj^[I * N3 + J] := Pj^[I * N3 + J] - Bas[L]^[I] *
+     Bas[L]^[J];
   End;
  { H := P A ; A := H P }
  For I := 0 To N3 - 1 Do
@@ -6609,11 +6879,13 @@ Begin
  For I := 1 To NM Do Idx[I] := Idx[I + NP];
  For I := 1 To NM - 1 Do
   For J := I + 1 To NM Do
-   If W^[Idx[J]] < W^[Idx[I]] Then Begin K := Idx[I]; Idx[I] := Idx[J]; Idx[J] := K; End;
+   If W^[Idx[J]] < W^[Idx[I]] Then Begin K := Idx[I]; Idx[I] := Idx[J]; Idx[J]
+     := K; End;
  Zpe := 0;
  For I := 1 To NM Do Begin
   Lam := W^[Idx[I]];
-  If Lam >= 0 Then Freqs[I] := Sqrt(Lam) * FREQ_FAC Else Freqs[I] := -Sqrt(-Lam) * FREQ_FAC;
+  If Lam >= 0 Then Freqs[I] := Sqrt(Lam) * FREQ_FAC Else Freqs[I] := -Sqrt(-Lam)
+    * FREQ_FAC;
   If Freqs[I] > 0 Then Zpe := Zpe + 0.5 * Freqs[I];
  End;
  EmitBlank;
@@ -6630,7 +6902,8 @@ Begin
  EmitBlank;
  Info('VIB', 'Zero point energy [cm^-1]:', FR(Zpe, 20, 4));
  Info('VIB', 'Zero point energy [hartree]:', FR(Zpe / FREQ_FAC, 20, 10));
- Info('VIB', 'Zero point energy [kcal/mol]:', FR(Zpe / FREQ_FAC * HARTREE_KCAL, 20, 4));
+ Info('VIB', 'Zero point energy [kcal/mol]:', FR(Zpe / FREQ_FAC * HARTREE_KCAL,
+   20, 4));
  EmitBlank;
  { fichier Molden }
  {$I-}
@@ -6644,7 +6917,8 @@ Begin
   For I := 1 To NM Do WriteLn(Fmol, FR(Freqs[I], 18, 8));
   WriteLn(Fmol, ' [FR-COORD]');
   For I := 1 To NAtoms Do
-   WriteLn(Fmol, ' ', PadR(PtSym[SZ[I]], 2), FR(SPos[I,1], 18, 8), FR(SPos[I,2], 18, 8), FR(SPos[I,3], 18, 8));
+   WriteLn(Fmol, ' ', PadR(PtSym[SZ[I]], 2), FR(SPos[I,1], 18, 8), FR(SPos[I,2],
+     18, 8), FR(SPos[I,3], 18, 8));
   WriteLn(Fmol, ' [FR-NORM-COORD]');
   For I := 1 To NM Do Begin
    WriteLn(Fmol, ' vibration', I:4);
@@ -6657,7 +6931,8 @@ Begin
  End;
  For K := 1 To 6 Do FreeVec(Vec[K], N3);
  For K := 1 To NP Do FreeVec(Bas[K], N3);
- FreeVec(H, N3 * N3); FreeVec(V, N3 * N3); FreeVec(W, N3); FreeVec(A, N3 * N3); FreeVec(Pj, N3 * N3);
+ FreeVec(H, N3 * N3); FreeVec(V, N3 * N3); FreeVec(W, N3); FreeVec(A, N3 * N3);
+   FreeVec(Pj, N3 * N3);
  FreeVec(Fp, N3); FreeVec(Fm, N3);
 End;
 
@@ -6672,7 +6947,8 @@ Var
  FA: TXYZ; DA: TMat3; Hb: TMat3; Pos0: TXYZ; SMax: Real;
  DoF, DoS: Boolean; A, B: Integer;
 Begin
- If FEMethod <> FE_FIST Then Abort('RUN_TYPE DEBUG n''est disponible qu''avec METHOD FIST');
+ If FEMethod <> FE_FIST Then
+   Abort('RUN_TYPE DEBUG n''est disponible qu''avec METHOD FIST');
  Sd := FindSec(0, 'DEBUG', 1);
  Dx := 0.001;
  DoF := True; DoS := False;
@@ -6687,7 +6963,9 @@ Begin
  PrintEnergyLine;
  If DoF Then Begin
   EmitBlank;
-  Emit(' DEBUG| Atom   Coordinate   f(numerical)   f(analytical)   Difference   Error [%]');
+  Emit(' DEBUG| Atom   Coordinate   f(numerical)   f(analytical)   ' +
+    'Difference ' +
+    '  Error [%]');
   SumD := 0;
   For I := 1 To NAtoms Do
    For K := 1 To 3 Do Begin
@@ -6700,7 +6978,8 @@ Begin
     Diff := Fnum - Fan;
     If Abs(Fan) > 1E-8 Then Err := 100 * Abs(Diff) / Abs(Fan) Else Err := 0;
     SumD := SumD + Abs(Diff);
-    Emit(' DEBUG|' + ISt(I, 5) + '      ' + Chr(Ord('x') + K - 1) + FR(Fnum, 17, 10) + FR(Fan, 17, 10) +
+    Emit(' DEBUG|' + ISt(I, 5) + '      ' + Chr(Ord('x') + K - 1) + FR(Fnum, 17,
+      10) + FR(Fan, 17, 10) +
          FR(Diff, 17, 10) + FR(Err, 10, 3));
    End;
   Emit(' DEBUG| Sum of differences:' + FR(SumD, 20, 10));
@@ -6726,7 +7005,8 @@ Begin
     Fnum := (E1 - E2) / (2 * Delta);
     Diff := Fnum - DA[A, B];
     If Abs(Diff) > SMax Then SMax := Abs(Diff);
-    Emit(' DEBUG|' + ISt(A, 4) + ISt(B, 4) + FR(Fnum, 20, 10) + FR(DA[A, B], 20, 10) + FR(Diff, 20, 10));
+    Emit(' DEBUG|' + ISt(A, 4) + ISt(B, 4) + FR(Fnum, 20, 10) + FR(DA[A, B], 20,
+      10) + FR(Diff, 20, 10));
    End;
   SPos := Pos0; CellH := Hb;
   UpdateCell;
@@ -6739,8 +7019,11 @@ End;
 Const
  NSCHEMA = 82;
  Schema : Array[1..NSCHEMA] Of String[240] = (
-  'GLOBAL:PROJECT PROJECT_NAME RUN_TYPE PRINT_LEVEL SEED WALLTIME PREFERRED_FFT_LIBRARY FFTW_PLAN_TYPE FFT_POOL_SCRATCH_LIMIT EXTENDED_FFT_LENGTHS ECHO_INPUT ECHO_ALL_HOSTS FLUSH_SHOULD_FLUSH SAVE_MEM',
-  'GLOBAL:PROGRAM_NAME TRACE TRACE_MASTER TRACE_MAX TRACE_ROUTINES ENABLE_MPI_MAPPING PREFERRED_DIAG_LIBRARY SPHERICAL_HARMONICS CALLGRAPH',
+  'GLOBAL:PROJECT PROJECT_NAME RUN_TYPE PRINT_LEVEL SEED WALLTIME ' +
+  'PREFERRED_FFT_LIBRARY FFTW_PLAN_TYPE FFT_POOL_SCRATCH_LIMIT ' +
+  'EXTENDED_FFT_LENGTHS ECHO_INPUT ECHO_ALL_HOSTS FLUSH_SHOULD_FLUSH SAVE_MEM',
+  'GLOBAL:PROGRAM_NAME TRACE TRACE_MASTER TRACE_MAX TRACE_ROUTINES ' +
+  'ENABLE_MPI_MAPPING PREFERRED_DIAG_LIBRARY SPHERICAL_HARMONICS CALLGRAPH',
   'GLOBAL/TIMINGS:THRESHOLD SORT_BY_SELF_TIME TIME_MPI REPORT_MAXLOCAL',
   'GLOBAL/DBCSR:*',
   'GLOBAL/FM:*',
@@ -6748,14 +7031,21 @@ Const
   'GLOBAL/REFERENCES:*',
   'FORCE_EVAL:METHOD STRESS_TENSOR NCOPIES',
   'FORCE_EVAL/SUBSYS:*',
-  'FORCE_EVAL/SUBSYS/CELL:A B C ABC ALPHA_BETA_GAMMA PERIODIC MULTIPLE_UNIT_CELL SYMMETRY CELL_FILE_NAME CELL_FILE_FORMAT',
-  'FORCE_EVAL/SUBSYS/CELL/CELL_REF:A B C ABC ALPHA_BETA_GAMMA PERIODIC MULTIPLE_UNIT_CELL SYMMETRY CELL_FILE_NAME CELL_FILE_FORMAT',
+  'FORCE_EVAL/SUBSYS/CELL:A B C ABC ALPHA_BETA_GAMMA PERIODIC ' +
+  'MULTIPLE_UNIT_CELL SYMMETRY CELL_FILE_NAME CELL_FILE_FORMAT',
+  'FORCE_EVAL/SUBSYS/CELL/CELL_REF:A B C ABC ALPHA_BETA_GAMMA PERIODIC ' +
+  'MULTIPLE_UNIT_CELL SYMMETRY CELL_FILE_NAME CELL_FILE_FORMAT',
   'FORCE_EVAL/SUBSYS/COORD:*',
   'FORCE_EVAL/SUBSYS/VELOCITY:*',
-  'FORCE_EVAL/SUBSYS/KIND:ELEMENT BASIS_SET POTENTIAL MASS GHOST AUTO_BASIS NAME CORE_CORRECTION LEBEDEV_GRID RADIAL_GRID ATOMIC_RADIUS DFT_PLUS_U',
-  'FORCE_EVAL/SUBSYS/TOPOLOGY:COORD_FILE_NAME COORD_FILE_FORMAT CONN_FILE_NAME CONN_FILE_FORMAT MOL_CHECK USE_ELEMENT_AS_KIND CHARGE_BETA CHARGE_EXTENDED CHARGE_OCCUP EXCLUDE_VDW EXCLUDE_EI MULTIPLE_UNIT_CELL NUMBER_OF_ATOMS',
+  'FORCE_EVAL/SUBSYS/KIND:ELEMENT BASIS_SET POTENTIAL MASS GHOST AUTO_BASIS ' +
+  'NAME CORE_CORRECTION LEBEDEV_GRID RADIAL_GRID ATOMIC_RADIUS DFT_PLUS_U',
+  'FORCE_EVAL/SUBSYS/TOPOLOGY:COORD_FILE_NAME COORD_FILE_FORMAT ' +
+  'CONN_FILE_NAME CONN_FILE_FORMAT MOL_CHECK USE_ELEMENT_AS_KIND CHARGE_BETA ' +
+  'CHARGE_EXTENDED CHARGE_OCCUP EXCLUDE_VDW EXCLUDE_EI MULTIPLE_UNIT_CELL ' +
+  'NUMBER_OF_ATOMS',
   'FORCE_EVAL/SUBSYS/TOPOLOGY:DISABLE_EXCLUSION_LISTS AUTOGEN_EXCLUDE_LISTS',
-  'FORCE_EVAL/SUBSYS/TOPOLOGY/GENERATE:BONDPARM BONDPARM_FACTOR CREATE_MOLECULES REORDER_ATOMS BONDLENGTH_MAX BONDLENGTH_MIN',
+  'FORCE_EVAL/SUBSYS/TOPOLOGY/GENERATE:BONDPARM BONDPARM_FACTOR ' +
+  'CREATE_MOLECULES REORDER_ATOMS BONDLENGTH_MAX BONDLENGTH_MIN',
   'FORCE_EVAL/SUBSYS/TOPOLOGY/CENTER_COORDINATES:CENTER_POINT',
   'FORCE_EVAL/SUBSYS/TOPOLOGY/DUMP_PDB:*',
   'FORCE_EVAL/SUBSYS/TOPOLOGY/DUMP_PSF:*',
@@ -6763,21 +7053,33 @@ Const
   'FORCE_EVAL/SUBSYS/SHELL_COORD:*',
   'FORCE_EVAL/SUBSYS/CORE_COORD:*',
   'FORCE_EVAL/MM:*',
-  'FORCE_EVAL/MM/FORCEFIELD:PARMTYPE PARM_FILE_NAME DO_NONBONDED SHIFT_CUTOFF EI_SCALE14 VDW_SCALE14 IGNORE_MISSING_CRITICAL_PARAMS DO_ELECTROSTATICS',
+  'FORCE_EVAL/MM/FORCEFIELD:PARMTYPE PARM_FILE_NAME DO_NONBONDED ' +
+  'SHIFT_CUTOFF ' +
+  'EI_SCALE14 VDW_SCALE14 IGNORE_MISSING_CRITICAL_PARAMS DO_ELECTROSTATICS',
   'FORCE_EVAL/MM/FORCEFIELD/CHARGE:ATOM CHARGE',
   'FORCE_EVAL/MM/FORCEFIELD/NONBONDED:*',
-  'FORCE_EVAL/MM/FORCEFIELD/NONBONDED/LENNARD-JONES:ATOMS EPSILON SIGMA RCUT RMIN RMAX',
+  'FORCE_EVAL/MM/FORCEFIELD/NONBONDED/LENNARD-JONES:ATOMS EPSILON SIGMA RCUT ' +
+  'RMIN RMAX',
   'FORCE_EVAL/MM/FORCEFIELD/NONBONDED/WILLIAMS:ATOMS A B C RCUT RMIN RMAX',
   'FORCE_EVAL/MM/FORCEFIELD/BOND:ATOMS K R0 KIND CS',
-  'FORCE_EVAL/MM/FORCEFIELD/BEND:ATOMS K THETA0 KIND CB R012 R032 KBS12 KBS32 KSS THETA0',
+  'FORCE_EVAL/MM/FORCEFIELD/BEND:ATOMS K THETA0 KIND CB R012 R032 KBS12 ' +
+  'KBS32 ' +
+  'KSS THETA0',
   'FORCE_EVAL/MM/FORCEFIELD/TORSION:ATOMS K PHI0 M KIND',
-  'FORCE_EVAL/MM/FORCEFIELD/SPLINE:RCUT_NB EMAX_SPLINE EPS_SPLINE EMAX_ACCURACY NPOINTS UNIQUE_SPLINE',
+  'FORCE_EVAL/MM/FORCEFIELD/SPLINE:RCUT_NB EMAX_SPLINE EPS_SPLINE ' +
+  'EMAX_ACCURACY NPOINTS UNIQUE_SPLINE',
   'FORCE_EVAL/MM/POISSON:POISSON_SOLVER PERIODIC',
-  'FORCE_EVAL/MM/POISSON/EWALD:EWALD_TYPE ALPHA GMAX O_SPLINE NS_MAX EPSILON EWALD_ACCURACY RCUT',
+  'FORCE_EVAL/MM/POISSON/EWALD:EWALD_TYPE ALPHA GMAX O_SPLINE NS_MAX EPSILON ' +
+  'EWALD_ACCURACY RCUT',
   'FORCE_EVAL/MM/NEIGHBOR_LISTS:*',
-  'FORCE_EVAL/DFT:BASIS_SET_FILE_NAME POTENTIAL_FILE_NAME CHARGE MULTIPLICITY UKS LSD ROKS WFN_RESTART_FILE_NAME RESTART_WFN PLUS_U_METHOD AUTO_BASIS RELAX_MULTIPLICITY SUBCELLS',
-  'FORCE_EVAL/DFT/QS:METHOD EPS_DEFAULT EPS_PGF_ORB EPS_FILTER_MATRIX EXTRAPOLATION EXTRAPOLATION_ORDER MAP_CONSISTENT REF_EMBED_SUBSYS CORE_PPL',
-  'FORCE_EVAL/DFT/MGRID:CUTOFF REL_CUTOFF NGRIDS COMMENSURATE PROGRESSION_FACTOR MULTIGRID_SET SKIP_LOAD_BALANCE_DISTRIBUTED',
+  'FORCE_EVAL/DFT:BASIS_SET_FILE_NAME POTENTIAL_FILE_NAME CHARGE ' +
+  'MULTIPLICITY ' +
+  'UKS LSD ROKS WFN_RESTART_FILE_NAME RESTART_WFN PLUS_U_METHOD AUTO_BASIS ' +
+  'RELAX_MULTIPLICITY SUBCELLS',
+  'FORCE_EVAL/DFT/QS:METHOD EPS_DEFAULT EPS_PGF_ORB EPS_FILTER_MATRIX ' +
+  'EXTRAPOLATION EXTRAPOLATION_ORDER MAP_CONSISTENT REF_EMBED_SUBSYS CORE_PPL',
+  'FORCE_EVAL/DFT/MGRID:CUTOFF REL_CUTOFF NGRIDS COMMENSURATE ' +
+  'PROGRESSION_FACTOR MULTIGRID_SET SKIP_LOAD_BALANCE_DISTRIBUTED',
   'FORCE_EVAL/DFT/XC:DENSITY_CUTOFF GRADIENT_CUTOFF TAU_CUTOFF',
   'FORCE_EVAL/DFT/XC/XC_FUNCTIONAL:*',
   'FORCE_EVAL/DFT/XC/XC_GRID:*',
@@ -6785,7 +7087,9 @@ Const
   'FORCE_EVAL/DFT/XC/HF/SCREENING:*',
   'FORCE_EVAL/DFT/XC/HF/MEMORY:*',
   'FORCE_EVAL/DFT/XC/VDW_POTENTIAL:*',
-  'FORCE_EVAL/DFT/SCF:EPS_SCF MAX_SCF SCF_GUESS EPS_EIGVAL ADDED_MOS EPS_DIIS MAX_DIIS CHOLESKY IGNORE_CONVERGENCE_FAILURE MAX_ITER_LUMOS EPS_LUMOS',
+  'FORCE_EVAL/DFT/SCF:EPS_SCF MAX_SCF SCF_GUESS EPS_EIGVAL ADDED_MOS ' +
+  'EPS_DIIS ' +
+  'MAX_DIIS CHOLESKY IGNORE_CONVERGENCE_FAILURE MAX_ITER_LUMOS EPS_LUMOS',
   'FORCE_EVAL/DFT/SCF/OT:*',
   'FORCE_EVAL/DFT/SCF/DIAGONALIZATION:*',
   'FORCE_EVAL/DFT/SCF/MIXING:*',
@@ -6797,17 +7101,23 @@ Const
   'FORCE_EVAL/DFT/SCCS:*',
   'FORCE_EVAL/PROPERTIES:*',
   'MOTION:*',
-  'MOTION/GEO_OPT:TYPE OPTIMIZER MAX_ITER MAX_DR RMS_DR MAX_FORCE RMS_FORCE STEP_START_VAL',
-  'MOTION/GEO_OPT/BFGS:TRUST_RADIUS RESTART_HESSIAN USE_MODEL_HESSIAN USE_RAT_FUN_OPT',
+  'MOTION/GEO_OPT:TYPE OPTIMIZER MAX_ITER MAX_DR RMS_DR MAX_FORCE RMS_FORCE ' +
+  'STEP_START_VAL',
+  'MOTION/GEO_OPT/BFGS:TRUST_RADIUS RESTART_HESSIAN USE_MODEL_HESSIAN ' +
+  'USE_RAT_FUN_OPT',
   'MOTION/GEO_OPT/CG:MAX_STEEP_STEPS RESTART_LIMIT',
   'MOTION/GEO_OPT/CG/LINE_SEARCH:*',
   'MOTION/GEO_OPT/LBFGS:MAX_H_RANK MAX_F_PER_ITER TRUST_RADIUS',
-  'MOTION/CELL_OPT:TYPE OPTIMIZER MAX_ITER MAX_DR RMS_DR MAX_FORCE RMS_FORCE PRESSURE_TOLERANCE EXTERNAL_PRESSURE KEEP_ANGLES KEEP_SYMMETRY CONSTRAINT STEP_START_VAL',
+  'MOTION/CELL_OPT:TYPE OPTIMIZER MAX_ITER MAX_DR RMS_DR MAX_FORCE RMS_FORCE ' +
+  'PRESSURE_TOLERANCE EXTERNAL_PRESSURE KEEP_ANGLES KEEP_SYMMETRY CONSTRAINT ' +
+  'STEP_START_VAL',
   'MOTION/CELL_OPT/BFGS:TRUST_RADIUS RESTART_HESSIAN USE_MODEL_HESSIAN',
   'MOTION/CELL_OPT/CG:MAX_STEEP_STEPS RESTART_LIMIT',
   'MOTION/CELL_OPT/CG/LINE_SEARCH:*',
   'MOTION/CELL_OPT/LBFGS:MAX_H_RANK MAX_F_PER_ITER TRUST_RADIUS',
-  'MOTION/MD:ENSEMBLE STEPS TIMESTEP TEMPERATURE TEMP_TOL TEMP_KIND STEP_START_VAL TIME_START_VAL COMVEL_TOL ANGVEL_TOL ANGVEL_ZERO INITIALIZATION_METHOD SCALE_TEMP_KIND',
+  'MOTION/MD:ENSEMBLE STEPS TIMESTEP TEMPERATURE TEMP_TOL TEMP_KIND ' +
+  'STEP_START_VAL TIME_START_VAL COMVEL_TOL ANGVEL_TOL ANGVEL_ZERO ' +
+  'INITIALIZATION_METHOD SCALE_TEMP_KIND',
   'MOTION/MD/THERMOSTAT:TYPE REGION',
   'MOTION/MD/THERMOSTAT/NOSE:LENGTH YOSHIDA TIMECON MTS',
   'MOTION/MD/THERMOSTAT/CSVR:TIMECON',
@@ -6815,12 +7125,21 @@ Const
   'MOTION/MD/BAROSTAT:PRESSURE TIMECON TEMPERATURE TEMP_TOL VIRIAL',
   'MOTION/MD/AVERAGES:*',
   'MOTION/CONSTRAINT:SHAKE_TOLERANCE ROLL_TOLERANCE',
-  'MOTION/CONSTRAINT/FIXED_ATOMS:LIST COMPONENTS_TO_FIX MM_SUBSYS QM_SUBSYS MOLNAME',
+  'MOTION/CONSTRAINT/FIXED_ATOMS:LIST COMPONENTS_TO_FIX MM_SUBSYS QM_SUBSYS ' +
+  'MOLNAME',
   'MOTION/PRINT:*',
-  'VIBRATIONAL_ANALYSIS:DX FULLY_PERIODIC INTENSITIES NPROC_REP TC_PRESSURE TC_TEMPERATURE THERMOCHEMISTRY ROTATIONAL_SYMMETRY',
-  'DEBUG:DX DEBUG_FORCES DEBUG_STRESS_TENSOR DEBUG_DIPOLE DEBUG_POLARIZABILITY CHECK_ATOM_FORCE EPS_NO_ERROR_CHECK MAX_RELATIVE_ERROR STOP_ON_MISMATCH',
-  'EXT_RESTART:RESTART_FILE_NAME RESTART_DEFAULT RESTART_POS RESTART_VEL RESTART_RANDOMG RESTART_SCF RESTART_HOMO RESTART_COUNTERS RESTART_THERMOSTAT RESTART_CELL RESTART_BAROSTAT RESTART_CONSTRAINT RESTART_METADYNAMICS',
-  'EXT_RESTART:RESTART_QMMM RESTART_BAND RESTART_OPTIMIZE_INPUT_VARIABLES RESTART_AVERAGES RESTART_GEOOPT SCF_GUESS_RESTART_FILE_NAME BINARY_RESTART_FILE_NAME');
+  'VIBRATIONAL_ANALYSIS:DX FULLY_PERIODIC INTENSITIES NPROC_REP TC_PRESSURE ' +
+  'TC_TEMPERATURE THERMOCHEMISTRY ROTATIONAL_SYMMETRY',
+  'DEBUG:DX DEBUG_FORCES DEBUG_STRESS_TENSOR DEBUG_DIPOLE ' +
+  'DEBUG_POLARIZABILITY CHECK_ATOM_FORCE EPS_NO_ERROR_CHECK ' +
+  'MAX_RELATIVE_ERROR STOP_ON_MISMATCH',
+  'EXT_RESTART:RESTART_FILE_NAME RESTART_DEFAULT RESTART_POS RESTART_VEL ' +
+  'RESTART_RANDOMG RESTART_SCF RESTART_HOMO RESTART_COUNTERS ' +
+  'RESTART_THERMOSTAT RESTART_CELL RESTART_BAROSTAT RESTART_CONSTRAINT ' +
+  'RESTART_METADYNAMICS',
+  'EXT_RESTART:RESTART_QMMM RESTART_BAND RESTART_OPTIMIZE_INPUT_VARIABLES ' +
+  'RESTART_AVERAGES RESTART_GEOOPT SCF_GUESS_RESTART_FILE_NAME ' +
+  'BINARY_RESTART_FILE_NAME');
 
 
 { --------------------------------------------------------------------- }
@@ -6828,7 +7147,8 @@ Const
 { --------------------------------------------------------------------- }
 
 Const
- PLNames : Array[0..4] Of String[8] = ('SILENT', 'LOW', 'MEDIUM', 'HIGH', 'DEBUG');
+ PLNames : Array[0..4] Of String[8] = ('SILENT', 'LOW', 'MEDIUM', 'HIGH',
+   'DEBUG');
 
 Var
  SecUnknown : Array[0..MAX_SEC] Of Boolean;
@@ -6859,7 +7179,8 @@ Begin
  For I := 1 To NSCHEMA Do Begin
   P := Pos(':', Schema[I]);
   If Copy(Schema[I], 1, P - 1) = Path Then
-   If InWordList(Copy(Schema[I], P + 1, 255), W) Or InWordList(Copy(Schema[I], P + 1, 255), '*') Then Exit;
+   If InWordList(Copy(Schema[I], P + 1, 255), W) Or InWordList(Copy(Schema[I], P
+     + 1, 255), '*') Then Exit;
  End;
  SchemaAccepts := False;
 End;
@@ -6875,7 +7196,8 @@ End;
 
 Function PathUnderPrint(Const Path: String): Boolean;
 Begin
- PathUnderPrint := (Path = 'PRINT') Or (Copy(Path, Length(Path) - 5, 6) = '/PRINT') Or
+ PathUnderPrint := (Path = 'PRINT') Or (Copy(Path, Length(Path) - 5, 6) =
+   '/PRINT') Or
                    (Pos('/PRINT/', Path) > 0) Or (Copy(Path, 1, 6) = 'PRINT/');
 End;
 
@@ -6901,20 +7223,23 @@ Begin
   If Not SchemaHasPath(Path) Then Begin
    SecUnknown[I] := True;
    If Not SchemaAccepts(ParentPath(Path), '*') Then
-    CheckWarn(SecLine[I], 'Section &' + SecName[I] + ' (' + Path + ') non prise en charge : ignoree');
+    CheckWarn(SecLine[I], 'Section &' + SecName[I] + ' (' + Path +
+      ') non prise en charge : ignoree');
    Continue;
   End;
   For J := 1 To NKw Do
    If KwTab[J]^.Sec = I Then
     If Not SchemaAccepts(Path, KwTab[J]^.U) Then
-     CheckWarn(KwTab[J]^.Line, 'Mot-cle ' + KwTab[J]^.U + ' inconnu dans la section &' + SecName[I] + ' : ignore');
+     CheckWarn(KwTab[J]^.Line, 'Mot-cle ' + KwTab[J]^.U +
+       ' inconnu dans la section &' + SecName[I] + ' : ignore');
  End;
  { unites entre crochets }
  For J := 1 To NKw Do Begin
   Un := TrimStr(KwTab[J]^.V);
   If (Un <> '') And (Un[1] = '[') Then Begin
    P := Pos(']', Un);
-   If P = 0 Then InErr(KwTab[J]^.Line, 'Crochet fermant manquant apres ' + KwTab[J]^.U)
+   If P = 0 Then InErr(KwTab[J]^.Line, 'Crochet fermant manquant apres ' +
+     KwTab[J]^.U)
    Else Begin
     UnitToAU(Copy(Un, 2, P - 2), Ok);
     If Not Ok Then InErr(KwTab[J]^.Line, 'Unite inconnue : ' + Copy(Un, 1, P));
@@ -6934,7 +7259,8 @@ Var
  Stack: Array[0..15] Of String[120];
  Procedure PopTo(Const Pth: String);
  Begin
-  While (Top > 0) And (Stack[Top] <> Pth) And (Copy(Pth, 1, Length(Stack[Top]) + 1) <> Stack[Top] + '/') Do Begin
+  While (Top > 0) And (Stack[Top] <> Pth) And (Copy(Pth, 1, Length(Stack[Top]) +
+    1) <> Stack[Top] + '/') Do Begin
    WriteLn(Rep(' ', 2 * Top), '</SECTION>');
    Dec(Top);
   End;
@@ -6961,11 +7287,13 @@ Begin
   While W <> '' Do Begin
    P := Pos(' ', W);
    If P = 0 Then Begin
-    If W <> '*' Then WriteLn(Rep(' ', 2 * Top + 2), '<KEYWORD name="', W, '"/>');
+    If W <> '*' Then WriteLn(Rep(' ', 2 * Top + 2), '<KEYWORD name="', W,
+      '"/>');
     W := '';
    End
    Else Begin
-    If Copy(W, 1, P - 1) <> '*' Then WriteLn(Rep(' ', 2 * Top + 2), '<KEYWORD name="', Copy(W, 1, P - 1), '"/>');
+    If Copy(W, 1, P - 1) <> '*' Then WriteLn(Rep(' ', 2 * Top + 2),
+      '<KEYWORD name="', Copy(W, 1, P - 1), '"/>');
     W := Copy(W, P + 1, 255);
    End;
   End;
@@ -6981,7 +7309,8 @@ End;
 Procedure ArtLine(N: Integer; Const Lbl, Val: String);
 Const
  Art : Array[1..5] Of String[24] = (
-  ' **** **** ******  **  ', ' ***** ** ***  *** **   ', ' **    ****   ******    ',
+  ' **** **** ******  **  ', ' ***** ** ***  *** **   ',
+    ' **    ****   ******    ',
   ' ***** ** ** ** ** **   ', '  **** **  *******  **  ');
 Var S: String; K: Integer;
 Begin
@@ -7021,7 +7350,8 @@ Begin
  Info('CP2K', 'source code revision number:', 'QChimie Pascal ' + PROG_VERSION);
  Info('CP2K', 'cp2kflags:', 'pascal clone');
  Info('CP2K', 'is freely available from', 'https://www.cp2k.org/');
- Info('CP2K', 'Program compiled on', {$IFDEF FPC}'Free Pascal'{$ELSE}'Turbo Pascal'{$ENDIF});
+ Info('CP2K', 'Program compiled on', {$IFDEF
+   FPC}'Free Pascal'{$ELSE}'Turbo Pascal'{$ENDIF});
  Info('CP2K', 'Input file name', BaseName(InputName));
  EmitBlank;
 End;
@@ -7047,7 +7377,8 @@ Procedure PrintTiming;
 Var Tot, Ev: Real;
  Procedure Row(Const Nm: String; Calls: LongInt; Self, Tt: Real);
  Begin
-  Emit(' ' + PadR(Nm, 30) + ISt(Calls, 9) + '  1.0' + FR(Self, 9, 3) + FR(Self, 9, 3) +
+  Emit(' ' + PadR(Nm, 30) + ISt(Calls, 9) + '  1.0' + FR(Self, 9, 3) + FR(Self,
+    9, 3) +
        FR(Tt, 9, 3) + FR(Tt, 9, 3));
  End;
 Begin
@@ -7059,8 +7390,10 @@ Begin
  Emit(' -' + Rep(' ', 32) + 'T I M I N G' + Rep(' ', 34) + '-');
  Emit(' -' + Rep(' ', 77) + '-');
  Emit(' ' + Rep('-', 79));
- Emit(' SUBROUTINE                       CALLS  ASD         SELF TIME        TOTAL TIME');
- Emit('                                MAXIMUM       AVERAGE  MAXIMUM  AVERAGE  MAXIMUM');
+ Emit(' SUBROUTINE                       CALLS  ASD         SELF TIME        ' +
+   'TOTAL TIME');
+ Emit('                                MAXIMUM       AVERAGE  MAXIMUM  ' +
+   'AVERAGE  MAXIMUM');
  Row('CP2K', 1, Tot - Ev, Tot);
  Row('force_env_calc_energy_force', NEval, 0.0, Ev);
  If FEMethod = FE_FIST Then Row('fist_calc_energy_force', NEval, Ev, Ev)
@@ -7092,16 +7425,22 @@ Function RunTypeOf(Const S: String): Integer;
 Begin
  RunTypeOf := -1;
  If (S = 'NONE') Then RunTypeOf := RT_NONE
- Else If (S = 'ENERGY') Or (S = 'WFN_OPT') Or (S = 'WAVEFUNCTION_OPTIMIZATION') Then RunTypeOf := RT_ENERGY
+ Else If (S = 'ENERGY') Or (S = 'WFN_OPT') Or (S = 'WAVEFUNCTION_OPTIMIZATION')
+   Then RunTypeOf := RT_ENERGY
  Else If (S = 'ENERGY_FORCE') Then RunTypeOf := RT_FORCE
- Else If (S = 'GEO_OPT') Or (S = 'GEOMETRY_OPTIMIZATION') Then RunTypeOf := RT_GEOOPT
+ Else If (S = 'GEO_OPT') Or (S = 'GEOMETRY_OPTIMIZATION') Then RunTypeOf :=
+   RT_GEOOPT
  Else If (S = 'CELL_OPT') Then RunTypeOf := RT_CELLOPT
  Else If (S = 'MD') Or (S = 'MOLECULAR_DYNAMICS') Then RunTypeOf := RT_MD
- Else If (S = 'VIBRATIONAL_ANALYSIS') Or (S = 'NORMAL_MODES') Then RunTypeOf := RT_VIB
+ Else If (S = 'VIBRATIONAL_ANALYSIS') Or (S = 'NORMAL_MODES') Then RunTypeOf :=
+   RT_VIB
  Else If (S = 'DEBUG') Then RunTypeOf := RT_DEBUG
- Else If (S = 'MC') Or (S = 'BAND') Or (S = 'PINT') Or (S = 'BSSE') Or (S = 'LR') Or (S = 'TAMC') Or
-         (S = 'SPECTRA') Or (S = 'ELECTRONIC_SPECTRA') Or (S = 'ROT') Or (S = 'RT_PROPAGATION') Or
-         (S = 'EHRENFEST_DYN') Or (S = 'DRIVER') Or (S = 'LINEAR_RESPONSE') Or (S = 'TMC') Then RunTypeOf := -2;
+ Else If (S = 'MC') Or (S = 'BAND') Or (S = 'PINT') Or (S = 'BSSE') Or (S =
+   'LR') Or (S = 'TAMC') Or
+         (S = 'SPECTRA') Or (S = 'ELECTRONIC_SPECTRA') Or (S = 'ROT') Or (S =
+           'RT_PROPAGATION') Or
+         (S = 'EHRENFEST_DYN') Or (S = 'DRIVER') Or (S = 'LINEAR_RESPONSE') Or
+           (S = 'TMC') Then RunTypeOf := -2;
 End;
 
 Function PrintLevelOf(Const S: String): Integer;
@@ -7124,11 +7463,13 @@ Begin
  RunName := 'ENERGY';
  PrintLevel := PL_MEDIUM;
  If SecGlobal > 0 Then Begin
-  ProjectName := KwStr(SecGlobal, 'PROJECT_NAME', KwStr(SecGlobal, 'PROJECT', 'PROJECT'));
+  ProjectName := KwStr(SecGlobal, 'PROJECT_NAME', KwStr(SecGlobal, 'PROJECT',
+    'PROJECT'));
   RunName := KwWord(SecGlobal, 'RUN_TYPE', 'ENERGY');
   S := KwWord(SecGlobal, 'PRINT_LEVEL', 'MEDIUM');
   N := PrintLevelOf(S);
-  If N < 0 Then InErr(SecLine[SecGlobal], 'PRINT_LEVEL invalide : ' + S) Else PrintLevel := N;
+  If N < 0 Then InErr(SecLine[SecGlobal], 'PRINT_LEVEL invalide : ' + S) Else
+    PrintLevel := N;
   Seed := KwInt(SecGlobal, 'SEED', 2000);
   S := KwStr(SecGlobal, 'WALLTIME', '0');
   WallTime := 0;
@@ -7147,9 +7488,11 @@ Begin
  Else Seed := 2000;
  RandSeed := Seed;
  RunType := RunTypeOf(RunName);
- If RunType = -1 Then InErr(SecLine[SecGlobal], 'RUN_TYPE invalide : ' + RunName)
+ If RunType = -1 Then InErr(SecLine[SecGlobal], 'RUN_TYPE invalide : ' +
+   RunName)
  Else If RunType = -2 Then
-  InErr(SecLine[SecGlobal], 'RUN_TYPE ' + RunName + ' n''est pas pris en charge par ce clone');
+  InErr(SecLine[SecGlobal], 'RUN_TYPE ' + RunName +
+    ' n''est pas pris en charge par ce clone');
 End;
 
 { Avertit des mots-cles acceptes par CP2K mais non pris en charge ici }
@@ -7162,7 +7505,8 @@ Begin
   P := Pos(' ', L);
   If P = 0 Then Begin W := L; L := ''; End
   Else Begin W := Copy(L, 1, P - 1); L := Copy(L, P + 1, 255); End;
-  If KwHas(Sec, W) Then Warn('Mot-cle ' + W + ' de &' + SecName[Sec] + ' non pris en charge : ignore');
+  If KwHas(Sec, W) Then Warn('Mot-cle ' + W + ' de &' + SecName[Sec] +
+    ' non pris en charge : ignore');
  End;
 End;
 
@@ -7181,10 +7525,12 @@ Begin
   Exit;
  End;
  Mth := KwWord(SecFE, 'METHOD', 'QS');
- If (Mth = 'QS') Or (Mth = 'QUICKSTEP') Then Begin FEMethod := FE_QS; FEName := 'QS'; End
+ If (Mth = 'QS') Or (Mth = 'QUICKSTEP') Then Begin FEMethod := FE_QS; FEName :=
+   'QS'; End
  Else If Mth = 'FIST' Then Begin FEMethod := FE_FIST; FEName := 'FIST'; End
  Else Begin
-  InErr(SecLine[SecFE], 'METHOD ' + Mth + ' n''est pas pris en charge (QS ou FIST)');
+  InErr(SecLine[SecFE], 'METHOD ' + Mth +
+    ' n''est pas pris en charge (QS ou FIST)');
   Exit;
  End;
  SecSub := FindSec(SecFE, 'SUBSYS', 1);
@@ -7195,13 +7541,18 @@ Begin
  SecMM := FindSec(SecFE, 'MM', 1);
  SecDFT := FindSec(SecFE, 'DFT', 1);
  SecMotion := FindSec(0, 'MOTION', 1);
- If (FEMethod = FE_FIST) And (SecMM = 0) Then InErr(SecLine[SecFE], 'METHOD FIST exige une section &MM');
- If (FEMethod = FE_QS) And (SecDFT = 0) Then InErr(SecLine[SecFE], 'METHOD QS exige une section &DFT');
+ If (FEMethod = FE_FIST) And (SecMM = 0) Then InErr(SecLine[SecFE],
+   'METHOD FIST exige une section &MM');
+ If (FEMethod = FE_QS) And (SecDFT = 0) Then InErr(SecLine[SecFE],
+   'METHOD QS exige une section &DFT');
  If NInErr > 0 Then Exit;
- WarnUnused(FindSec(SecSub, 'CELL', 1), 'MULTIPLE_UNIT_CELL SYMMETRY CELL_FILE_NAME CELL_FILE_FORMAT');
- WarnUnused(FindSec(SecSub, 'TOPOLOGY', 1), 'MULTIPLE_UNIT_CELL CONN_FILE_NAME');
+ WarnUnused(FindSec(SecSub, 'CELL', 1),
+   'MULTIPLE_UNIT_CELL SYMMETRY CELL_FILE_NAME CELL_FILE_FORMAT');
+ WarnUnused(FindSec(SecSub, 'TOPOLOGY', 1),
+   'MULTIPLE_UNIT_CELL CONN_FILE_NAME');
  If SecMM > 0 Then
-  WarnUnused(FindSec(SecMM, 'FORCEFIELD', 1), 'PARMTYPE PARM_FILE_NAME DO_ELECTROSTATICS');
+  WarnUnused(FindSec(SecMM, 'FORCEFIELD', 1),
+    'PARMTYPE PARM_FILE_NAME DO_ELECTROSTATICS');
  { redemarrage externe }
  UseRPos := False; UseRVel := False; UseRCnt := False;
  Src := SecSub;
@@ -7216,10 +7567,12 @@ Begin
   Rs := AddSec(0, 'RESTART_DATA', '', 0);
   ParseLines(OldN + 1, NLn, Rs);
   Rsub := FindSec(FindSec(Rs, 'FORCE_EVAL', 1), 'SUBSYS', 1);
-  If Rsub = 0 Then InErr(0, 'Le fichier de redemarrage ne contient pas de &SUBSYS');
+  If Rsub = 0 Then InErr(0,
+    'Le fichier de redemarrage ne contient pas de &SUBSYS');
   UseRPos := KwBool(Sr, 'RESTART_POS', KwBool(Sr, 'RESTART_DEFAULT', True));
   UseRVel := KwBool(Sr, 'RESTART_VEL', KwBool(Sr, 'RESTART_DEFAULT', True));
-  UseRCnt := KwBool(Sr, 'RESTART_COUNTERS', KwBool(Sr, 'RESTART_DEFAULT', True));
+  UseRCnt := KwBool(Sr, 'RESTART_COUNTERS', KwBool(Sr, 'RESTART_DEFAULT',
+    True));
   Rmd := FindSec(FindSec(Rs, 'MOTION', 1), 'MD', 1);
   If UseRCnt And (Rmd > 0) Then Begin
    UseResCounters := True;
@@ -7234,7 +7587,8 @@ Begin
  SetupKinds;
  LoadCoords(Src);
  If NInErr > 0 Then Exit;
- If NAtoms = 0 Then Begin InErr(SecLine[SecSub], 'Aucun atome dans le systeme'); Exit; End;
+ If NAtoms = 0 Then Begin InErr(SecLine[SecSub], 'Aucun atome dans le systeme');
+   Exit; End;
  ValidateKinds;
  If NInErr > 0 Then Exit;
  FillAtomData;
@@ -7265,15 +7619,20 @@ Begin
  Info('TOPOLOGY', 'Number of bonds:', ISt(NBond, 15));
  Info('TOPOLOGY', 'Number of molecules:', ISt(NMol, 15));
  PrintKinds;
- If FEMethod = FE_FIST Then PrintCoords('FIST', False) Else PrintCoords('QUICKSTEP', True);
+ If FEMethod = FE_FIST Then PrintCoords('FIST', False) Else
+   PrintCoords('QUICKSTEP', True);
  PrintTotals;
  If FEMethod = FE_FIST Then Begin
   Info('FIST', 'Cutoff radius [angstrom]:', FR(RcMax * BOHR_ANG, 15, 4));
-  Info('FIST', 'Number of Lennard-Jones/Williams kind pairs:', ISt(NPairsLJ, 6));
+  Info('FIST', 'Number of Lennard-Jones/Williams kind pairs:', ISt(NPairsLJ,
+    6));
   If EwaldOn Then Begin
-   Info('FIST', 'Ewald summation, alpha [1/angstrom]:', FR(EwAlpha / BOHR_ANG, 15, 6));
-   Info('FIST', 'Ewald real space cutoff [angstrom]:', FR(EwRc * BOHR_ANG, 15, 4));
-   Info('FIST', 'Ewald reciprocal cutoff [1/angstrom]:', FR(EwKc / BOHR_ANG, 15, 4));
+   Info('FIST', 'Ewald summation, alpha [1/angstrom]:', FR(EwAlpha / BOHR_ANG,
+     15, 6));
+   Info('FIST', 'Ewald real space cutoff [angstrom]:', FR(EwRc * BOHR_ANG, 15,
+     4));
+   Info('FIST', 'Ewald reciprocal cutoff [1/angstrom]:', FR(EwKc / BOHR_ANG, 15,
+     4));
   End
   Else Info('FIST', 'Coulomb:', PadL(BoolStr(MMCharged), 15));
   Info('FIST', 'Bonds / bends / torsions with parameters:',
@@ -7281,7 +7640,8 @@ Begin
  End
  Else Begin
   EmitBlank;
-  If UnrestrictedFlag Then Info('DFT', 'Spin unrestricted Kohn-Sham (UKS) calculation', 'UKS')
+  If UnrestrictedFlag Then Info('DFT',
+    'Spin unrestricted Kohn-Sham (UKS) calculation', 'UKS')
   Else Info('DFT', 'Spin restricted Kohn-Sham (RKS) calculation', 'RKS');
   Info('DFT', 'Multiplicity', ISt(Mult, 15));
   Info('DFT', 'Number of spin states', ISt(1 + Ord(NOccA <> NOccB), 15));
@@ -7291,7 +7651,8 @@ Begin
   Info('QS', 'Number of basis functions:', ISt(NBF, 15));
   Info('QS', 'Number of electrons:', ISt(NElec, 15));
   Info('QS', 'EPS_SCF:', EStr(QSEps, 2));
-  If QSPotIgnored Then Info('QS', 'Pseudopotentials (POTENTIAL):', PadL('ignored (all-electron)', 30));
+  If QSPotIgnored Then Info('QS', 'Pseudopotentials (POTENTIAL):',
+    PadL('ignored (all-electron)', 30));
  End;
  EmitBlank;
 End;
@@ -7299,40 +7660,50 @@ End;
 { Fonctions et procedures d'aide en ligne de commande }
 Procedure ShowHelp;
 Begin
- WriteLn('CP2K : Clone de la ligne de commande de CP2K (chimie quantique et physique');
+ WriteLn('CP2K : Clone de la ligne de commande de CP2K (chimie quantique et ' +
+   'physique');
  WriteLn('       de l''etat solide, simulations atomistiques).');
  WriteLn;
  WriteLn('Syntaxe : CP2K [options] [-i] fichier.inp [-o sortie.out]');
  WriteLn;
- WriteLn(' -i fichier          Fichier d''entree (ou premier argument sans option ;');
+ WriteLn(' -i fichier          Fichier d''entree (ou premier argument sans ' +
+   'option ;');
  WriteLn('                     - lit l''entree standard)');
- WriteLn(' -o fichier          Fichier de sortie (par defaut : sortie standard)');
- WriteLn(' -c, --check         Verifie seulement la syntaxe du fichier d''entree');
- WriteLn(' -e, --echo          Affiche l''entree apres pretraitement et analyse');
+ WriteLn(' -o fichier          Fichier de sortie (par defaut : sortie ' +
+   'standard)');
+ WriteLn(' -c, --check         Verifie seulement la syntaxe du fichier ' +
+   'd''entree');
+ WriteLn(' -e, --echo          Affiche l''entree apres pretraitement et ' +
+   'analyse');
  WriteLn(' -E, --set nom=val   Definit une variable du preprocesseur (@SET)');
  WriteLn(' -r, --run           Lance le calcul (comportement par defaut)');
  WriteLn(' -v, --version       Affiche la version');
  WriteLn('     --license       Affiche la licence');
- WriteLn('     --xml           Decrit les sections et mots-cles reconnus (XML)');
+ WriteLn('     --xml           Decrit les sections et mots-cles reconnus ' +
+   '(XML)');
  WriteLn(' -h, --help          Affiche cette aide');
  WriteLn;
  WriteLn('RUN_TYPE : ENERGY, ENERGY_FORCE, GEO_OPT, CELL_OPT, MD,');
  WriteLn('           VIBRATIONAL_ANALYSIS, DEBUG');
- WriteLn('METHOD   : FIST (champ de force), QS (Quickstep : HF et DFT, bases STO-3G');
+ WriteLn('METHOD   : FIST (champ de force), QS (Quickstep : HF et DFT, bases ' +
+   'STO-3G');
  WriteLn('           pour H a Ne, 3-21G et 6-31G pour H, He et C a F)');
 End;
 
 Procedure ShowVersion;
 Begin
- WriteLn(' CP2K version ', CP2K_VERSION, ' (clone Pascal QChimie ', PROG_VERSION, ')');
+ WriteLn(' CP2K version ', CP2K_VERSION, ' (clone Pascal QChimie ',
+   PROG_VERSION, ')');
  WriteLn(' Source code revision number: QChimie');
  WriteLn(' cp2kflags: pascal fist qs');
 End;
 
 Procedure ShowLicense;
 Begin
- WriteLn(' CP2K est un logiciel libre distribue sous licence GNU GPL v2 ou ulterieure.');
- WriteLn(' Ce programme est un clone ecrit en Pascal : il ne contient aucun code de CP2K.');
+ WriteLn(' CP2K est un logiciel libre distribue sous licence GNU GPL v2 ou ' +
+   'ulterieure.');
+ WriteLn(' Ce programme est un clone ecrit en Pascal : il ne contient aucun ' +
+   'code de CP2K.');
  WriteLn(' Voir https://www.cp2k.org/ pour le logiciel original.');
 End;
 
@@ -7362,10 +7733,12 @@ Begin
  While ArgI <= ParamCount Do Begin
   Arg := ParamStr(ArgI);
   UArg := UpStr(Arg);
-  If (Arg = '-h') Or (UArg = '--HELP') Or (Arg = '-?') Or (Arg = '/?') Or (UArg = '/H') Then Begin
+  If (Arg = '-h') Or (UArg = '--HELP') Or (Arg = '-?') Or (Arg = '/?') Or (UArg
+    = '/H') Then Begin
    ShowHelp; Halt(0);
   End
-  Else If (Arg = '-v') Or (UArg = '--VERSION') Then Begin ShowVersion; Halt(0); End
+  Else If (Arg = '-v') Or (UArg = '--VERSION') Then Begin ShowVersion; Halt(0);
+    End
   Else If UArg = '--LICENSE' Then Begin ShowLicense; Halt(0); End
   Else If UArg = '--XML' Then DoXml := True
   Else If (Arg = '-c') Or (UArg = '--CHECK') Then CheckMode := True
@@ -7373,17 +7746,20 @@ Begin
   Else If (Arg = '-r') Or (UArg = '--RUN') Then Begin End
   Else If Arg = '-i' Then Begin
    Inc(ArgI);
-   If ArgI > ParamCount Then Begin ConMsg('ERREUR : -i exige un nom de fichier'); Halt(1); End;
+   If ArgI > ParamCount Then Begin
+     ConMsg('ERREUR : -i exige un nom de fichier'); Halt(1); End;
    InputName := ParamStr(ArgI);
   End
   Else If Arg = '-o' Then Begin
    Inc(ArgI);
-   If ArgI > ParamCount Then Begin ConMsg('ERREUR : -o exige un nom de fichier'); Halt(1); End;
+   If ArgI > ParamCount Then Begin
+     ConMsg('ERREUR : -o exige un nom de fichier'); Halt(1); End;
    OutputName := ParamStr(ArgI);
   End
   Else If (Arg = '-E') Or (UArg = '--SET') Then Begin
    Inc(ArgI);
-   If ArgI > ParamCount Then Begin ConMsg('ERREUR : -E exige nom=valeur'); Halt(1); End;
+   If ArgI > ParamCount Then Begin ConMsg('ERREUR : -E exige nom=valeur');
+     Halt(1); End;
    Vl := ParamStr(ArgI);
    P := Pos('=', Vl);
    If P = 0 Then Begin ConMsg('ERREUR : -E exige nom=valeur'); Halt(1); End;
@@ -7407,7 +7783,8 @@ Begin
   ShowHelp;
   Halt(1);
  End;
- If (OutputName <> '') And (FExpand(OutputName) = FExpand(InputName)) And (InputName <> '-') Then Begin
+ If (OutputName <> '') And (FExpand(OutputName) = FExpand(InputName)) And
+   (InputName <> '-') Then Begin
   ConMsg('ERREUR : le fichier de sortie ne doit pas etre le fichier d''entree');
   Halt(1);
  End;
@@ -7417,7 +7794,8 @@ Begin
   {$I-}
   Rewrite(OutF);
   {$I+}
-  If IOResult <> 0 Then Begin ConMsg('ERREUR : impossible de creer ' + OutputName); Halt(1); End;
+  If IOResult <> 0 Then Begin ConMsg('ERREUR : impossible de creer ' +
+    OutputName); Halt(1); End;
  End
  Else Begin
   Assign(OutF, '');
@@ -7431,7 +7809,8 @@ Begin
  If NInErr = 0 Then CheckTree;
  If CheckMode Then Begin
   If NInErr = 0 Then Begin
-   WriteLn(OutF, ' Input file ', InputName, ' : syntax OK (', NSec, ' sections, ', NKw, ' keywords, ',
+   WriteLn(OutF, ' Input file ', InputName, ' : syntax OK (', NSec,
+     ' sections, ', NKw, ' keywords, ',
            NCheckWarn, ' warnings)');
    Close(OutF);
    Halt(0);
@@ -7448,13 +7827,15 @@ Begin
  If NInErr = 0 Then SetupGlobal;
  If NInErr = 0 Then SetupSystem;
  If NInErr > 0 Then Begin
-  Abort('Le fichier d''entree contient ' + IStr(NInErr) + ' erreur(s) (voir ci-dessus)');
+  Abort('Le fichier d''entree contient ' + IStr(NInErr) +
+    ' erreur(s) (voir ci-dessus)');
  End;
  PrintGlobalInfo;
  If (SecGlobal > 0) And KwBool(SecGlobal, 'ECHO_INPUT', False) Then Begin
-  Emit(' ******************************* ECHO OF INPUT *********************************');
+  Emit(' ******************************* ECHO OF INPUT ' +
+    '*********************************');
   DumpSec(0, 0);
-  Emit(' *******************************************************************************');
+  Emit(' ' + Rep('*', 79));
   EmitBlank;
  End;
  PrintSystemInfo;
