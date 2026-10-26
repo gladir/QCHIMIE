@@ -7047,7 +7047,12 @@ End;
 { Le graphe hierarchique (digraphe CIP) est construit sphere par sphere
   a partir du centre : atomes dupliques pour les liaisons multiples et les
   fermetures de cycles, hydrogenes implicites et doublets libres.
-  Regles appliquees : 1a (numero atomique) puis 2 (nombre de masse). }
+  Regles appliquees : 1a (numero atomique), 2 (nombre de masse),
+  3 (Z avant E), 4a (unites chirales avant pseudo-asymetriques), 4b (like
+  avant unlike), 4c (r avant s) et 5 (R avant S). Les descripteurs des
+  centres du digraphe viennent des etiquettes deja calculees ; un centre
+  dont les deux ligands de cycle sont equivalents recoit un descripteur
+  provisoire selon le sens de parcours depuis la racine. }
 
 Const
  CP_MAXN  = 6000;
@@ -7063,6 +7068,8 @@ Type
   Lev  : Byte;
   NK   : Byte;
   Dup  : Boolean;
+  Ds   : Byte;              { descripteur : 1 R, 2 S, 3 r, 4 s }
+  Ez   : Byte;              { 1 = E, 2 = Z (liaison double portee) }
   Kid  : Array[0..CP_KIDS - 1] Of Integer;
  End;
  TCpArr = Array[0..CP_MAXN - 1] Of TCpNode;
@@ -7075,10 +7082,16 @@ Var
  CpOver : Boolean;
  CpL1, CpL2, CpL3, CpL4 : ^TCpLst;
  CpReady : Boolean;
+ CpRuleMax : Integer;      { regles actives : 2, 3 (+ Z/E) ou 6 (toutes) }
+ CmpRule   : Integer;      { regle qui a departage la derniere comparaison }
+ ConvUp    : Boolean;      { convention des centres d'un cycle symetrique }
+ TieA, TieB : Array[0..MAX_ATOMS - 1] Of Integer;
+ TieLab    : Array[0..MAX_ATOMS - 1] Of Char;
 
 Procedure InitStereo;
 Begin
  If CpReady Then Exit;
+ ConvUp := True; CpRuleMax := 6;
  New(Cp); New(CpL1); New(CpL2); New(CpL3); New(CpL4);
  New(StC); New(EzC);
  CpReady := True;
@@ -7097,7 +7110,7 @@ Begin
  If CpN >= CP_MAXN Then Begin CpOver := True; NewCp := -1; Exit; End;
  Cp^[CpN].Z := AZ; Cp^[CpN].Mass := AMass; Cp^[CpN].A := AA;
  Cp^[CpN].Par := APar; Cp^[CpN].Lev := ALev; Cp^[CpN].NK := 0;
- Cp^[CpN].Dup := ADup;
+ Cp^[CpN].Dup := ADup; Cp^[CpN].Ds := 0; Cp^[CpN].Ez := 0;
  NewCp := CpN;
  Inc(CpN);
 End;
@@ -7188,10 +7201,19 @@ Begin
 End;
 
 Function NodeVal(X, Mode: Integer): Integer;
+Var D: Integer;
 Begin
- If X < 0 Then NodeVal := 0
- Else If Mode = 0 Then NodeVal := Cp^[X].Z
- Else NodeVal := Cp^[X].Mass;
+ If X < 0 Then Begin NodeVal := 0; Exit; End;
+ D := Cp^[X].Ds;
+ Case Mode Of
+  0: NodeVal := Cp^[X].Z;
+  1: NodeVal := Cp^[X].Mass;
+  2: NodeVal := Cp^[X].Ez;
+  3: If D In [1, 2] Then NodeVal := 2 Else If D In [3, 4] Then NodeVal := 1 Else NodeVal := 0;
+  5: If D = 3 Then NodeVal := 2 Else If D = 4 Then NodeVal := 1 Else NodeVal := 0;
+  6: If D = 1 Then NodeVal := 2 Else If D = 2 Then NodeVal := 1 Else NodeVal := 0;
+ Else NodeVal := 0;
+ End;
 End;
 
 { Compare deux sous-arbres sphere par sphere : -1, 0 ou 1 }
@@ -7229,12 +7251,111 @@ Begin
  End;
 End;
 
+{ Liste des descripteurs d'un ligand, sphere par sphere (R/S = 1, 2 ; r/s = 3, 4) }
+Function DescList(A: Integer; Var L: Array Of Integer): Integer;
+Var N, M, I, T, K, Cnt : Integer; P : ^TCpLst;
+Begin
+ Cnt := 0;
+ CpL1^[0] := A; N := 1;
+ While N > 0 Do Begin
+  For I := 0 To N - 1 Do
+   If (CpL1^[I] >= 0) And (Cp^[CpL1^[I]].Ds <> 0) And (Cnt <= High(L)) Then Begin
+    L[Cnt] := Cp^[CpL1^[I]].Ds; Inc(Cnt);
+   End;
+  M := 0;
+  For I := 0 To N - 1 Do
+   If CpL1^[I] >= 0 Then
+    For T := 0 To Cp^[CpL1^[I]].NK - 1 Do
+     If M < CP_MAXN Then Begin CpL3^[M] := Cp^[CpL1^[I]].Kid[T]; Inc(M); End;
+  P := CpL1; CpL1 := CpL3; CpL3 := P;
+  N := M;
+ End;
+ DescList := Cnt;
+End;
+
+{ Regle 4b : un ligand dont les descripteurs sont tous identiques au premier
+  (like) l'emporte sur un ligand qui en contient d'opposes (unlike) }
+Function Cmp4b(A, B: Integer): Integer;
+Var
+ LA, LB : Array[0..63] Of Integer;
+ NA, NB, I, M, FA, FB : Integer;
+Begin
+ Cmp4b := 0;
+ NA := DescList(A, LA); NB := DescList(B, LB);
+ If (NA < 2) And (NB < 2) Then Exit;
+ M := NA; If NB > M Then M := NB;
+ For I := 1 To M - 1 Do Begin
+  FA := 0; FB := 0;
+  If (I < NA) And (LA[I] = LA[0]) Then FA := 1;
+  If (I < NB) And (LB[I] = LB[0]) Then FB := 1;
+  If FA <> FB Then Begin
+   If FA > FB Then Cmp4b := 1 Else Cmp4b := -1;
+   Exit;
+  End;
+ End;
+End;
+
+{ Les deux ligands sont-ils image l'un de l'autre dans un miroir ? }
+Function Enantiomorphic(A, B: Integer): Boolean;
+Var
+ LA, LB : Array[0..63] Of Integer;
+ NA, NB, I : Integer;
+Begin
+ Enantiomorphic := False;
+ NA := DescList(A, LA); NB := DescList(B, LB);
+ If (NA = 0) Or (NA <> NB) Then Exit;
+ For I := 0 To NA - 1 Do Begin
+  If (LA[I] In [1, 2]) And (LB[I] <> 3 - LA[I]) Then Exit;
+  If (LA[I] In [3, 4]) And (LB[I] <> 7 - LA[I]) Then Exit;
+ End;
+ Enantiomorphic := True;
+End;
+
 Function CmpNodes(A, B: Integer): Integer;
 Var R: Integer;
 Begin
+ CmpRule := 1;
  R := CmpMode(A, B, 0);
- If R = 0 Then R := CmpMode(A, B, 1);
+ If (R = 0) Then Begin CmpRule := 2; R := CmpMode(A, B, 1); End;
+ If (R = 0) And (CpRuleMax >= 3) Then Begin CmpRule := 3; R := CmpMode(A, B, 2); End;
+ If (R = 0) And (CpRuleMax >= 6) Then Begin CmpRule := 4; R := CmpMode(A, B, 3); End;
+ If (R = 0) And (CpRuleMax >= 6) Then Begin CmpRule := 4; R := Cmp4b(A, B); End;
+ If (R = 0) And (CpRuleMax >= 6) Then Begin CmpRule := 5; R := CmpMode(A, B, 5); End;
+ If (R = 0) And (CpRuleMax >= 6) Then Begin CmpRule := 6; R := CmpMode(A, B, 6); End;
  CmpNodes := R;
+End;
+
+{ Descripteurs portes par les noeuds : Z / E des liaisons doubles, R / S des
+  centres deja etiquetes ; un centre indecidable a cause d'un cycle
+  symetrique recoit un descripteur provisoire r / s selon le sens de
+  parcours (le voisin du cote de la racine est range au-dessus) }
+Procedure AssignDesc;
+Var X, A, J, K, Pa : Integer; Lab : Char; Up : Boolean;
+Begin
+ For X := 0 To CpN - 1 Do Begin
+  A := Cp^[X].A;
+  If (A < 0) Or Cp^[X].Dup Then Continue;
+  For K := 0 To AdjN^[A] - 1 Do Begin
+   J := AdjB^[A, K];
+   If EzC^[J] = 'Z' Then Cp^[X].Ez := 2
+   Else If (EzC^[J] = 'E') And (Cp^[X].Ez = 0) Then Cp^[X].Ez := 1;
+  End;
+  If CpRuleMax < 6 Then Continue;
+  Lab := StC^[A];
+  If Cp^[X].Par >= 0 Then Pa := Cp^[Cp^[X].Par].A Else Pa := CpRoot;
+  If (TieA[A] >= 0) And ((Pa = TieA[A]) Or (Pa = TieB[A])) Then Begin
+   Up := Pa = TieA[A];
+   Lab := TieLab[A];
+   If Up <> ConvUp Then Begin
+    If Lab = 'R' Then Lab := 'S' Else Lab := 'R';
+   End;
+   If Lab = 'R' Then Cp^[X].Ds := 3 Else Cp^[X].Ds := 4;
+  End
+  Else If Lab = 'R' Then Cp^[X].Ds := 1
+  Else If Lab = 'S' Then Cp^[X].Ds := 2
+  Else If Lab = 'r' Then Cp^[X].Ds := 3
+  Else If Lab = 's' Then Cp^[X].Ds := 4;
+ End;
 End;
 
 { Trie les fils de tous les noeuds, du plus profond au plus proche }
@@ -7276,6 +7397,7 @@ Begin
   Br[NB] := X; Inc(NB);
  End;
  ExpandAll(0);
+ AssignDesc;
  SortAllKids;
  BuildBranches := NB;
 End;
@@ -7381,6 +7503,8 @@ End;
 Function ChiralLabel(C: Integer): Char;
 Var
  SK, K, J, NB : Integer;
+ Low : Boolean;
+ Res : Char;
  Br : Array[0..7] Of Integer;
  Sl : Array[0..3] Of Integer;
  D : Real;
@@ -7403,7 +7527,48 @@ Begin
  For K := 0 To 3 Do Sl[K] := Cp^[Br[3 - K]].A;
  D := Orient4(C, Sl, HasW);
  If Abs(D) < 0.02 Then Exit;
- If D > 0 Then ChiralLabel := 'R' Else ChiralLabel := 'S';
+ { minuscule (pseudo-asymetrie) si une paire a ete departagee par 4c ou 5 }
+ Low := False;
+ For K := 0 To 2 Do
+  If (CmpNodes(Br[K], Br[K + 1]) <> 0) And (CmpRule >= 5) And Enantiomorphic(Br[K], Br[K + 1]) Then Low := True;
+ If D > 0 Then Res := 'R' Else Res := 'S';
+ If Low Then Res := Chr(Ord(Res) + 32);
+ ChiralLabel := Res;
+End;
+
+{ Memorise, pour un centre que les regles 1 a 3 ne departagent pas, la paire
+  de ligands equivalents et l'etiquette obtenue si le premier l'emporte }
+Procedure TieInfo(C: Integer);
+Var
+ SK, K, J, NB, I, Cnt, P : Integer;
+ Br : Array[0..7] Of Integer;
+ Sl : Array[0..3] Of Integer;
+ D : Real;
+ HasW, Wavy : Boolean;
+Begin
+ TieA[C] := -1; TieB[C] := -1;
+ SK := StereoKind(C);
+ If SK = 0 Then Exit;
+ HasW := False; Wavy := False;
+ For K := 0 To AdjN^[C] - 1 Do Begin
+  J := AdjB^[C, K];
+  If Bd^[J].Sty = ST_WAVY Then Wavy := True;
+  If (Bd^[J].A = C) And (Bd^[J].Sty In [ST_WEDGE, ST_HASH]) Then HasW := True;
+ End;
+ If Wavy Or (Not HasW) Then Exit;
+ If SK = 2 Then NB := BuildBranches(C, -1, 4, Br) Else NB := BuildBranches(C, -1, 0, Br);
+ If NB <> 4 Then Exit;
+ If RankBranches(4, Br) Then Exit;
+ Cnt := 0; P := -1;
+ For I := 0 To 2 Do
+  If CmpNodes(Br[I], Br[I + 1]) = 0 Then Begin Inc(Cnt); P := I; End;
+ If Cnt <> 1 Then Exit;
+ If (Cp^[Br[P]].A < 0) Or (Cp^[Br[P + 1]].A < 0) Then Exit;
+ For K := 0 To 3 Do Sl[K] := Cp^[Br[3 - K]].A;
+ D := Orient4(C, Sl, HasW);
+ If Abs(D) < 0.02 Then Exit;
+ TieA[C] := Cp^[Br[P]].A; TieB[C] := Cp^[Br[P + 1]].A;
+ If D > 0 Then TieLab[C] := 'R' Else TieLab[C] := 'S';
 End;
 
 { --------------------------------------------------------------------- }
@@ -7427,7 +7592,7 @@ Var
  Br : Array[0..7] Of Integer;
 Begin
  HighSide := 0; OK := False;
- If At^[E].Z = 7 Then NB := BuildBranches(E, P, 2, Br) Else NB := BuildBranches(E, P, 0, Br);
+ If (At^[E].Z <> 6) And (Inf^[E].Deg = 2) Then NB := BuildBranches(E, P, 2, Br) Else NB := BuildBranches(E, P, 0, Br);
  If NB <> 2 Then Exit;
  If Not RankBranches(2, Br) Then Exit;
  If Cp^[Br[0]].A >= 0 Then
@@ -7463,13 +7628,47 @@ Begin
  EndOK := True;
 End;
 
+{ Azote d'un azoxy : N+ portant un O- terminal }
+Function AzoxyEnd(E, P: Integer): Boolean;
+Var K, J, NO : Integer;
+Begin
+ AzoxyEnd := False;
+ If (At^[E].Z <> 7) Or (At^[E].Chg <> 1) Or (At^[E].Lbl <> '') Then Exit;
+ If (Inf^[E].Deg <> 3) Or (Inf^[E].H <> 0) Then Exit;
+ NO := 0;
+ For K := 0 To AdjN^[E] - 1 Do Begin
+  J := Adj^[E, K];
+  If (J <> P) And (At^[J].Z = 8) And (At^[J].Chg = -1) And (Inf^[J].Deg = 1) Then Inc(NO);
+ End;
+ AzoxyEnd := NO = 1;
+End;
+
+{ Extremite d'une liaison double stereogene au sens CIP : C, N, azoxy, P, As }
+Function EndOKCip(E, P: Integer): Boolean;
+Var K, J, N2 : Integer;
+Begin
+ EndOKCip := True;
+ If EndOK(E, P) Or AzoxyEnd(E, P) Then Exit;
+ EndOKCip := False;
+ If (At^[E].Lbl <> '') Or (At^[E].Rad > 0) Or (At^[E].Chg <> 0) Then Exit;
+ If Not (At^[E].Z In [15, 33]) Then Exit;
+ If (Inf^[E].Deg <> 2) Or (Inf^[E].H <> 0) Then Exit;
+ N2 := 0;
+ For K := 0 To AdjN^[E] - 1 Do Begin
+  J := AdjB^[E, K];
+  If Bd^[J].Order > 1 Then Inc(N2);
+  If Bd^[J].Sty = ST_WAVY Then Exit;
+ End;
+ EndOKCip := N2 = 1;
+End;
+
 Function DoubleBondLabel(J: Integer): Char;
 Var A, B, R, SA, SB : Integer; OK1, OK2 : Boolean;
 Begin
  DoubleBondLabel := #0;
  If (Bd^[J].Order <> 2) Or (Bd^[J].Sty = ST_WAVY) Or (Bd^[J].DPos = 3) Then Exit;
  A := Bd^[J].A; B := Bd^[J].B;
- If Not (EndOK(A, B) And EndOK(B, A)) Then Exit;
+ If Not (EndOKCip(A, B) And EndOKCip(B, A)) Then Exit;
  R := RingOfBond(A, B);
  If (R >= 0) And (RingN[R] < 8) Then Exit;
  SA := HighSide(A, B, A, B, OK1);
@@ -7483,15 +7682,37 @@ End;
 { --------------------------------------------------------------------- }
 
 Procedure ComputeStereo;
-Var I, J : Integer;
+Var I, J, Iter : Integer; Ch : Boolean; Lab : Char;
 Begin
  InitStereo;
  UpdateInfo;
  BuildAdj;
- For I := 0 To NAt - 1 Do StC^[I] := #0;
+ For I := 0 To NAt - 1 Do Begin StC^[I] := #0; TieA[I] := -1; TieB[I] := -1; End;
  For J := 0 To NBd - 1 Do EzC^[J] := #0;
- For I := 0 To NAt - 1 Do StC^[I] := ChiralLabel(I);
+ { passe 1 : regles 1 et 2 pour E/Z, puis regles 1 a 3 pour les centres }
+ CpRuleMax := 2;
  For J := 0 To NBd - 1 Do EzC^[J] := DoubleBondLabel(J);
+ CpRuleMax := 3;
+ For I := 0 To NAt - 1 Do StC^[I] := ChiralLabel(I);
+ { passe 2 : regles 4 et 5 avec les descripteurs deja connus }
+ CpRuleMax := 3;
+ For I := 0 To NAt - 1 Do If StC^[I] = #0 Then TieInfo(I);
+ CpRuleMax := 6;
+ For Iter := 1 To 5 Do Begin
+  Ch := False;
+  For I := 0 To NAt - 1 Do
+   If (StC^[I] = #0) And (StereoKind(I) > 0) Then Begin
+    Lab := ChiralLabel(I);
+    If Lab <> #0 Then Begin StC^[I] := Lab; Ch := True; End;
+   End;
+  For J := 0 To NBd - 1 Do
+   If (EzC^[J] = #0) And (Bd^[J].Order = 2) Then Begin
+    Lab := DoubleBondLabel(J);
+    If Lab <> #0 Then Begin EzC^[J] := Lab; Ch := True; End;
+   End;
+  If Not Ch Then Break;
+ End;
+ CpRuleMax := 2;
  StVer := DocVer;
  StNA := NAt; StNB := NBd;
 End;
@@ -8151,7 +8372,7 @@ Begin
   A := Bd^[J].A; B := Bd^[J].B;
   If ((At^[A].Mark And 1) = 0) Or ((At^[B].Mark And 1) = 0) Then Continue;
   If (Bd^[J].Sty = ST_WAVY) Or (Bd^[J].DPos = 3) Then Continue;
-  If Not (EndOK(A, B) And EndOK(B, A)) Then Continue;
+  If Not (EndOKCip(A, B) And EndOKCip(B, A)) Then Continue;
   R := RingOfBond(A, B);
   If (R >= 0) And (RingN[R] < 8) Then Continue;
   XA := -1; XB := -1;
@@ -8715,19 +8936,8 @@ End;
 
 { Extremite de liaison double : atome neutre usuel ou azote d'un azoxy }
 Function SeEndOK(E, P: Integer): Boolean;
-Var K, J, NO : Integer;
 Begin
- SeEndOK := True;
- If EndOK(E, P) Then Exit;
- SeEndOK := False;
- If (At^[E].Z <> 7) Or (At^[E].Chg <> 1) Or (At^[E].Lbl <> '') Then Exit;
- If (Inf^[E].Deg <> 3) Or (Inf^[E].H <> 0) Then Exit;
- NO := 0;
- For K := 0 To AdjN^[E] - 1 Do Begin
-  J := Adj^[E, K];
-  If (J <> P) And (At^[J].Z = 8) And (At^[J].Chg = -1) And (Inf^[J].Deg = 1) Then Inc(NO);
- End;
- SeEndOK := NO = 1;
+ SeEndOK := EndOK(E, P) Or AzoxyEnd(E, P);
 End;
 
 { Elements stereogenes possibles (centres et liaisons doubles) }
@@ -10314,7 +10524,7 @@ Var I, J, NR, NE : Integer; S : String;
 Begin
  ComputeStereo;
  NTL := 0;
- AddTL('Descripteurs stereochimiques (regles CIP 1a et 2) :');
+ AddTL('Descripteurs stereochimiques (regles CIP 1 a 5) :');
  AddTL('');
  NR := 0; NE := 0;
  For I := 0 To NAt - 1 Do
@@ -10341,8 +10551,9 @@ Begin
   AddTL(IntToStr(NR) + ' centre(s) R/S, ' + IntToStr(NE) + ' liaison(s) E/Z.');
  End;
  AddTL('');
- AddTL('Les centres dont les substituants restent indiscernables apres');
- AddTL('les regles 1 et 2 (cas des regles 3 a 5) ne sont pas etiquetes.');
+ AddTL('Minuscules r / s : centres pseudo-asymetriques. Les centres dont');
+ AddTL('les substituants restent indiscernables apres les regles 1 a 5');
+ AddTL('ne sont pas etiquetes.');
  ListDialog('Stereochimie', False);
 End;
 
