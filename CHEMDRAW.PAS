@@ -11721,7 +11721,7 @@ Var
 
 BEGIN
  If (ParamStr(1) = '/?') Or (ParamStr(1) = '--help') Or (ParamStr(1) = '-h') Then Begin
-  WriteLn('CHEMDRAW - Clone de ChemDraw : editeur de structures chimiques 2D.');
+  WriteLn('CHEMDRAW - Cette commande permet de lancer l''editeur de structures chimiques 2D.');
   WriteLn;
   WriteLn('Syntaxe : CHEMDRAW [fichier.CDT|.MOL|.SDF|.SMI] [-s SMILES]');
   WriteLn;
