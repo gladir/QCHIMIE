@@ -4,3 +4,9 @@ CC(=O)Oc1ccccc1C(O)=O aspirine
 Cn1cnc2c1c(=O)n(C)c(=O)n2C cafeine
 CC(C)Cc1ccc(cc1)C(C)C(O)=O ibuprofene
 OCC1OC(O)C(O)C(O)C1O glucose
+C[C@H](N)C(=O)O L-alanine
+OC(=O)[C@H](O)[C@@H](O)C(=O)O acide-tartrique
+OC(=O)/C=C/C(=O)O acide-fumarique
+OC(=O)/C=C\C(=O)O acide-maleique
+C[C@H](NC)[C@H](O)c1ccccc1 ephedrine
+CC1=CC[C@@H](CC1)C(C)=C limonene

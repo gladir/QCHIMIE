@@ -20,6 +20,8 @@
     - Selection (rectangle, lasso), deplacement, rotation, gomme, annuler
     - Analyse : formule, poids moleculaire, masse exacte, spectre de masse
     - Nettoyage automatique de la structure (mise en page 2D)
+    - Stereochimie : descripteurs R/S (regles CIP) a partir des coins pleins
+      et hachures, descripteurs E/Z, chiralite @ / @@ et / \ du SMILES
     - Menus deroulants adaptes de CLONEDRAW\PAINT.PAS
 
   Aucune dependance externe : tout le code est dans ce fichier.
@@ -193,6 +195,8 @@ Type
  End;
 
  TCounts = Array[0..103] Of LongInt;
+ TStCArr = Array[0..MAX_ATOMS-1] Of Char;
+ TEzCArr = Array[0..MAX_BONDS-1] Of Char;
 
 { --------------------------------------------------------------------- }
 { Variables globales                                                    }
@@ -242,6 +246,11 @@ Var
  OptGrid, OptSnap, OptFixAng, OptFixLen : Boolean;
  OptShowC, OptNumbers, OptWarn, OptAnalysis, OptColorEl : Boolean;
  OptDark : Boolean;
+ OptStereo : Boolean;           { afficher les descripteurs R/S et E/Z }
+ StC     : ^TStCArr;            { descripteur R/S par atome (#0 = aucun) }
+ EzC     : ^TEzCArr;            { descripteur E/Z par liaison }
+ StVer   : LongInt;
+ StNA, StNB : Integer;
 
  { Menus }
  Menus       : Array[0..NUM_MENUS-1] Of TMenu;
@@ -2629,13 +2638,44 @@ Begin
  End;
 End;
 
+Procedure EnsureStereo; Forward;
+
+{ Direction (unitaire) du plus grand espace libre autour de l'atome I }
+Procedure FreeDir(I: Integer; Var DX, DY: Real);
+Var
+ K, N, J : Integer;
+ Ang : Array[0..8] Of Real;
+ T, Gap, BestGap, Mid : Real;
+Begin
+ N := AdjN^[I];
+ If N > 8 Then N := 8;
+ DX := 0; DY := -1;
+ If N = 0 Then Exit;
+ For K := 0 To N - 1 Do
+  Ang[K] := Atan2(At^[Adj^[I, K]].Y - At^[I].Y, At^[Adj^[I, K]].X - At^[I].X);
+ For K := 1 To N - 1 Do Begin
+  T := Ang[K]; J := K - 1;
+  While (J >= 0) And (Ang[J] > T) Do Begin Ang[J + 1] := Ang[J]; Dec(J); End;
+  Ang[J + 1] := T;
+ End;
+ Ang[N] := Ang[0] + 2 * Pi;
+ BestGap := -1; Mid := 0;
+ For K := 0 To N - 1 Do Begin
+  Gap := Ang[K + 1] - Ang[K];
+  If Gap > BestGap Then Begin BestGap := Gap; Mid := (Ang[K] + Ang[K + 1]) / 2; End;
+ End;
+ DX := Cos(Mid); DY := Sin(Mid);
+End;
+
 Procedure DrawCanvas;
 Var
  I, J, A, B, X, Y, R : Integer;
  Col : Byte;
  X1, Y1, X2, Y2 : Integer;
+ DX, DY, DL : Real;
 Begin
  UpdateInfo;
+ If OptStereo Then EnsureStereo;
  If Zoom >= 2.4 Then TxtScale := 3
  Else If Zoom >= 1.45 Then TxtScale := 2
  Else TxtScale := 1;
@@ -2691,7 +2731,27 @@ Begin
    If OptDark Then SetColor(LightGray) Else SetColor(DarkGray);
    OutTextXY(X + 5, Y - 12, IntToStr(I + 1));
   End;
+  If OptStereo And (StC^[I] <> #0) Then Begin
+   SetTextStyle(DefaultFont, HorizDir, 1);
+   If OptDark Then SetColor(LightRed) Else SetColor(Red);
+   FreeDir(I, DX, DY);
+   OutTextXY(X + Round(DX * (13 + 5 * TxtScale)) - 12, Y + Round(DY * (11 + 4 * TxtScale)) - 4,
+             '(' + StC^[I] + ')');
+  End;
  End;
+ If OptStereo Then
+  For J := 0 To NBd - 1 Do
+   If EzC^[J] <> #0 Then Begin
+    A := Bd^[J].A; B := Bd^[J].B;
+    X := SX((At^[A].X + At^[B].X) / 2); Y := SY((At^[A].Y + At^[B].Y) / 2);
+    DX := -(At^[B].Y - At^[A].Y); DY := At^[B].X - At^[A].X;
+    DL := Sqrt(DX * DX + DY * DY);
+    If DL < 0.1 Then DL := 1;
+    SetTextStyle(DefaultFont, HorizDir, 1);
+    If OptDark Then SetColor(LightRed) Else SetColor(Red);
+    OutTextXY(X + Round(DX / DL * (14 + 3 * TxtScale)) - 12, Y + Round(DY / DL * (12 + 3 * TxtScale)) - 4,
+              '(' + EzC^[J] + ')');
+   End;
  { textes }
  For I := 0 To NTx - 1 Do Begin
   TextRectScreen(I, X1, Y1, X2, Y2);
@@ -3646,7 +3706,7 @@ Begin
  { Affichage }
  ZeroMenu(Menus[MENU_VIEW]);
  Menus[MENU_VIEW].Title := 'Affichage';
- Menus[MENU_VIEW].ItemCount := 17;
+ Menus[MENU_VIEW].ItemCount := 18;
  MI(Menus[MENU_VIEW], 0, 'Zoom avant', 'PgUp');
  MI(Menus[MENU_VIEW], 1, 'Zoom arriere', 'PgDn');
  MI(Menus[MENU_VIEW], 2, 'Zoom 100 %', 'F5');
@@ -3661,9 +3721,10 @@ Begin
  MI(Menus[MENU_VIEW], 11, 'Numeros d''atomes', '');
  MI(Menus[MENU_VIEW], 12, 'Avertissements de valence', '');
  MI(Menus[MENU_VIEW], 13, 'Atomes en couleur', '');
- MI(Menus[MENU_VIEW], 14, 'Mode sombre', '');
- MS(Menus[MENU_VIEW], 15);
- MI(Menus[MENU_VIEW], 16, 'Proprietes chimiques', 'F2');
+ MI(Menus[MENU_VIEW], 14, 'Stereochimie (R/S, E/Z)', '');
+ MI(Menus[MENU_VIEW], 15, 'Mode sombre', '');
+ MS(Menus[MENU_VIEW], 16);
+ MI(Menus[MENU_VIEW], 17, 'Proprietes chimiques', 'F2');
  { Objet }
  ZeroMenu(Menus[MENU_OBJECT]);
  Menus[MENU_OBJECT].Title := 'Objet';
@@ -3738,7 +3799,7 @@ Begin
  { Analyse }
  ZeroMenu(Menus[MENU_TOOLS]);
  Menus[MENU_TOOLS].Title := 'Analyse';
- Menus[MENU_TOOLS].ItemCount := 12;
+ Menus[MENU_TOOLS].ItemCount := 13;
  MI(Menus[MENU_TOOLS], 0, 'Analyse detaillee...', 'F3');
  MI(Menus[MENU_TOOLS], 1, 'Spectre de masse...', '');
  MI(Menus[MENU_TOOLS], 2, 'Prediction RMN 13C...', '');
@@ -3748,9 +3809,10 @@ Begin
  MI(Menus[MENU_TOOLS], 6, 'Nom -> Structure...', '');
  MI(Menus[MENU_TOOLS], 7, 'Afficher le SMILES', '');
  MI(Menus[MENU_TOOLS], 8, 'Afficher l''InChI', '');
- MS(Menus[MENU_TOOLS], 9);
- MI(Menus[MENU_TOOLS], 10, 'Verifier la structure', '');
- MI(Menus[MENU_TOOLS], 11, 'Proprietes chimiques', 'F2');
+ MI(Menus[MENU_TOOLS], 9, 'Stereochimie (R/S, E/Z)...', '');
+ MS(Menus[MENU_TOOLS], 10);
+ MI(Menus[MENU_TOOLS], 11, 'Verifier la structure', '');
+ MI(Menus[MENU_TOOLS], 12, 'Proprietes chimiques', 'F2');
  { Aide }
  ZeroMenu(Menus[MENU_HELP]);
  Menus[MENU_HELP].Title := 'Aide';
@@ -3772,10 +3834,11 @@ Begin
  Menus[MENU_VIEW].Items[11].Checked := OptNumbers;
  Menus[MENU_VIEW].Items[12].Checked := OptWarn;
  Menus[MENU_VIEW].Items[13].Checked := OptColorEl;
- Menus[MENU_VIEW].Items[14].Checked := OptDark;
- Menus[MENU_VIEW].Items[16].Checked := OptAnalysis;
+ Menus[MENU_VIEW].Items[14].Checked := OptStereo;
+ Menus[MENU_VIEW].Items[15].Checked := OptDark;
+ Menus[MENU_VIEW].Items[17].Checked := OptAnalysis;
  Menus[MENU_COLOR].Items[17].Checked := OptColorEl;
- Menus[MENU_TOOLS].Items[11].Checked := OptAnalysis;
+ Menus[MENU_TOOLS].Items[12].Checked := OptAnalysis;
  Menus[MENU_TEXT].Items[3].Checked := TextSize = 1;
  Menus[MENU_TEXT].Items[4].Checked := TextSize = 2;
  Menus[MENU_EDIT].Items[0].Enabled := UndoN > 0;
@@ -4023,6 +4086,7 @@ End;
 
 Type
  TBuf = Array[0..4095] Of Char;
+ TSmNb = Array[0..MAX_ATOMS - 1, 0..4] Of Integer;
 
 Var
  SmBuf  : ^TBuf;
@@ -4034,6 +4098,16 @@ Var
  SmBR   : Array[0..MAX_BONDS - 1] Of Byte;
  SmUsed : Array[1..99] Of Boolean;
  SmH    : Array[0..MAX_ATOMS - 1] Of ShortInt;
+ SmEnd  : Array[0..MAX_ATOMS - 1] Of Byte;
+ SmRoot : Array[0..MAX_ATOMS - 1] Of Integer;
+ SmSym  : Array[0..MAX_BONDS - 1] Of Char;       { / ou \ ecrit sur la liaison }
+ { chiralite SMILES : etiquette (0, 1 = @, 2 = @@), voisins dans l'ordre
+   d'ecriture (-1 = H implicite, < -1 = fermeture de cycle non resolue) }
+ SmCh   : Array[0..MAX_ATOMS - 1] Of Byte;
+ SmNn   : Array[0..MAX_ATOMS - 1] Of ShortInt;
+ SmFrm  : Array[0..MAX_ATOMS - 1] Of Byte;
+ SmNb   : ^TSmNb;
+ SmDir  : Array[0..MAX_BONDS - 1] Of Byte;     { 1 = '/', 2 = '\' sur la liaison }
 
 Procedure SmAdd(Const S: String);
 Var I: Integer;
@@ -4051,17 +4125,18 @@ Begin
  SmBufStr := S;
 End;
 
-Function SmAtomToken(I: Integer): String;
+Function SmAtomToken(I, Chir: Integer): String;
 Var S: String; H: Integer; Bare: Boolean;
 Begin
  If At^[I].Z = 0 Then Begin SmAtomToken := '*'; Exit; End;
  H := Inf^[I].H;
  Bare := (At^[I].Chg = 0) And (At^[I].Iso = 0) And (At^[I].Rad = 0) And
-         (At^[I].Z In [5, 6, 7, 8, 9, 15, 16, 17, 35, 53]);
+         (At^[I].Z In [5, 6, 7, 8, 9, 15, 16, 17, 35, 53]) And (Chir = 0);
  If Bare Then Begin SmAtomToken := ElSym[At^[I].Z]; Exit; End;
  S := '[';
  If At^[I].Iso > 0 Then S := S + IntToStr(At^[I].Iso);
  S := S + ElSym[At^[I].Z];
+ If Chir = 1 Then S := S + '@' Else If Chir = 2 Then S := S + '@@';
  If H > 0 Then Begin
   S := S + 'H';
   If H > 1 Then S := S + IntToStr(H);
@@ -4099,21 +4174,54 @@ Begin
  Case Bd^[J].Order Of
   2: SmBondSym := '=';
   3: SmBondSym := '#';
+ Else If SmSym[J] <> #0 Then SmBondSym := SmSym[J]
  Else SmBondSym := '';
  End;
 End;
 
+Function SmChiralOf(I, Ns: Integer; HasFrom: Boolean; Const Sl: Array Of Integer): Integer; Forward;
+Procedure SmStereoPrepare; Forward;
+
 Procedure SmWriteAtom(I, ParBond: Integer);
 Var
- K, J, NB, R, NCh, A, B, T : Integer;
+ K, J, NB, R, NCh, A, B, T, NS, Chir : Integer;
  Ch : Array[0..7] Of Integer;
  ChB : Array[0..7] Of Integer;
+ Sl : Array[0..7] Of Integer;
  Nk : Integer;
 Begin
+ { enfants de l'arbre, les plus petits d'abord }
+ NCh := 0;
+ For K := 0 To AdjN^[I] - 1 Do Begin
+  J := AdjB^[I, K]; NB := Adj^[I, K];
+  If (SmBK[J] = 1) And (J <> ParBond) And (SmPar[NB] = I) And (NCh < 8) Then Begin
+   Ch[NCh] := NB; ChB[NCh] := J; Inc(NCh);
+  End;
+ End;
+ For A := 1 To NCh - 1 Do Begin
+  T := A;
+  While (T > 0) And (SmSize[Ch[T - 1]] > SmSize[Ch[T]]) Do Begin
+   B := Ch[T]; Ch[T] := Ch[T - 1]; Ch[T - 1] := B;
+   B := ChB[T]; ChB[T] := ChB[T - 1]; ChB[T - 1] := B;
+   Dec(T);
+  End;
+ End;
+ { ordre des voisins tel qu'ecrit : source, H, fermetures de cycles, enfants }
+ NS := 0;
+ If ParBond >= 0 Then Begin
+  If Bd^[ParBond].A = I Then Sl[NS] := Bd^[ParBond].B Else Sl[NS] := Bd^[ParBond].A;
+  Inc(NS);
+ End;
+ If Inf^[I].H = 1 Then Begin Sl[NS] := -1; Inc(NS); End;
+ For K := 0 To AdjN^[I] - 1 Do
+  If (SmBK[AdjB^[I, K]] = 2) And (NS < 8) Then Begin Sl[NS] := Adj^[I, K]; Inc(NS); End;
+ For K := 0 To NCh - 1 Do
+  If NS < 8 Then Begin Sl[NS] := Ch[K]; Inc(NS); End;
+ Chir := SmChiralOf(I, NS, ParBond >= 0, Sl);
  { atome ou groupe }
  Nk := 0;
  If At^[I].Lbl <> '' Then Nk := FindNick(At^[I].Lbl);
- If Nk > 0 Then SmAdd(Nicks[Nk].Sm) Else SmAdd(SmAtomToken(I));
+ If Nk > 0 Then SmAdd(Nicks[Nk].Sm) Else SmAdd(SmAtomToken(I, Chir));
  { fermetures / ouvertures de cycles }
  For K := 0 To AdjN^[I] - 1 Do Begin
   J := AdjB^[I, K];
@@ -4132,22 +4240,6 @@ Begin
    End;
   End;
  End;
- { enfants de l'arbre, les plus petits d'abord }
- NCh := 0;
- For K := 0 To AdjN^[I] - 1 Do Begin
-  J := AdjB^[I, K]; NB := Adj^[I, K];
-  If (SmBK[J] = 1) And (J <> ParBond) And (SmPar[NB] = I) And (NCh < 8) Then Begin
-   Ch[NCh] := NB; ChB[NCh] := J; Inc(NCh);
-  End;
- End;
- For A := 1 To NCh - 1 Do Begin
-  T := A;
-  While (T > 0) And (SmSize[Ch[T - 1]] > SmSize[Ch[T]]) Do Begin
-   B := Ch[T]; Ch[T] := Ch[T - 1]; Ch[T - 1] := B;
-   B := ChB[T]; ChB[T] := ChB[T - 1]; ChB[T - 1] := B;
-   Dec(T);
-  End;
- End;
  For K := 0 To NCh - 1 Do Begin
   If K < NCh - 1 Then SmAdd('(');
   SmAdd(SmBondSym(ChB[K]));
@@ -4158,7 +4250,7 @@ End;
 
 { Ecrit le SMILES de tout le document (ou de la selection) dans SmBuf }
 Procedure WriteSmiles(SelOnly: Boolean);
-Var I, J: Integer; First: Boolean;
+Var I, J, NRoots: Integer;
 Begin
  SmLen := 0;
  UpdateInfo;
@@ -4166,16 +4258,20 @@ Begin
  For I := 0 To NAt - 1 Do Begin SmVis[I] := 0; SmPar[I] := -1; End;
  For J := 0 To NBd - 1 Do Begin SmBK[J] := 0; SmBR[J] := 0; End;
  For I := 1 To 99 Do SmUsed[I] := False;
+ For J := 0 To NBd - 1 Do SmSym[J] := #0;
  { atomes hors selection : marques visites }
  If SelOnly Then
   For I := 0 To NAt - 1 Do If Not At^[I].Sel Then SmVis[I] := 2;
- First := True;
+ NRoots := 0;
  For I := 0 To NAt - 1 Do Begin
   If SmVis[I] <> 0 Then Continue;
   SmDFS1(I, -1);
-  If Not First Then SmAdd('.');
-  First := False;
-  SmWriteAtom(I, -1);
+  SmRoot[NRoots] := I; Inc(NRoots);
+ End;
+ SmStereoPrepare;
+ For I := 0 To NRoots - 1 Do Begin
+  If I > 0 Then SmAdd('.');
+  SmWriteAtom(SmRoot[I], -1);
  End;
 End;
 
@@ -4246,6 +4342,24 @@ Begin
  End;
 End;
 
+{ Ajoute V a la liste ordonnee des voisins SMILES de l'atome A }
+Procedure SmPush(A, V: Integer);
+Begin
+ If (A < 0) Or (A >= MAX_ATOMS) Then Exit;
+ If SmNn[A] < 5 Then Begin
+  SmNb^[A, SmNn[A]] := V;
+  Inc(SmNn[A]);
+ End;
+End;
+
+{ Remplace la fermeture de cycle Ph (placeholder) de A par l'atome V }
+Procedure SmResolve(A, Ph, V: Integer);
+Var K: Integer;
+Begin
+ For K := 0 To SmNn[A] - 1 Do
+  If SmNb^[A, K] = Ph Then Begin SmNb^[A, K] := V; Exit; End;
+End;
+
 { Lit un SMILES ; les atomes crees sont a l'origine avec Mark=1.
   First / Last = plage d'indices ajoutes. }
 Function ParseSmiles(Const S: String; Var First, Last: Integer): Boolean;
@@ -4258,8 +4372,11 @@ Var
  Arom, Bracket : Boolean;
  Sym : String;
  OK : Boolean;
+ Chir, Dir, BJ : Integer;
 Begin
  ParseSmiles := False;
+ Dir := 0;
+ If SmNb = Nil Then New(SmNb);
  First := NAt; Last := NAt - 1;
  OK := True;
  For K := 0 To 99 Do Begin RcAtom[K] := -1; RcOrd[K] := 0; End;
@@ -4268,13 +4385,17 @@ Begin
   C := S[P];
   Case C Of
    '(' : Begin If SP < 63 Then Begin Stack[SP] := Prev; Inc(SP); End; Inc(P); End;
-   ')' : Begin If SP > 0 Then Begin Dec(SP); Prev := Stack[SP]; End; Pend := 0; Inc(P); End;
-   '.' : Begin Prev := -1; Pend := 0; Inc(P); End;
+   ')' : Begin If SP > 0 Then Begin Dec(SP); Prev := Stack[SP]; End; Pend := 0; Dir := 0; Inc(P); End;
+   '.' : Begin Prev := -1; Pend := 0; Dir := 0; Inc(P); End;
    '-' : Begin Pend := 1; Inc(P); End;
    '=' : Begin Pend := 2; Inc(P); End;
    '#' : Begin Pend := 3; Inc(P); End;
    ':' : Begin Pend := 4; Inc(P); End;
-   '/', '\' : Begin If Pend = 0 Then Pend := 1; Inc(P); End;
+   '/', '\' : Begin
+    If Pend = 0 Then Pend := 1;
+    If C = '/' Then Dir := 1 Else Dir := 2;
+    Inc(P);
+   End;
    '0'..'9', '%' : Begin
     If C = '%' Then Begin
      Num := 0; Inc(P);
@@ -4284,6 +4405,7 @@ Begin
     If (Num < 0) Or (Num > 99) Or (Prev < 0) Then OK := False
     Else If RcAtom[Num] < 0 Then Begin
      RcAtom[Num] := Prev; RcOrd[Num] := Pend; Pend := 0;
+     SmPush(Prev, -(100 + Num));
     End
     Else Begin
      B2 := Pend;
@@ -4291,13 +4413,17 @@ Begin
      If B2 = 0 Then Begin
       If ((At^[Prev].Mark And 4) <> 0) And ((At^[RcAtom[Num]].Mark And 4) <> 0) Then B2 := 4 Else B2 := 1;
      End;
-     NewBond(RcAtom[Num], Prev, B2, ST_NORMAL);
+     BJ := NewBond(RcAtom[Num], Prev, B2, ST_NORMAL);
+     If BJ >= 0 Then SmDir[BJ] := 0;
+     Dir := 0;
+     SmResolve(RcAtom[Num], -(100 + Num), Prev);
+     SmPush(Prev, RcAtom[Num]);
      RcAtom[Num] := -1; Pend := 0;
     End;
    End;
   Else
    { atome }
-   Arom := False; Bracket := False; Hn := 0; Chg := 0; Iso := 0; Z := 0;
+   Arom := False; Bracket := False; Hn := 0; Chg := 0; Iso := 0; Z := 0; Chir := 0;
    If C = '[' Then Begin
     Bracket := True;
     Inc(P);
@@ -4323,7 +4449,11 @@ Begin
     If (Z = 0) And (Sym <> '*') Then OK := False;
     While (P <= Length(S)) And (S[P] <> ']') Do Begin
      C2 := S[P];
-     If C2 = '@' Then Inc(P)
+     If C2 = '@' Then Begin
+      Inc(P); Chir := 1;
+      If (P <= Length(S)) And (S[P] = '@') Then Begin Chir := 2; Inc(P); End;
+      If (P + 1 <= Length(S)) And (S[P] In ['A'..'Z']) And (S[P + 1] In ['A'..'Z']) Then Chir := 0;
+     End
      Else If C2 = 'H' Then Begin
       Inc(P); Hn := 1;
       If (P <= Length(S)) And IsDigitCh(S[P]) Then Begin Hn := Ord(S[P]) - 48; Inc(P); End;
@@ -4369,13 +4499,21 @@ Begin
      At^[NewA].Iso := Iso;
      If Z = 0 Then At^[NewA].Lbl := 'R';
      If Bracket Then SmH[NewA] := Hn Else SmH[NewA] := -1;
+     SmCh[NewA] := Chir; SmNn[NewA] := 0;
+     If Prev >= 0 Then SmFrm[NewA] := 1 Else SmFrm[NewA] := 0;
+     If Prev >= 0 Then Begin
+      SmPush(NewA, Prev); SmPush(Prev, NewA);
+     End;
+     If Bracket And (Chir <> 0) And (Hn = 1) Then SmPush(NewA, -1);
      If Prev >= 0 Then Begin
       B2 := Pend;
       If B2 = 0 Then Begin
        If Arom And ((At^[Prev].Mark And 4) <> 0) Then B2 := 4 Else B2 := 1;
       End;
-      NewBond(Prev, NewA, B2, ST_NORMAL);
+      BJ := NewBond(Prev, NewA, B2, ST_NORMAL);
+      If BJ >= 0 Then SmDir[BJ] := Dir;
      End;
+     Dir := 0;
      Prev := NewA; Pend := 0;
     End;
    End;
@@ -4874,6 +5012,9 @@ Begin
   End;
 End;
 
+Procedure CaptureStereo; Forward;
+Procedure RestoreStereo; Forward;
+
 { Nettoyage de la structure : refait la mise en page des fragments }
 Procedure CleanUpStructure;
 Var
@@ -4890,7 +5031,9 @@ Begin
   End;
  If N = 0 Then Exit;
  CX := CX / N; CY := CY / N;
+ CaptureStereo;
  LayoutMarked(CX, CY);
+ RestoreStereo;
 End;
 
 { Supprime les atomes d'indice >= F (annule un import rate) }
@@ -4913,6 +5056,8 @@ Begin
  CY := ScrollY + (CvY2 - CvY1) / 2 / Zoom;
 End;
 
+Procedure ApplySmilesChirality(F, L: Integer); Forward;
+
 { Ajoute un SMILES au document, centre en (CX,CY) ; selectionne les nouveaux atomes }
 Function AddSmilesAt(Const S: String; CX, CY: Real): Boolean;
 Var F, L, I: Integer;
@@ -4924,6 +5069,7 @@ Begin
   Exit;
  End;
  LayoutMarked(CX, CY);
+ ApplySmilesChirality(F, L);
  ClearSelection;
  For I := F To L Do At^[I].Sel := True;
  AddSmilesAt := True;
@@ -5263,9 +5409,10 @@ Begin
 End;
 
 Function LoadSMILESFile(Const FN: String): Boolean;
-Var F: Text; Line: String; First, L, Cnt: Integer;
+Var F: Text; Line: String; First, L, Cnt, First0: Integer;
 Begin
  LoadSMILESFile := False;
+ First0 := NAt;
  {$I-}
  Assign(F, FN); Reset(F);
  {$I+}
@@ -5282,6 +5429,7 @@ Begin
  Close(F);
  If Cnt > 0 Then Begin
   LayoutMarked(BOND_LEN * 6, BOND_LEN * 5);
+  ApplySmilesChirality(First0, NAt - 1);
   LoadSMILESFile := True;
  End;
  
@@ -7565,6 +7713,825 @@ Begin
 End;
 
 { --------------------------------------------------------------------- }
+{ Stereochimie : priorites CIP, descripteurs R/S et E/Z                 }
+{ --------------------------------------------------------------------- }
+{ Le graphe hierarchique (digraphe CIP) est construit sphere par sphere
+  a partir du centre : atomes dupliques pour les liaisons multiples et les
+  fermetures de cycles, hydrogenes implicites et doublets libres.
+  Regles appliquees : 1a (numero atomique) puis 2 (nombre de masse). }
+
+Const
+ CP_MAXN  = 6000;
+ CP_KIDS  = 7;
+ CP_DEPTH = 14;
+
+Type
+ TCpNode = Record
+  Z    : Byte;
+  Mass : Integer;
+  A    : Integer;           { atome (>=0), -1 = H implicite, -2 = doublet }
+  Par  : Integer;           { noeud parent (-1 = branche issue de la racine) }
+  Lev  : Byte;
+  NK   : Byte;
+  Dup  : Boolean;
+  Kid  : Array[0..CP_KIDS - 1] Of Integer;
+ End;
+ TCpArr = Array[0..CP_MAXN - 1] Of TCpNode;
+ TCpLst = Array[0..CP_MAXN - 1] Of Integer;
+
+Var
+ Cp     : ^TCpArr;
+ CpN    : Integer;
+ CpRoot : Integer;
+ CpOver : Boolean;
+ CpL1, CpL2, CpL3, CpL4 : ^TCpLst;
+ CpReady : Boolean;
+
+Procedure InitStereo;
+Begin
+ If CpReady Then Exit;
+ New(Cp); New(CpL1); New(CpL2); New(CpL3); New(CpL4);
+ New(StC); New(EzC);
+ CpReady := True;
+End;
+
+Function MassNum(Z, Iso: Integer): Integer;
+Begin
+ If Iso > 0 Then MassNum := Iso
+ Else If Z = 35 Then MassNum := 79
+ Else If (Z >= 1) And (Z <= 103) Then MassNum := Round(ElWt[Z])
+ Else MassNum := 0;
+End;
+
+Function NewCp(AZ, AMass, AA, APar, ALev: Integer; ADup: Boolean): Integer;
+Begin
+ If CpN >= CP_MAXN Then Begin CpOver := True; NewCp := -1; Exit; End;
+ Cp^[CpN].Z := AZ; Cp^[CpN].Mass := AMass; Cp^[CpN].A := AA;
+ Cp^[CpN].Par := APar; Cp^[CpN].Lev := ALev; Cp^[CpN].NK := 0;
+ Cp^[CpN].Dup := ADup;
+ NewCp := CpN;
+ Inc(CpN);
+End;
+
+Function AddKid(X, AZ, AMass, AA: Integer; ADup: Boolean): Integer;
+Var K: Integer;
+Begin
+ AddKid := -1;
+ If Cp^[X].NK >= CP_KIDS Then Exit;
+ K := NewCp(AZ, AMass, AA, X, Cp^[X].Lev + 1, ADup);
+ If K < 0 Then Exit;
+ Cp^[X].Kid[Cp^[X].NK] := K;
+ Inc(Cp^[X].NK);
+ AddKid := K;
+End;
+
+Procedure AddDupKid(X, M: Integer);
+Var K: Integer;
+Begin
+ K := AddKid(X, At^[M].Z, MassNum(At^[M].Z, At^[M].Iso), M, True);
+End;
+
+{ Liaison multiple P=O, S=O ... : traitee comme une liaison simple avec
+  separation de charges (pas d'atomes dupliques) }
+Function YlideBond(A, M: Integer): Boolean;
+Var ZA, ZM: Integer;
+Begin
+ ZA := At^[A].Z; ZM := At^[M].Z;
+ YlideBond := ((ZA In [15, 16, 33, 34]) And (ZM In [7, 8, 16, 34])) Or
+              ((ZM In [15, 16, 33, 34]) And (ZA In [7, 8, 16, 34]));
+End;
+
+{ Ajoute les voisins du noeud X (atome A) dans le digraphe }
+Procedure ExpandNode(X: Integer);
+Var
+ A, P, K, M, J, T, X2, K2, BO : Integer;
+ OnPath : Boolean;
+Begin
+ A := Cp^[X].A;
+ If Cp^[X].Par >= 0 Then P := Cp^[Cp^[X].Par].A Else P := CpRoot;
+ J := FindBond(A, P);
+ If J >= 0 Then
+  If Not YlideBond(A, P) Then
+   For T := 2 To Bd^[J].Order Do AddDupKid(X, P);
+ For K := 0 To AdjN^[A] - 1 Do Begin
+  M := Adj^[A, K];
+  If M = P Then Continue;
+  J := AdjB^[A, K];
+  OnPath := M = CpRoot;
+  X2 := Cp^[X].Par;
+  While (Not OnPath) And (X2 >= 0) Do Begin
+   If Cp^[X2].A = M Then OnPath := True;
+   X2 := Cp^[X2].Par;
+  End;
+  If OnPath Then AddDupKid(X, M)
+  Else K2 := AddKid(X, At^[M].Z, MassNum(At^[M].Z, At^[M].Iso), M, False);
+  BO := Bd^[J].Order;
+  If YlideBond(A, M) Then BO := 1;
+  For T := 2 To BO Do AddDupKid(X, M);
+ End;
+ For T := 1 To Inf^[A].H Do K2 := AddKid(X, 1, 1, -1, False);
+End;
+
+{ Developpe tout le digraphe niveau par niveau a partir de F ;
+  si la reserve est epuisee au milieu d'un niveau, ce niveau n'est pas
+  developpe du tout (les branches restent comparables) }
+Procedure ExpandAll(F: Integer);
+Var X, Y, CurLev, LevBegin : Integer;
+Begin
+ CpOver := False;
+ CurLev := -1; LevBegin := CpN;
+ X := F;
+ While X < CpN Do Begin
+  If Cp^[X].Lev <> CurLev Then Begin
+   CurLev := Cp^[X].Lev; LevBegin := CpN;
+  End;
+  If CurLev >= CP_DEPTH Then Break;
+  If (Not Cp^[X].Dup) And (Cp^[X].A >= 0) Then ExpandNode(X);
+  If CpOver Then Begin
+   CpN := LevBegin;
+   For Y := 0 To CpN - 1 Do
+    If Cp^[Y].Lev = CurLev Then Cp^[Y].NK := 0;
+   CpOver := False;
+   Break;
+  End;
+  Inc(X);
+ End;
+End;
+
+Function NodeVal(X, Mode: Integer): Integer;
+Begin
+ If X < 0 Then NodeVal := 0
+ Else If Mode = 0 Then NodeVal := Cp^[X].Z
+ Else NodeVal := Cp^[X].Mass;
+End;
+
+{ Compare deux sous-arbres sphere par sphere : -1, 0 ou 1 }
+Function CmpMode(A, B, Mode: Integer): Integer;
+Var
+ N, M, I, T, KA, KB, K, VA, VB : Integer;
+ P : ^TCpLst;
+Begin
+ CmpMode := 0;
+ CpL1^[0] := A; CpL2^[0] := B; N := 1;
+ While N > 0 Do Begin
+  For I := 0 To N - 1 Do Begin
+   VA := NodeVal(CpL1^[I], Mode); VB := NodeVal(CpL2^[I], Mode);
+   If VA <> VB Then Begin
+    If VA > VB Then CmpMode := 1 Else CmpMode := -1;
+    Exit;
+   End;
+  End;
+  M := 0;
+  For I := 0 To N - 1 Do Begin
+   KA := 0; KB := 0;
+   If CpL1^[I] >= 0 Then KA := Cp^[CpL1^[I]].NK;
+   If CpL2^[I] >= 0 Then KB := Cp^[CpL2^[I]].NK;
+   K := KA; If KB > K Then K := KB;
+   For T := 0 To K - 1 Do Begin
+    If M >= CP_MAXN Then Exit;
+    If T < KA Then CpL3^[M] := Cp^[CpL1^[I]].Kid[T] Else CpL3^[M] := -1;
+    If T < KB Then CpL4^[M] := Cp^[CpL2^[I]].Kid[T] Else CpL4^[M] := -1;
+    Inc(M);
+   End;
+  End;
+  P := CpL1; CpL1 := CpL3; CpL3 := P;
+  P := CpL2; CpL2 := CpL4; CpL4 := P;
+  N := M;
+ End;
+End;
+
+Function CmpNodes(A, B: Integer): Integer;
+Var R: Integer;
+Begin
+ R := CmpMode(A, B, 0);
+ If R = 0 Then R := CmpMode(A, B, 1);
+ CmpNodes := R;
+End;
+
+{ Trie les fils de tous les noeuds, du plus profond au plus proche }
+Procedure SortAllKids;
+Var X, I, J, T : Integer;
+Begin
+ For X := CpN - 1 Downto 0 Do
+  For I := 1 To Cp^[X].NK - 1 Do Begin
+   T := Cp^[X].Kid[I]; J := I - 1;
+   While (J >= 0) And (CmpNodes(Cp^[X].Kid[J], T) < 0) Do Begin
+    Cp^[X].Kid[J + 1] := Cp^[X].Kid[J];
+    Dec(J);
+   End;
+   Cp^[X].Kid[J + 1] := T;
+  End;
+End;
+
+{ Construit les branches issues de Root (sauf Excl) ; ajoute un doublet
+  libre si LPWant > 0 et que les branches sont au nombre de LPWant - 1.
+  Renvoie le nombre de branches. }
+Function BuildBranches(Root, Excl, LPWant: Integer; Var Br: Array Of Integer): Integer;
+Var K, M, T, NB, X : Integer;
+Begin
+ CpN := 0; CpRoot := Root; CpOver := False; NB := 0;
+ For K := 0 To AdjN^[Root] - 1 Do Begin
+  M := Adj^[Root, K];
+  If M = Excl Then Continue;
+  If NB > 3 Then Break;
+  X := NewCp(At^[M].Z, MassNum(At^[M].Z, At^[M].Iso), M, -1, 0, False);
+  Br[NB] := X; Inc(NB);
+ End;
+ For T := 1 To Inf^[Root].H Do Begin
+  If NB > 3 Then Break;
+  X := NewCp(1, 1, -1, -1, 0, False);
+  Br[NB] := X; Inc(NB);
+ End;
+ If (LPWant > 0) And (NB = LPWant - 1) Then Begin
+  X := NewCp(0, 0, -2, -1, 0, False);
+  Br[NB] := X; Inc(NB);
+ End;
+ ExpandAll(0);
+ SortAllKids;
+ BuildBranches := NB;
+End;
+
+{ Trie les branches par priorite decroissante ; faux si deux sont egales }
+Function RankBranches(NB: Integer; Var Br: Array Of Integer): Boolean;
+Var I, J, T : Integer;
+Begin
+ For I := 1 To NB - 1 Do Begin
+  T := Br[I]; J := I - 1;
+  While (J >= 0) And (CmpNodes(Br[J], T) < 0) Do Begin
+   Br[J + 1] := Br[J];
+   Dec(J);
+  End;
+  Br[J + 1] := T;
+ End;
+ RankBranches := True;
+ For I := 0 To NB - 2 Do
+  If CmpNodes(Br[I], Br[I + 1]) = 0 Then RankBranches := False;
+End;
+
+{ --------------------------------------------------------------------- }
+{ Centres stereogenes (R/S)                                              }
+{ --------------------------------------------------------------------- }
+
+{ Renvoie 0 : pas un centre ; 1 : centre sans doublet ; 2 : avec doublet }
+Function StereoKind(C: Integer): Integer;
+Var Z, D, H, BS : Integer;
+Begin
+ StereoKind := 0;
+ If (At^[C].Lbl <> '') Or (At^[C].Rad > 0) Then Exit;
+ Z := At^[C].Z; D := Inf^[C].Deg; H := Inf^[C].H; BS := Inf^[C].BSum;
+ If D < 2 Then Exit;
+ Case Z Of
+  6, 14, 32, 50: If (At^[C].Chg = 0) And (D + H = 4) And (BS + H = 4) Then StereoKind := 1;
+  7: If (At^[C].Chg = 1) And (D + H = 4) And (BS + H = 4) Then StereoKind := 1;
+  15: If At^[C].Chg = 0 Then Begin
+       If D + H = 4 Then StereoKind := 1
+       Else If (D = 3) And (H = 0) And (BS = 3) Then StereoKind := 2;
+      End
+      Else If (At^[C].Chg = 1) And (D + H = 4) Then StereoKind := 1;
+  16: If (At^[C].Chg = 0) And (D = 3) And (H = 0) And (BS = 4) Then StereoKind := 2
+      Else If (At^[C].Chg = 1) And (D = 3) And (H = 0) And (BS = 3) Then StereoKind := 2;
+ End;
+End;
+
+Function Det3(AX, AY, AZ, BX, BY, BZ, CX, CY, CZ: Real): Real;
+Begin
+ Det3 := AX * (BY * CZ - BZ * CY) - AY * (BX * CZ - BZ * CX) + AZ * (BX * CY - BY * CX);
+End;
+
+{ Vecteur 3D unitaire (plan) + profondeur d'un substituant de C ;
+  la profondeur vient du coin plein / hachure dont l'extremite fine est C }
+Procedure NbVector(C, N: Integer; Var VX, VY, VZ: Real; Var Wd: Boolean);
+Var J: Integer; D: Real;
+Begin
+ VX := At^[N].X - At^[C].X;
+ VY := -(At^[N].Y - At^[C].Y);
+ D := Sqrt(VX * VX + VY * VY);
+ If D < 0.0001 Then D := 0.0001;
+ VX := VX / D; VY := VY / D; VZ := 0;
+ J := FindBond(C, N);
+ If (J >= 0) And (Bd^[J].A = C) Then Begin
+  If Bd^[J].Sty = ST_WEDGE Then Begin VZ := 0.8; Wd := True; End
+  Else If Bd^[J].Sty = ST_HASH Then Begin VZ := -0.8; Wd := True; End;
+ End;
+End;
+
+{ Remplit les 4 vecteurs (substituants dans l'ordre donne ; -1 = implicite) ;
+  renvoie le determinant d'orientation, 0 si indetermine }
+Function Orient4(C: Integer; Const Sl: Array Of Integer; Var HasWedge: Boolean): Real;
+Var
+ VX, VY, VZ : Array[0..3] Of Real;
+ K, Imp, Cnt : Integer;
+ SX, SY, SZ, L : Real;
+ Wd : Boolean;
+Begin
+ Orient4 := 0;
+ HasWedge := False;
+ Imp := -1; Cnt := 0; SX := 0; SY := 0; SZ := 0;
+ For K := 0 To 3 Do Begin
+  If Sl[K] >= 0 Then Begin
+   Wd := False;
+   NbVector(C, Sl[K], VX[K], VY[K], VZ[K], Wd);
+   If Wd Then HasWedge := True;
+   SX := SX + VX[K]; SY := SY + VY[K]; SZ := SZ + VZ[K];
+  End
+  Else Begin
+   If Imp >= 0 Then Exit;
+   Imp := K;
+  End;
+ End;
+ If Imp >= 0 Then Begin
+  L := Sqrt(SX * SX + SY * SY + SZ * SZ);
+  If L < 0.05 Then Exit;
+  VX[Imp] := -SX / L; VY[Imp] := -SY / L; VZ[Imp] := -SZ / L;
+ End;
+ Orient4 := Det3(VX[1] - VX[0], VY[1] - VY[0], VZ[1] - VZ[0],
+                 VX[2] - VX[0], VY[2] - VY[0], VZ[2] - VZ[0],
+                 VX[3] - VX[0], VY[3] - VY[0], VZ[3] - VZ[0]);
+End;
+
+Function ChiralLabel(C: Integer): Char;
+Var
+ SK, K, J, NB : Integer;
+ Br : Array[0..7] Of Integer;
+ Sl : Array[0..3] Of Integer;
+ D : Real;
+ HasW, Wavy : Boolean;
+Begin
+ ChiralLabel := #0;
+ SK := StereoKind(C);
+ If SK = 0 Then Exit;
+ HasW := False; Wavy := False;
+ For K := 0 To AdjN^[C] - 1 Do Begin
+  J := AdjB^[C, K];
+  If Bd^[J].Sty = ST_WAVY Then Wavy := True;
+  If (Bd^[J].A = C) And (Bd^[J].Sty In [ST_WEDGE, ST_HASH]) Then HasW := True;
+ End;
+ If Wavy Or (Not HasW) Then Exit;
+ If SK = 2 Then NB := BuildBranches(C, -1, 4, Br) Else NB := BuildBranches(C, -1, 0, Br);
+ If NB <> 4 Then Exit;
+ If Not RankBranches(4, Br) Then Exit;
+ { ordre decroissant : a > b > c > d ; Sl[3] = le plus faible }
+ For K := 0 To 3 Do Sl[K] := Cp^[Br[3 - K]].A;
+ D := Orient4(C, Sl, HasW);
+ If Abs(D) < 0.02 Then Exit;
+ If D > 0 Then ChiralLabel := 'R' Else ChiralLabel := 'S';
+End;
+
+{ --------------------------------------------------------------------- }
+{ Liaisons doubles (E/Z)                                                 }
+{ --------------------------------------------------------------------- }
+
+{ Cote du point (X,Y) par rapport a l'axe A->B : +1, -1 ou 0 }
+Function SideOf(A, B: Integer; X, Y: Real): Integer;
+Var CrossV: Real;
+Begin
+ CrossV := (At^[B].X - At^[A].X) * (Y - At^[A].Y) - (At^[B].Y - At^[A].Y) * (X - At^[A].X);
+ If CrossV > 0.5 Then SideOf := 1
+ Else If CrossV < -0.5 Then SideOf := -1
+ Else SideOf := 0;
+End;
+
+{ Cote du substituant prioritaire de l'extremite E (partenaire P) }
+Function HighSide(E, P, AxA, AxB: Integer; Var OK: Boolean): Integer;
+Var
+ NB, K, S, Other : Integer;
+ Br : Array[0..7] Of Integer;
+Begin
+ HighSide := 0; OK := False;
+ If At^[E].Z = 7 Then NB := BuildBranches(E, P, 2, Br) Else NB := BuildBranches(E, P, 0, Br);
+ If NB <> 2 Then Exit;
+ If Not RankBranches(2, Br) Then Exit;
+ If Cp^[Br[0]].A >= 0 Then
+  S := SideOf(AxA, AxB, At^[Cp^[Br[0]].A].X, At^[Cp^[Br[0]].A].Y)
+ Else Begin
+  Other := Cp^[Br[1]].A;
+  If Other < 0 Then Exit;
+  S := -SideOf(AxA, AxB, At^[Other].X, At^[Other].Y);
+ End;
+ If S = 0 Then Exit;
+ HighSide := S; OK := True;
+End;
+
+Function EndOK(E, P: Integer): Boolean;
+Var K, J, N2 : Integer;
+Begin
+ EndOK := False;
+ If (At^[E].Lbl <> '') Or (At^[E].Rad > 0) Then Exit;
+ If Not (At^[E].Z In [6, 7]) Then Exit;
+ N2 := 0;
+ For K := 0 To AdjN^[E] - 1 Do Begin
+  J := AdjB^[E, K];
+  If Bd^[J].Order > 1 Then Inc(N2);
+  If Bd^[J].Sty = ST_WAVY Then Exit;
+ End;
+ If N2 <> 1 Then Exit;
+ If At^[E].Z = 6 Then Begin
+  If (At^[E].Chg <> 0) Or (Inf^[E].Deg - 1 + Inf^[E].H <> 2) Then Exit;
+ End
+ Else Begin
+  If (At^[E].Chg <> 0) Or (Inf^[E].Deg <> 2) Or (Inf^[E].H <> 0) Then Exit;
+ End;
+ EndOK := True;
+End;
+
+Function DoubleBondLabel(J: Integer): Char;
+Var A, B, R, SA, SB : Integer; OK1, OK2 : Boolean;
+Begin
+ DoubleBondLabel := #0;
+ If (Bd^[J].Order <> 2) Or (Bd^[J].Sty = ST_WAVY) Or (Bd^[J].DPos = 3) Then Exit;
+ A := Bd^[J].A; B := Bd^[J].B;
+ If Not (EndOK(A, B) And EndOK(B, A)) Then Exit;
+ R := RingOfBond(A, B);
+ If (R >= 0) And (RingN[R] < 8) Then Exit;
+ SA := HighSide(A, B, A, B, OK1);
+ SB := HighSide(B, A, A, B, OK2);
+ If Not (OK1 And OK2) Then Exit;
+ If SA = SB Then DoubleBondLabel := 'Z' Else DoubleBondLabel := 'E';
+End;
+
+{ --------------------------------------------------------------------- }
+{ Calcul global (mis en cache selon la version du document)             }
+{ --------------------------------------------------------------------- }
+
+Procedure ComputeStereo;
+Var I, J : Integer;
+Begin
+ InitStereo;
+ UpdateInfo;
+ BuildAdj;
+ For I := 0 To NAt - 1 Do StC^[I] := #0;
+ For J := 0 To NBd - 1 Do EzC^[J] := #0;
+ For I := 0 To NAt - 1 Do StC^[I] := ChiralLabel(I);
+ For J := 0 To NBd - 1 Do EzC^[J] := DoubleBondLabel(J);
+ StVer := DocVer;
+ StNA := NAt; StNB := NBd;
+End;
+
+Procedure EnsureStereo;
+Begin
+ If (StVer <> DocVer) Or (StNA <> NAt) Or (StNB <> NBd) Or (Not CpReady) Then ComputeStereo;
+End;
+
+{ --------------------------------------------------------------------- }
+{ SMILES : ecriture de @ / @@ et de / \                                  }
+{ --------------------------------------------------------------------- }
+
+{ Etiquette de chiralite (1 = @, 2 = @@, 0 = aucune) de l'atome I dont les
+  Ns voisins sont ecrits dans l'ordre Sl (-1 = H implicite) }
+Function SmChiralOf(I, Ns: Integer; HasFrom: Boolean; Const Sl: Array Of Integer): Integer;
+Var
+ S4 : Array[0..3] Of Integer;
+ SK, K, J, T : Integer;
+ D : Real;
+ HW : Boolean;
+Begin
+ SmChiralOf := 0;
+ SK := StereoKind(I);
+ If SK = 0 Then Exit;
+ If Ns = 4 Then Begin
+  For K := 0 To 3 Do S4[K] := Sl[K];
+ End
+ Else If (Ns = 3) And (SK = 2) Then Begin
+  If HasFrom Then T := 1 Else T := 0;
+  J := 0;
+  For K := 0 To 3 Do
+   If K = T Then S4[K] := -1
+   Else Begin S4[K] := Sl[J]; Inc(J); End;
+ End
+ Else Exit;
+ For K := 0 To 3 Do
+  If S4[K] >= 0 Then Begin
+   If SmVis[S4[K]] = 2 Then Exit;
+   J := FindBond(I, S4[K]);
+   If (J >= 0) And (Bd^[J].Sty = ST_WAVY) Then Exit;
+  End;
+ D := Orient4(I, S4, HW);
+ If (Not HW) Or (Abs(D) < 0.02) Then Exit;
+ If D < 0 Then SmChiralOf := 1 Else SmChiralOf := 2;
+End;
+
+{ Symbole / ou \ de la liaison JJ entre E et X pour un cote vertical V de X }
+Function SmSymFor(E, X, V: Integer): Char;
+Var Up: Boolean;
+Begin
+ If SmPar[X] = E Then Up := V > 0     { E ecrit avant X : X au-dessus }
+ Else Up := V < 0;                    { X ecrit avant E : E au-dessus de X }
+ If Up Then SmSymFor := '/' Else SmSymFor := '\';
+End;
+
+Function SmVertOf(E, X: Integer; Sym: Char): Integer;
+Begin
+ If SmPar[X] = E Then Begin
+  If Sym = '/' Then SmVertOf := 1 Else SmVertOf := -1;
+ End
+ Else Begin
+  If Sym = '/' Then SmVertOf := -1 Else SmVertOf := 1;
+ End;
+End;
+
+{ Choisit le substituant porteur du symbole pour l'extremite E }
+Function SmPickSub(E, P: Integer; Var JJ: Integer): Integer;
+Var K, J, M, Best, Sc, BestSc : Integer;
+Begin
+ Best := -1; JJ := -1; BestSc := -1;
+ For K := 0 To AdjN^[E] - 1 Do Begin
+  M := Adj^[E, K]; J := AdjB^[E, K];
+  If (M = P) Or (Bd^[J].Order <> 1) Or (SmBK[J] <> 1) Or (SmVis[M] = 2) Then Continue;
+  { de preference une liaison deja marquee ou menant a une autre liaison double }
+  Sc := 0;
+  If SmSym[J] <> #0 Then Inc(Sc, 2);
+  If SmEnd[M] <> 0 Then Inc(Sc);
+  If Sc > BestSc Then Begin Best := M; JJ := J; BestSc := Sc; End;
+ End;
+ SmPickSub := Best;
+End;
+
+Procedure SmStereoPrepare;
+Var
+ J, A, B, W, S2, XA, XB, JA, JB, VA, VB, T : Integer;
+ Cis : Boolean;
+Begin
+ ComputeStereo;
+ For J := 0 To NAt - 1 Do SmEnd[J] := 0;
+ For J := 0 To NBd - 1 Do
+  If EzC^[J] <> #0 Then Begin SmEnd[Bd^[J].A] := 1; SmEnd[Bd^[J].B] := 1; End;
+ For J := 0 To NBd - 1 Do Begin
+  If (EzC^[J] = #0) Or (SmBK[J] <> 1) Then Continue;
+  A := Bd^[J].A; B := Bd^[J].B;
+  If (SmVis[A] = 2) Or (SmVis[B] = 2) Then Continue;
+  If SmPar[B] = A Then W := A Else If SmPar[A] = B Then W := B Else Continue;
+  If W = A Then S2 := B Else S2 := A;
+  XA := SmPickSub(W, S2, JA);
+  XB := SmPickSub(S2, W, JB);
+  If (XA < 0) Or (XB < 0) Then Continue;
+  VA := -SideOf(W, S2, At^[XA].X, At^[XA].Y);
+  VB := -SideOf(W, S2, At^[XB].X, At^[XB].Y);
+  If (VA = 0) Or (VB = 0) Then Continue;
+  Cis := VA = VB;
+  If (SmSym[JA] <> #0) And (SmSym[JB] <> #0) Then Continue;
+  If SmSym[JA] <> #0 Then Begin
+   VA := SmVertOf(W, XA, SmSym[JA]);
+   If Cis Then VB := VA Else VB := -VA;
+  End
+  Else If SmSym[JB] <> #0 Then Begin
+   VB := SmVertOf(S2, XB, SmSym[JB]);
+   If Cis Then VA := VB Else VA := -VB;
+  End;
+  SmSym[JA] := SmSymFor(W, XA, VA);
+  SmSym[JB] := SmSymFor(S2, XB, VB);
+ End;
+End;
+
+{ --------------------------------------------------------------------- }
+{ SMILES : chiralite @ / @@ -> coins pleins / hachures                  }
+{ --------------------------------------------------------------------- }
+
+{ Cote vertical (+1 / -1) d'un substituant lie a l'atome E par la liaison JJ
+  d'apres les symboles / et \ du SMILES ; 0 si la liaison n'a pas de symbole }
+Function SmVertical(E, JJ: Integer): Integer;
+Var M: Integer;
+Begin
+ If SmDir[JJ] = 0 Then Begin SmVertical := 0; Exit; End;
+ If SmDir[JJ] = 1 Then M := 1 Else M := -1;
+ If Bd^[JJ].A = E Then SmVertical := M Else SmVertical := -M;
+End;
+
+{ Premier substituant (autre que le partenaire) portant un symbole / ou \ }
+Function SmDirNeighbor(E, J: Integer; Var Nb, Vert: Integer): Boolean;
+Var K, JJ: Integer;
+Begin
+ SmDirNeighbor := False;
+ For K := 0 To AdjN^[E] - 1 Do Begin
+  JJ := AdjB^[E, K];
+  If JJ = J Then Continue;
+  If SmDir[JJ] <> 0 Then Begin
+   Nb := Adj^[E, K]; Vert := SmVertical(E, JJ);
+   SmDirNeighbor := True; Exit;
+  End;
+ End;
+End;
+
+{ Symetrie par rapport a l'axe A-B du fragment cote B de la liaison J ;
+  faux si la liaison est dans un cycle (rien n'est modifie) }
+Function MirrorBSide(J: Integer): Boolean;
+Var
+ A, B, I, Head, Tail, Cur, K, Nx : Integer;
+ DX, DY, DL, PX, PY, T : Real;
+ Ring : Boolean;
+Begin
+ MirrorBSide := False;
+ A := Bd^[J].A; B := Bd^[J].B;
+ For I := 0 To NAt - 1 Do Tmp1^[I] := 0;
+ Tmp1^[B] := 1; Tmp2^[0] := B; Head := 0; Tail := 1; Ring := False;
+ While Head < Tail Do Begin
+  Cur := Tmp2^[Head]; Inc(Head);
+  For K := 0 To AdjN^[Cur] - 1 Do Begin
+   If AdjB^[Cur, K] = J Then Continue;
+   Nx := Adj^[Cur, K];
+   If Nx = A Then Ring := True;
+   If Tmp1^[Nx] = 0 Then Begin Tmp1^[Nx] := 1; Tmp2^[Tail] := Nx; Inc(Tail); End;
+  End;
+ End;
+ If Ring Then Exit;
+ DX := At^[B].X - At^[A].X; DY := At^[B].Y - At^[A].Y;
+ DL := Sqrt(DX * DX + DY * DY);
+ If DL < 0.001 Then Exit;
+ DX := DX / DL; DY := DY / DL;
+ For I := 0 To NAt - 1 Do
+  If Tmp1^[I] <> 0 Then Begin
+   PX := At^[I].X - At^[A].X; PY := At^[I].Y - At^[A].Y;
+   T := PX * DX + PY * DY;
+   At^[I].X := At^[A].X + 2 * T * DX - PX;
+   At^[I].Y := At^[A].Y + 2 * T * DY - PY;
+  End;
+ MirrorBSide := True;
+End;
+
+{ Retourne le fragment cote B des liaisons doubles dont la geometrie
+  cis/trans ne correspond pas aux symboles / et \ du SMILES }
+Procedure ApplySmilesDoubleBonds(F, L: Integer);
+Var J, A, B, XA, XB, VA, VB, S1, S2 : Integer;
+Begin
+ BuildAdj;
+ For J := 0 To NBd - 1 Do Begin
+  If Bd^[J].Order <> 2 Then Continue;
+  A := Bd^[J].A; B := Bd^[J].B;
+  If (A < F) Or (A > L) Or (B < F) Or (B > L) Then Continue;
+  If Not SmDirNeighbor(A, J, XA, VA) Then Continue;
+  If Not SmDirNeighbor(B, J, XB, VB) Then Continue;
+  S1 := SideOf(A, B, At^[XA].X, At^[XA].Y);
+  S2 := SideOf(A, B, At^[XB].X, At^[XB].Y);
+  If (S1 = 0) Or (S2 = 0) Then Continue;
+  { cis (memes cotes) si les deux substituants sont du meme cote vertical }
+  If ((S1 = S2) = (VA = VB)) Then Continue;
+  If MirrorBSide(J) Then;
+ End;
+End;
+
+{ Pose un coin plein ou hachure sur une liaison de K (extremite fine en K)
+  pour que le determinant d'orientation des voisins Sl ait le signe voulu
+  (WantNeg : negatif). Prefer = liaison a essayer en premier (-1 : aucune). }
+Function SetChirality(K: Integer; Const Sl: Array Of Integer; WantNeg: Boolean; Prefer: Integer): Boolean;
+Var
+ I, J, Pass, Best, BestScore, Sc, Mate, T : Integer;
+ Tried : Array[0..7] Of Boolean;
+ D : Real;
+ HasW : Boolean;
+Begin
+ SetChirality := False;
+ For I := 0 To AdjN^[K] - 1 Do Begin
+  J := AdjB^[K, I];
+  If (Bd^[J].A = K) And (Bd^[J].Sty In [ST_WEDGE, ST_HASH]) Then Bd^[J].Sty := ST_NORMAL;
+  Tried[I] := False;
+ End;
+ For Pass := 1 To AdjN^[K] Do Begin
+  { choisit la liaison : de preference celle demandee, hors cycle, terminale }
+  Best := -1; BestScore := -1;
+  For I := 0 To AdjN^[K] - 1 Do Begin
+   If Tried[I] Then Continue;
+   J := AdjB^[K, I]; Mate := Adj^[K, I];
+   If (Bd^[J].Order <> 1) Or (Bd^[J].Sty <> ST_NORMAL) Then Continue;
+   Sc := 1;
+   If J = Prefer Then Inc(Sc, 20);
+   If RingOfBond(K, Mate) < 0 Then Inc(Sc, 4);
+   If Inf^[Mate].Deg = 1 Then Inc(Sc, 2);
+   If StereoKind(Mate) = 0 Then Inc(Sc, 1);
+   If Sc > BestScore Then Begin BestScore := Sc; Best := I; End;
+  End;
+  If Best < 0 Then Exit;
+  Tried[Best] := True;
+  J := AdjB^[K, Best];
+  If Bd^[J].B = K Then Begin
+   T := Bd^[J].A; Bd^[J].A := Bd^[J].B; Bd^[J].B := T;
+  End;
+  Bd^[J].Sty := ST_WEDGE;
+  D := Orient4(K, Sl, HasW);
+  If Abs(D) < 0.02 Then Begin Bd^[J].Sty := ST_NORMAL; Continue; End;
+  If (D < 0) <> WantNeg Then Bd^[J].Sty := ST_HASH;
+  SetChirality := True;
+  Exit;
+ End;
+End;
+
+Procedure ApplySmilesChirality(F, L: Integer);
+Var
+ K, I, J, N, T : Integer;
+ Sl : Array[0..3] Of Integer;
+ Ok : Boolean;
+Begin
+ InitStereo;
+ UpdateInfo;
+ BuildAdj;
+ ApplySmilesDoubleBonds(F, L);
+ For K := F To L Do Begin
+  If SmCh[K] = 0 Then Continue;
+  N := SmNn[K];
+  If (N < 3) Or (N > 4) Then Continue;
+  If N = 3 Then Begin
+   { le doublet libre prend la place juste apres l'atome source }
+   If (At^[K].Z <> 15) And (At^[K].Z <> 16) Then Continue;
+   If SmFrm[K] <> 0 Then T := 1 Else T := 0;
+   J := 0;
+   For I := 0 To 3 Do
+    If I = T Then Sl[I] := -1
+    Else Begin Sl[I] := SmNb^[K, J]; Inc(J); End;
+  End
+  Else For I := 0 To 3 Do Sl[I] := SmNb^[K, I];
+  { une fermeture de cycle non resolue (< -1) rend la liste inutilisable }
+  Ok := True;
+  For I := 0 To 3 Do If Sl[I] < -1 Then Ok := False;
+  If Not Ok Then Continue;
+  { '@' (sens anti-horaire vu du premier voisin) <=> determinant negatif }
+  If SetChirality(K, Sl, SmCh[K] = 1, -1) Then;
+ End;
+ Touch;
+End;
+
+{ --------------------------------------------------------------------- }
+{ Conservation de la stereochimie lors d'une remise en page             }
+{ --------------------------------------------------------------------- }
+
+Const CAP_MAX = 200;
+
+Var
+ CapN, CapDN : Integer;
+ CapAt   : Array[0..CAP_MAX - 1] Of Integer;
+ CapSl   : Array[0..CAP_MAX - 1, 0..3] Of Integer;
+ CapNeg  : Array[0..CAP_MAX - 1] Of Boolean;
+ CapPref : Array[0..CAP_MAX - 1] Of Integer;
+ CapDb   : Array[0..CAP_MAX - 1] Of Integer;
+ CapXA, CapXB : Array[0..CAP_MAX - 1] Of Integer;
+ CapCis  : Array[0..CAP_MAX - 1] Of Boolean;
+
+{ Memorise la stereochimie (centres avec coin, liaisons doubles) des atomes
+  marques (Mark bit 1) avant une mise en page }
+Procedure CaptureStereo;
+Var
+ K, I, J, M, NS, R : Integer;
+ D : Real;
+ HW, Wavy : Boolean;
+ S1, S2, XA, XB, A, B : Integer;
+Begin
+ InitStereo;
+ UpdateInfo;
+ BuildAdj;
+ CapN := 0; CapDN := 0;
+ For K := 0 To NAt - 1 Do Begin
+  If ((At^[K].Mark And 1) = 0) Or (CapN >= CAP_MAX) Then Continue;
+  If StereoKind(K) = 0 Then Continue;
+  Wavy := False; M := -1;
+  For I := 0 To AdjN^[K] - 1 Do Begin
+   J := AdjB^[K, I];
+   If Bd^[J].Sty = ST_WAVY Then Wavy := True;
+   If (M < 0) And (Bd^[J].A = K) And (Bd^[J].Sty In [ST_WEDGE, ST_HASH]) Then M := J;
+  End;
+  If Wavy Or (M < 0) Then Continue;
+  NS := 0;
+  For I := 0 To AdjN^[K] - 1 Do If NS < 4 Then Begin CapSl[CapN, NS] := Adj^[K, I]; Inc(NS); End;
+  While NS < 4 Do Begin CapSl[CapN, NS] := -1; Inc(NS); End;
+  D := Orient4(K, CapSl[CapN], HW);
+  If (Not HW) Or (Abs(D) < 0.02) Then Continue;
+  CapAt[CapN] := K; CapNeg[CapN] := D < 0; CapPref[CapN] := M;
+  Inc(CapN);
+ End;
+ For J := 0 To NBd - 1 Do Begin
+  If (Bd^[J].Order <> 2) Or (CapDN >= CAP_MAX) Then Continue;
+  A := Bd^[J].A; B := Bd^[J].B;
+  If ((At^[A].Mark And 1) = 0) Or ((At^[B].Mark And 1) = 0) Then Continue;
+  If (Bd^[J].Sty = ST_WAVY) Or (Bd^[J].DPos = 3) Then Continue;
+  If Not (EndOK(A, B) And EndOK(B, A)) Then Continue;
+  R := RingOfBond(A, B);
+  If (R >= 0) And (RingN[R] < 8) Then Continue;
+  XA := -1; XB := -1;
+  For I := 0 To AdjN^[A] - 1 Do If (XA < 0) And (Adj^[A, I] <> B) Then XA := Adj^[A, I];
+  For I := 0 To AdjN^[B] - 1 Do If (XB < 0) And (Adj^[B, I] <> A) Then XB := Adj^[B, I];
+  If (XA < 0) Or (XB < 0) Then Continue;
+  S1 := SideOf(A, B, At^[XA].X, At^[XA].Y);
+  S2 := SideOf(A, B, At^[XB].X, At^[XB].Y);
+  If (S1 = 0) Or (S2 = 0) Then Continue;
+  CapDb[CapDN] := J; CapXA[CapDN] := XA; CapXB[CapDN] := XB; CapCis[CapDN] := S1 = S2;
+  Inc(CapDN);
+ End;
+End;
+
+{ Retablit la stereochimie memorisee apres la mise en page }
+Procedure RestoreStereo;
+Var K, J, A, B, S1, S2 : Integer;
+Begin
+ BuildAdj;
+ UpdateInfo;
+ For K := 0 To CapDN - 1 Do Begin
+  J := CapDb[K]; A := Bd^[J].A; B := Bd^[J].B;
+  S1 := SideOf(A, B, At^[CapXA[K]].X, At^[CapXA[K]].Y);
+  S2 := SideOf(A, B, At^[CapXB[K]].X, At^[CapXB[K]].Y);
+  If (S1 = 0) Or (S2 = 0) Then Continue;
+  If (S1 = S2) <> CapCis[K] Then If MirrorBSide(J) Then;
+ End;
+ For K := 0 To CapN - 1 Do
+  If SetChirality(CapAt[K], CapSl[K], CapNeg[K], CapPref[K]) Then;
+ Touch;
+End;
+{ --------------------------------------------------------------------- }
 { Recherche d'objets sous le curseur                                    }
 { --------------------------------------------------------------------- }
 
@@ -8593,6 +9560,44 @@ Begin
  ListDialog('InChI', False);
 End;
 
+{ Liste les descripteurs stereochimiques (R/S, E/Z) de la structure }
+Procedure ShowStereo;
+Var I, J, NR, NE : Integer; S : String;
+Begin
+ ComputeStereo;
+ NTL := 0;
+ AddTL('Descripteurs stereochimiques (regles CIP 1a et 2) :');
+ AddTL('');
+ NR := 0; NE := 0;
+ For I := 0 To NAt - 1 Do
+  If StC^[I] <> #0 Then Begin
+   Inc(NR);
+   S := '  Atome ' + IntToStr(I + 1) + ' (' + ElSym[At^[I].Z] + ') : ' + StC^[I];
+   If StC^[I] = 'R' Then S := S + '  (rectus)' Else S := S + '  (sinister)';
+   AddTL(S);
+  End;
+ For J := 0 To NBd - 1 Do
+  If EzC^[J] <> #0 Then Begin
+   Inc(NE);
+   S := '  Liaison ' + IntToStr(Bd^[J].A + 1) + '=' + IntToStr(Bd^[J].B + 1) + ' : ' + EzC^[J];
+   If EzC^[J] = 'E' Then S := S + '  (entgegen)' Else S := S + '  (zusammen)';
+   AddTL(S);
+  End;
+ If NR + NE = 0 Then Begin
+  AddTL('  Aucun descripteur : dessinez des liaisons en coin plein ou');
+  AddTL('  hachure (centre a l''extremite fine) pour specifier un centre R/S,');
+  AddTL('  ou une liaison double substituee pour obtenir E/Z.');
+ End
+ Else Begin
+  AddTL('');
+  AddTL(IntToStr(NR) + ' centre(s) R/S, ' + IntToStr(NE) + ' liaison(s) E/Z.');
+ End;
+ AddTL('');
+ AddTL('Les centres dont les substituants restent indiscernables apres');
+ AddTL('les regles 1 et 2 (cas des regles 3 a 5) ne sont pas etiquetes.');
+ ListDialog('Stereochimie', False);
+End;
+
 Procedure InsertTextBelow(Const S: String);
 Var X1, Y1, X2, Y2: Real; Empty: Boolean; T: Integer;
 Begin
@@ -8634,7 +9639,8 @@ Begin
    AddTL('Suppr / Retour arriere : efface le survol ou la selection.');
    AddTL('');
    AddTL('Menu Analyse : formule, masse, spectre de masse, RMN 1H / 13C,');
-   AddTL('   InChI standard, SMILES,');
+   AddTL('   InChI standard, SMILES (avec @ / @@ et / \),');
+   AddTL('   stereochimie R/S et E/Z (aussi Affichage > Stereochimie),');
    AddTL('   structure -> nom, nom -> structure (dictionnaire de composes).');
    AddTL('Menu Structure > Nettoyer : remet la structure en forme (Ctrl+L).');
    AddTL('Fichier : CDT (natif), MOL, SMILES, InChI, SVG, BMP.');
@@ -8876,8 +9882,9 @@ Begin
    11: OptNumbers := Not OptNumbers;
    12: OptWarn := Not OptWarn;
    13: OptColorEl := Not OptColorEl;
-   14: OptDark := Not OptDark;
-   16: OptAnalysis := Not OptAnalysis;
+   14: OptStereo := Not OptStereo;
+   15: OptDark := Not OptDark;
+   17: OptAnalysis := Not OptAnalysis;
   End;
   MENU_OBJECT: Begin
    If Not AnySelected Then Begin NeedSelMsg; Exit; End;
@@ -8973,8 +9980,9 @@ Begin
    6: InsertNameDialog;
    7: ShowSmiles;
    8: ShowInChI;
-   10: CheckStructure;
-   11: OptAnalysis := Not OptAnalysis;
+   9: ShowStereo;
+   11: CheckStructure;
+   12: OptAnalysis := Not OptAnalysis;
   End;
   MENU_HELP: Case I Of
    0: ShowHelp(0);
@@ -9714,7 +10722,8 @@ Begin
  CurTool := T_BOND; CurElem := 6; CurColor := Black; TextSize := 1;
  OptGrid := False; OptSnap := False; OptFixAng := True; OptFixLen := True;
  OptShowC := False; OptNumbers := False; OptWarn := True; OptAnalysis := False;
- OptColorEl := False; OptDark := False;
+ OptColorEl := False; OptDark := False; OptStereo := False;
+ StVer := -1;
  DocName := '';
  DragKind := DR_NONE; DragAtom := -1;
  HovAtom := -1; HovBond := -1; HovShape := -1; HovText := -1;

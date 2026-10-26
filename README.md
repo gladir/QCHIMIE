@@ -39,7 +39,7 @@ Voici la liste des différents fichiers proposés dans QChimie :
   </tr>
   <tr>
 	  <td><b>CHEMDRAW.PAS</b></td>
-	  <td>Cette commande permet de dessiner des structures chimiques en deux dimensions (molécules, réactions, flèches, cycles, groupes d'atomes), de les analyser (formule, poids moléculaire, masse exacte, spectre de masse, prédiction RMN ¹H et ¹³C, nom du composé, SMILES, InChI) et de les importer ou exporter aux formats CDT, MOL, SMILES, InChI, SVG et BMP, à la manière du logiciel ChemDraw.</td>
+	  <td>Cette commande permet de dessiner des structures chimiques en deux dimensions (molécules, réactions, flèches, cycles, groupes d'atomes), de les analyser (formule, poids moléculaire, masse exacte, spectre de masse, prédiction RMN ¹H et ¹³C, nom du composé, SMILES, InChI, stéréochimie R/S et E/Z) et de les importer ou exporter aux formats CDT, MOL, SMILES, InChI, SVG et BMP, à la manière du logiciel ChemDraw.</td>
   </tr>
 </table>
 
@@ -62,6 +62,7 @@ Par exemple, si vous voulez compiler ELEMENTS.PAS, vous devrez tapez la commande
 <ul>
 	<li>La commande CHEMDRAW accepte en ligne de commande un fichier à ouvrir (CDT, MOL, SDF ou SMI) ou une structure SMILES avec le paramètre -s (par exemple : <i>CHEMDRAW -s CC(=O)Oc1ccccc1C(O)=O</i>). Des exemples sont fournis dans le dossier SAMPLES/CHEMDRAW. Le format CDT est le format texte natif de la commande.</li>
 	<li>L'InChI produit par la commande CHEMDRAW (menu Analyse) couvre la formule, la connectivité, les hydrogènes (y compris mobiles) et la charge d'une molécule connexe, sans stéréochimie ni isotopes. Sur un échantillon de 4 900 molécules, il est identique à celui de la bibliothèque InChI officielle dans 98,8 % des cas ; les fragments multiples et les organométalliques ne sont pas pris en charge.</li>
+	<li>La stéréochimie de la commande CHEMDRAW (menu Affichage &gt; Stéréochimie, ou menu Analyse &gt; Stéréochimie) attribue les descripteurs CIP R/S aux centres dessinés avec un coin plein ou hachuré (extrémité fine sur le centre) et les descripteurs E/Z aux doubles liaisons substituées. Les priorités sont calculées avec un digraphe hiérarchique (atomes dupliqués, hydrogènes implicites, doublets libres) selon les règles 1 (numéro atomique) et 2 (nombre de masse). Les centres que seules les règles 3 à 5 permettent de distinguer (pseudo-asymétrie, alditols symétriques, cycles 1,4-disubstitués) ne reçoivent pas d'étiquette. Les symboles @ / @@ et / \ du SMILES sont lus (ils deviennent des coins pleins ou hachurés) et écrits ; la stéréochimie est conservée par la commande Nettoyer. Sur 3 001 stéréoisomères tirés d'une collection de molécules, tous les descripteurs sont identiques à ceux de la bibliothèque RDKit pour 2 894 d'entre eux (96 %) ; les écarts sont des étiquettes absentes (règles 3 à 5) et, dans huit cas, des doubles liaisons situées dans de grands cycles dont la géométrie SMILES n'est pas reproduite. L'InChI exporté ne contient toujours pas la couche stéréochimique.</li>
 	<li>La commande FORMULA a été bonifié du paramètre /FORMAT:HTML à partir de sa version 1.1.</li>
 </ul>
 
