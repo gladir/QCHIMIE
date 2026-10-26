@@ -1,0 +1,148 @@
+ **** **** ******  **  PROGRAM STARTED AT                2026-10-26 17:18:06.490
+ ***** ** ***  *** **   PROGRAM STARTED ON                             localhost
+ **    ****   ******    PROGRAM STARTED BY                                  user
+ ***** ** ** ** ** **   PROGRAM PROCESS ID                                     0
+  **** **  *******  **  PROGRAM STARTED IN       /home/user/QCHIMIE/SAMPLES/CP2K
+
+ CP2K| version string:                                       CP2K version 2024.1
+ CP2K| source code revision number:                          QChimie Pascal 1.00
+ CP2K| cp2kflags:                                                   pascal clone
+ CP2K| is freely available from                            https://www.cp2k.org/
+ CP2K| Program compiled on                                           Free Pascal
+ CP2K| Input file name                                                 DEBUG.INP
+
+ GLOBAL| Force Environment number                                              1
+ GLOBAL| Basis set file name                                           BASIS_SET
+ GLOBAL| Potential file name                                           POTENTIAL
+ GLOBAL| MM Potential file name                                     MM_POTENTIAL
+ GLOBAL| Coordinate file name                                      __STD_INPUT__
+ GLOBAL| Method name                                                        CP2K
+ GLOBAL| Project name                                                      DEBUG
+ GLOBAL| Run type                                                          DEBUG
+ GLOBAL| Global print level                                               MEDIUM
+ GLOBAL| Total number of message passing processes                             1
+ GLOBAL| Number of threads for this process                                    1
+ GLOBAL| This output is from process                                           0
+
+
+ CELL| Volume [angstrom^3]:                                             2744.000
+ CELL| Vector a [angstrom]:      14.000     0.000     0.000    |a| =        14.000
+ CELL| Vector b [angstrom]:       0.000    14.000     0.000    |b| =        14.000
+ CELL| Vector c [angstrom]:       0.000     0.000    14.000    |c| =        14.000
+ CELL| Angle (b,c), alpha [degree]:                                       90.000
+ CELL| Angle (a,c), beta  [degree]:                                       90.000
+ CELL| Angle (a,b), gamma [degree]:                                       90.000
+ CELL| Requested initial symmetry:                                          NONE
+ CELL| Numerically orthorhombic:                                             YES
+ CELL| Periodicity:                                                          XYZ
+
+ TOPOLOGY INFO - GENERATE
+ TOPOLOGY| Number of atoms:                                                    8
+ TOPOLOGY| Number of bonds:                                                    6
+ TOPOLOGY| Number of molecules:                                                2
+
+
+ ATOMIC KIND INFORMATION
+
+  1. Atomic kind: CA                   Number of atoms:      4
+
+     Atomic weight:                                 12.0107
+     Element symbol:                                                     C
+
+  2. Atomic kind: CB                   Number of atoms:      4
+
+     Atomic weight:                                 12.0107
+     Element symbol:                                                     C
+
+
+ MODULE FIST:  ATOMIC COORDINATES IN angstrom
+
+  Atom  Kind  Element       X           Y           Z          Z(eff)       Mass
+
+      1     1     C   6    2.000000    2.000000    2.000000     -0.3000     12.0107
+      2     2     C   6    3.540000    2.000000    2.000000      0.3000     12.0107
+      3     2     C   6    4.116894    3.427863    2.000000      0.3000     12.0107
+      4     1     C   6    3.671057    4.230194    3.236566     -0.3000     12.0107
+      5     1     C   6    8.000000    7.000000    6.000000     -0.3000     12.0107
+      6     2     C   6    9.540000    7.000000    6.000000      0.3000     12.0107
+      7     2     C   6   10.116894    8.427863    6.000000      0.3000     12.0107
+      8     1     C   6   10.562894    8.869868    4.593829     -0.3000     12.0107
+
+
+ TOTAL NUMBERS AND MAXIMUM NUMBERS
+
+  Total number of            - Atomic kinds:                             2
+                             - Atoms:                                    8
+                             - Molecules:                                2
+                             - Bonds:                                    6
+
+ FIST| Cutoff radius [angstrom]:                                          7.0000
+ FIST| Number of Lennard-Jones/Williams kind pairs:                            3
+ FIST| Ewald summation, alpha [1/angstrom]:                             0.571429
+ FIST| Ewald real space cutoff [angstrom]:                                7.0000
+ FIST| Ewald reciprocal cutoff [1/angstrom]:                              5.2026
+ FIST| Bonds / bends / torsions with parameters:                       6 / 4 / 4
+
+
+ ENERGY| Total FORCE_EVAL ( FIST ) energy [a.u.]:                   0.0082192314
+
+ DEBUG| Atom   Coordinate   f(numerical)   f(analytical)   Difference   Error [%]
+ DEBUG|    1      x    -0.0001504945    -0.0001504945     0.0000000000     0.000
+ DEBUG|    1      y     0.0000502585     0.0000502585     0.0000000000     0.000
+ DEBUG|    1      z    -0.0003224865    -0.0003224865     0.0000000000     0.000
+ DEBUG|    2      x     0.0002414803     0.0002414746     0.0000000058     0.002
+ DEBUG|    2      y    -0.0000610646    -0.0000610650     0.0000000003     0.001
+ DEBUG|    2      z     0.0005457788     0.0005457796    -0.0000000008     0.000
+ DEBUG|    3      x    -0.0002394925    -0.0002394759    -0.0000000166     0.007
+ DEBUG|    3      y     0.0001990398     0.0001990359     0.0000000040     0.002
+ DEBUG|    3      z    -0.0003573762    -0.0003573846     0.0000000084     0.002
+ DEBUG|    4      x     0.0000479190     0.0000479126     0.0000000064     0.013
+ DEBUG|    4      y    -0.0001960911    -0.0001960841    -0.0000000070     0.004
+ DEBUG|    4      z     0.0001719997     0.0001720061    -0.0000000064     0.004
+ DEBUG|    5      x     0.0000167952     0.0000167952     0.0000000000     0.000
+ DEBUG|    5      y     0.0000289371     0.0000289371     0.0000000000     0.000
+ DEBUG|    5      z     0.0026705842     0.0026705848    -0.0000000006     0.000
+ DEBUG|    6      x     0.0010456740     0.0010456685     0.0000000055     0.001
+ DEBUG|    6      y    -0.0004064594    -0.0004064599     0.0000000005     0.000
+ DEBUG|    6      z    -0.0035077139    -0.0035077157     0.0000000017     0.000
+ DEBUG|    7      x    -0.0032654957    -0.0032654966     0.0000000009     0.000
+ DEBUG|    7      y     0.0013034629     0.0013034609     0.0000000020     0.000
+ DEBUG|    7      z     0.0004070106     0.0004070123    -0.0000000017     0.000
+ DEBUG|    8      x     0.0023036099     0.0023036160    -0.0000000061     0.000
+ DEBUG|    8      y    -0.0009180883    -0.0009180835    -0.0000000047     0.001
+ DEBUG|    8      z     0.0003922068     0.0003922039     0.0000000029     0.001
+ DEBUG| Sum of differences:        0.0000000824
+
+ DEBUG| Cell strain  d(E)/d(eps) numerical  analytical   Difference
+ DEBUG|   1   1       -0.0009765374       -0.0009765377        0.0000000003
+ DEBUG|   1   2       -0.0000180347       -0.0000180348        0.0000000002
+ DEBUG|   1   3        0.0055346125        0.0055346127       -0.0000000002
+ DEBUG|   2   1       -0.0000180328       -0.0000180348        0.0000000020
+ DEBUG|   2   2        0.0000779085        0.0000779075        0.0000000011
+ DEBUG|   2   3       -0.0020758662       -0.0020758665        0.0000000003
+ DEBUG|   3   1        0.0055346107        0.0055346127       -0.0000000020
+ DEBUG|   3   2       -0.0020758665       -0.0020758665        0.0000000000
+ DEBUG|   3   3        0.0013775960        0.0013775947        0.0000000014
+ DEBUG| Maximum stress difference:        0.0000000020
+
+
+ -------------------------------------------------------------------------------
+ -                                                                             -
+ -                                T I M I N G                                  -
+ -                                                                             -
+ -------------------------------------------------------------------------------
+ SUBROUTINE                       CALLS  ASD         SELF TIME        TOTAL TIME
+                                MAXIMUM       AVERAGE  MAXIMUM  AVERAGE  MAXIMUM
+ CP2K                                  1  1.0    0.040    0.040    0.050    0.050
+ force_env_calc_energy_force           1  1.0    0.000    0.000    0.010    0.010
+ fist_calc_energy_force                1  1.0    0.010    0.010    0.010    0.010
+ -------------------------------------------------------------------------------
+
+ The number of warnings for this run is : 0
+
+ -------------------------------------------------------------------------------
+ **** **** ******  **  PROGRAM ENDED AT                  2026-10-26 17:18:06.540
+ ***** ** ***  *** **   PROGRAM RAN ON                                 localhost
+ **    ****   ******    PROGRAM RAN BY                                      user
+ ***** ** ** ** ** **   PROGRAM PROCESS ID                                     0
+  **** **  *******  **  PROGRAM STOPPED IN       /home/user/QCHIMIE/SAMPLES/CP2K

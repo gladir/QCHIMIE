@@ -1,0 +1,141 @@
+ **** **** ******  **  PROGRAM STARTED AT                2026-10-26 17:18:06.550
+ ***** ** ***  *** **   PROGRAM STARTED ON                             localhost
+ **    ****   ******    PROGRAM STARTED BY                                  user
+ ***** ** ** ** ** **   PROGRAM PROCESS ID                                     0
+  **** **  *******  **  PROGRAM STARTED IN       /home/user/QCHIMIE/SAMPLES/CP2K
+
+ CP2K| version string:                                       CP2K version 2024.1
+ CP2K| source code revision number:                          QChimie Pascal 1.00
+ CP2K| cp2kflags:                                                   pascal clone
+ CP2K| is freely available from                            https://www.cp2k.org/
+ CP2K| Program compiled on                                           Free Pascal
+ CP2K| Input file name                                                  NACL.INP
+
+ GLOBAL| Force Environment number                                              1
+ GLOBAL| Basis set file name                                           BASIS_SET
+ GLOBAL| Potential file name                                           POTENTIAL
+ GLOBAL| MM Potential file name                                     MM_POTENTIAL
+ GLOBAL| Coordinate file name                                      __STD_INPUT__
+ GLOBAL| Method name                                                        CP2K
+ GLOBAL| Project name                                                       NACL
+ GLOBAL| Run type                                                   ENERGY_FORCE
+ GLOBAL| Global print level                                               MEDIUM
+ GLOBAL| Total number of message passing processes                             1
+ GLOBAL| Number of threads for this process                                    1
+ GLOBAL| This output is from process                                           0
+
+
+ CELL| Volume [angstrom^3]:                                              179.406
+ CELL| Vector a [angstrom]:       5.640     0.000     0.000    |a| =         5.640
+ CELL| Vector b [angstrom]:       0.000     5.640     0.000    |b| =         5.640
+ CELL| Vector c [angstrom]:       0.000     0.000     5.640    |c| =         5.640
+ CELL| Angle (b,c), alpha [degree]:                                       90.000
+ CELL| Angle (a,c), beta  [degree]:                                       90.000
+ CELL| Angle (a,b), gamma [degree]:                                       90.000
+ CELL| Requested initial symmetry:                                          NONE
+ CELL| Numerically orthorhombic:                                             YES
+ CELL| Periodicity:                                                          XYZ
+
+ TOPOLOGY INFO - GENERATE
+ TOPOLOGY| Number of atoms:                                                    8
+ TOPOLOGY| Number of bonds:                                                    0
+ TOPOLOGY| Number of molecules:                                                8
+
+
+ ATOMIC KIND INFORMATION
+
+  1. Atomic kind: Na                   Number of atoms:      4
+
+     Atomic weight:                                 22.9898
+     Element symbol:                                                    Na
+
+  2. Atomic kind: Cl                   Number of atoms:      4
+
+     Atomic weight:                                 35.4530
+     Element symbol:                                                    Cl
+
+
+ MODULE FIST:  ATOMIC COORDINATES IN angstrom
+
+  Atom  Kind  Element       X           Y           Z          Z(eff)       Mass
+
+      1     1     Na 11    0.000000    0.000000    0.000000      1.0000     22.9898
+      2     1     Na 11    2.820000    2.820000    0.000000      1.0000     22.9898
+      3     1     Na 11    2.820000    0.000000    2.820000      1.0000     22.9898
+      4     1     Na 11    0.000000    2.820000    2.820000      1.0000     22.9898
+      5     2     Cl 17    2.820000    0.000000    0.000000     -1.0000     35.4530
+      6     2     Cl 17    0.000000    2.820000    0.000000     -1.0000     35.4530
+      7     2     Cl 17    0.000000    0.000000    2.820000     -1.0000     35.4530
+      8     2     Cl 17    2.820000    2.820000    2.820000     -1.0000     35.4530
+
+
+ TOTAL NUMBERS AND MAXIMUM NUMBERS
+
+  Total number of            - Atomic kinds:                             2
+                             - Atoms:                                    8
+                             - Molecules:                                8
+                             - Bonds:                                    0
+
+ FIST| Cutoff radius [angstrom]:                                          2.8200
+ FIST| Number of Lennard-Jones/Williams kind pairs:                            0
+ FIST| Ewald summation, alpha [1/angstrom]:                             1.418440
+ FIST| Ewald real space cutoff [angstrom]:                                2.8200
+ FIST| Ewald reciprocal cutoff [1/angstrom]:                             12.9143
+ FIST| Bonds / bends / torsions with parameters:                       0 / 0 / 0
+
+
+ FIST ENERGIES [hartree]
+
+ FIST| Bond energy:                                                 0.0000000000
+ FIST| Bend energy:                                                 0.0000000000
+ FIST| Torsion energy:                                              0.0000000000
+ FIST| Van der Waals energy:                                        0.0000000000
+ FIST| Ewald real space energy:                                     0.0000000000
+ FIST| Ewald reciprocal energy:                                     2.0761402171
+ FIST| Ewald self and background energy:                           -3.3878725708
+
+
+ ENERGY| Total FORCE_EVAL ( FIST ) energy [a.u.]:                  -1.3117323537
+
+ ATOMIC FORCES in [a.u.]
+
+ # Atom   Kind   Element          X              Y              Z
+     1      1      Na         0.00000000     0.00000000     0.00000000
+     2      1      Na         0.00000000     0.00000000     0.00000000
+     3      1      Na         0.00000000     0.00000000     0.00000000
+     4      1      Na         0.00000000     0.00000000     0.00000000
+     5      2      Cl         0.00000000     0.00000000     0.00000000
+     6      2      Cl         0.00000000     0.00000000     0.00000000
+     7      2      Cl         0.00000000     0.00000000     0.00000000
+     8      2      Cl         0.00000000     0.00000000     0.00000000
+ SUM OF ATOMIC FORCES       0.00000000     0.00000000     0.00000000     0.00000000
+
+
+ STRESS| Analytical stress tensor [GPa]
+ STRESS|                        x                   y                   z
+ STRESS|      x       -10.625440957         0.000000000         0.000000000
+ STRESS|      y         0.000000000       -10.625440957         0.000000000
+ STRESS|      z         0.000000000         0.000000000       -10.625440957
+ STRESS| 1/3 Trace                  -10.625440957
+
+
+ -------------------------------------------------------------------------------
+ -                                                                             -
+ -                                T I M I N G                                  -
+ -                                                                             -
+ -------------------------------------------------------------------------------
+ SUBROUTINE                       CALLS  ASD         SELF TIME        TOTAL TIME
+                                MAXIMUM       AVERAGE  MAXIMUM  AVERAGE  MAXIMUM
+ CP2K                                  1  1.0    0.000    0.000    0.000    0.000
+ force_env_calc_energy_force           1  1.0    0.000    0.000    0.000    0.000
+ fist_calc_energy_force                1  1.0    0.000    0.000    0.000    0.000
+ -------------------------------------------------------------------------------
+
+ The number of warnings for this run is : 0
+
+ -------------------------------------------------------------------------------
+ **** **** ******  **  PROGRAM ENDED AT                  2026-10-26 17:18:06.550
+ ***** ** ***  *** **   PROGRAM RAN ON                                 localhost
+ **    ****   ******    PROGRAM RAN BY                                      user
+ ***** ** ** ** ** **   PROGRAM PROCESS ID                                     0
+  **** **  *******  **  PROGRAM STOPPED IN       /home/user/QCHIMIE/SAMPLES/CP2K

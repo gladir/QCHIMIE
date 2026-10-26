@@ -1,0 +1,31 @@
+# Energie de l'eau avec les coordonnees lues dans un fichier XYZ (section &TOPOLOGY)
+&GLOBAL
+  PROJECT EAUXYZ
+  RUN_TYPE ENERGY
+  PRINT_LEVEL LOW
+&END GLOBAL
+&FORCE_EVAL
+  METHOD QUICKSTEP
+  &DFT
+    &XC
+      &XC_FUNCTIONAL B3LYP
+      &END XC_FUNCTIONAL
+    &END XC
+  &END DFT
+  &SUBSYS
+    &CELL
+      ABC [angstrom] 10.0 10.0 10.0
+      PERIODIC NONE
+    &END CELL
+    &TOPOLOGY
+      COORD_FILE_NAME EAU.XYZ
+      COORD_FILE_FORMAT XYZ
+    &END TOPOLOGY
+    &KIND H
+      BASIS_SET STO-3G
+    &END KIND
+    &KIND O
+      BASIS_SET STO-3G
+    &END KIND
+  &END SUBSYS
+&END FORCE_EVAL

@@ -1,0 +1,36 @@
+# Dioxygene triplet : calcul non restreint (UKS) en Hartree-Fock / STO-3G
+&GLOBAL
+  PROJECT O2
+  RUN_TYPE ENERGY
+  PRINT_LEVEL MEDIUM
+&END GLOBAL
+&FORCE_EVAL
+  METHOD QUICKSTEP
+  &DFT
+    MULTIPLICITY 3
+    UKS
+    &SCF
+      EPS_SCF 1.0E-7
+    &END SCF
+    &XC
+      &XC_FUNCTIONAL NONE
+      &END XC_FUNCTIONAL
+      &HF
+        FRACTION 1.0
+      &END HF
+    &END XC
+  &END DFT
+  &SUBSYS
+    &CELL
+      ABC [angstrom] 10.0 10.0 10.0
+      PERIODIC NONE
+    &END CELL
+    &COORD
+      O 0.0 0.0 0.0
+      O 0.0 0.0 1.2
+    &END COORD
+    &KIND O
+      BASIS_SET STO-3G
+    &END KIND
+  &END SUBSYS
+&END FORCE_EVAL
