@@ -30,28 +30,28 @@ Voici la liste des différents fichiers proposés dans QChimie :
     <th>Description</th>
   </tr>
   <tr>
-      <td><b>ELEMENTS.PAS</b></td>
-      <td>Cette commande permet d'afficher le tableau des éléments chimiques ou un élément chimique.</td>
+	  <td><b>CHEMDRAW.PAS</b></td>
+	  <td>Cette commande permet de dessiner des structures chimiques en deux dimensions (molécules, réactions, flèches, cycles, groupes d'atomes), de les analyser (formule, poids moléculaire, masse exacte, spectre de masse, prédiction RMN ¹H et ¹³C, nom du composé, SMILES, InChI, stéréochimie R/S et E/Z) et de les importer ou exporter aux formats CDT, MOL, SMILES, InChI, SVG et BMP, à la manière du logiciel ChemDraw.</td>
   </tr>
   <tr>
-      <td><b>FORMULA.PAS</b></td>
-      <td>Cette commande permet d'afficher la formule d'un élément chimique ou d'un composé chimique.</td>
+      <td><b>ELEMENTS.PAS</b></td>
+      <td>Cette commande permet d'afficher le tableau des éléments chimiques ou un élément chimique.</td>
   </tr>	
   <tr>
       <td><b>FINDELEM.PAS</b></td>
       <td>Cette commande permet de détecter les éléments chimiques mentionné dans un texte.</td>
   </tr>
   <tr>
-	  <td><b>PYMOL.PAS</b></td>
-	  <td>Cette commande permet de visualiser, manipuler et analyser des structures moléculaires tridimensionnelles, not amment des protéines, des acides nucléiques et des composés chimiques, à l'aide du logiciel PyMOL.</td>
-  </tr>
-  <tr>
-	  <td><b>CHEMDRAW.PAS</b></td>
-	  <td>Cette commande permet de dessiner des structures chimiques en deux dimensions (molécules, réactions, flèches, cycles, groupes d'atomes), de les analyser (formule, poids moléculaire, masse exacte, spectre de masse, prédiction RMN ¹H et ¹³C, nom du composé, SMILES, InChI, stéréochimie R/S et E/Z) et de les importer ou exporter aux formats CDT, MOL, SMILES, InChI, SVG et BMP, à la manière du logiciel ChemDraw.</td>
+      <td><b>FORMULA.PAS</b></td>
+      <td>Cette commande permet d'afficher la formule d'un élément chimique ou d'un composé chimique.</td>
   </tr>
   <tr>
 	  <td><b>JMOL.PAS</b></td>
 	  <td>Cette commande permet de visualiser et de manipuler des structures moléculaires tridimensionnelles (PDB, XYZ, MOL, SDF, MOL2 et CIF), à la manière du logiciel Jmol : menus déroulants et menu contextuel (bouton droit) en français, barre d'outils, styles (remplissage CPK, boules et bâtons, bâtonnets, fil de fer, points de surface, squelette, trace, rubans, cartoon, brins), couleurs (élément, chaîne, résidu, structure, arc-en-ciel, température), sélection par expressions, étiquettes, mesures de distances, d'angles et de dièdres, liaisons hydrogène, cellule unitaire, modèles multiples avec animation, modes de vibration (panneau Vibration), console de commandes (langage de script de type Jmol), minimisation d'énergie, calculs (formule, masse molaire, centre de masse) et enregistrement en PDB, XYZ, MOL ou image BMP.</td>
+  </tr>
+  <tr>
+	  <td><b>PYMOL.PAS</b></td>
+	  <td>Cette commande permet de visualiser, manipuler et analyser des structures moléculaires tridimensionnelles, not amment des protéines, des acides nucléiques et des composés chimiques, à l'aide du logiciel PyMOL.</td>
   </tr>
   <tr>
 	  <td><b>VCCTL.PAS</b></td>
