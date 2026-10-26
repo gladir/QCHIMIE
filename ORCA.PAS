@@ -953,7 +953,7 @@ Begin
 End;
 
 Procedure Boys(M: Integer; T: Real; Var F: TBoys);
-Var K, I: Integer; X, D: Real;
+Var K, I: Integer; X: Real;
 Begin
  If T >= BOYS_N * BOYS_DT - 0.5 Then Begin
   F[0] := 0.5 * Sqrt(Pi / T);
@@ -1480,9 +1480,7 @@ Var
  HistE     : Array[0..MAX_HIST-1] Of Real;
  HistN     : Integer;
  S2Exp     : Real;
- QuietSCF  : Boolean;
  FrozenCore : Boolean;
- DoMP2     : Boolean;
 
 { Initialise les parametres de calcul par defaut }
 Procedure DefaultParams;
@@ -1531,7 +1529,7 @@ End;
 Procedure BuildOneElectron;
 Var
  IJ, I, J, K, C, T, U, V, L: Integer;
- SO, VN, DX, DY, DZ, PF, Sm, Al: Real;
+ SO, VN, DX, DY, DZ, PF, Sm: Real;
  PP: PPrim;
 Begin
  For IJ := 1 To NPairs Do Begin
@@ -1665,7 +1663,7 @@ End;
 
 { Matrices de Fock et energie pour les densites MDa / MDb }
 Procedure BuildFock(Closed: Boolean; Var E: Real);
-Var I, J: Integer; Exc, Ec1, Ec2, Ek: Real; NeedK: Boolean;
+Var I, J: Integer; Exc, Ec1, Ek: Real; NeedK: Boolean;
 Begin
  NeedK := Abs(HFExch) > 1E-12;
  BuildJK(Closed, NeedK);
@@ -1991,18 +1989,30 @@ Begin
  End;
 End;
 
+Function GridNRad: Integer;
+Begin
+ GridNRad := GRID_NR + (GridScale - 1) * (GRID_NR Div 2);
+End;
+
+Function GridNTheta: Integer;
+Var N: Integer;
+Begin
+ N := GRID_NTH + (GridScale - 1) * 4;
+ If N > GRID_NTH + 8 Then N := GRID_NTH + 8;
+ GridNTheta := N;
+End;
+
 Procedure BuildGrid;
 Var
  A, I, J, K, NR, NTH, NPH: Integer;
- XL: Array[1..GRID_NTH * 2] Of Real;
- WL: Array[1..GRID_NTH * 2] Of Real;
+ XL: Array[1..GRID_NTH + 8] Of Real;
+ WL: Array[1..GRID_NTH + 8] Of Real;
  Xi, X, R, WR, ST, CT, Ph, PX, PY, PZ, WA, W, Z0, Z1, PP, P1, P2, P3: Real;
 Begin
  FreeGrid;
  GridFull := False;
- NR := GRID_NR * GridScale;
- NTH := GRID_NTH * GridScale;
- If NTH > GRID_NTH * 2 Then NTH := GRID_NTH * 2;
+ NR := GridNRad;
+ NTH := GridNTheta;
  NPH := 2 * NTH;
  { Gauss-Legendre sur cos(theta) }
  For I := 1 To NTH Do Begin
@@ -2054,7 +2064,7 @@ Type
 Procedure EvalAOs(X, Y, Z: Real; Var NL: Integer; Var Idx: TIdxArr;
                   Var Phi, GX, GY, GZ: TAOVals);
 Var
- M, K: Integer; DX, DY, DZ, R2, E, PX, PY, PZ, QX, QY, QZ, A, C: Real;
+ M, K: Integer; DX, DY, DZ, R2, E, PX, PY, PZ, QX, QY, QZ, A: Real;
  SP, SX, SY, SZ: Real;
 Begin
  NL := 0;
@@ -2397,7 +2407,7 @@ Begin
 End;
 
 Function ExPartC(Ra, Saa: Real): Real;
-Var X43, Kf, Rm13: Real;
+Var X43, Kf: Real;
 Begin
  If Ra < 1E-20 Then Begin ExPartC := 0; Exit; End;
  X43 := Pw(Ra, 4 / 3);
@@ -2529,7 +2539,7 @@ Var
  OrbMullPct : Array[1..MAX_BF, 1..MAX_AT] Of Real;   { contribution des atomes aux MOs }
 
 Procedure PopAnalysis;
-Var A, B, I, J, K: Integer; Sm, Sl, Ss: Real;
+Var A, B, I, J, K: Integer;
 Begin
  { Mulliken : (D S) }
  For I := 1 To NBF Do
@@ -2667,7 +2677,7 @@ End;
 { Energie de correlation MP2 (RHF ou UHF) }
 Procedure RunMP2;
 Var
- I, J, A, B, NF, NA, NB, NV, NVB: Integer;
+ I, J, A, B, NF, NA, NB: Integer;
  Closed: Boolean;
  V1, V2, De, Eos, Ess, Eaa, Ebb, Eab: Real;
 Begin
@@ -2750,12 +2760,13 @@ Var
 
 Procedure RunCIS;
 Var
- O, V, Dim, I, J, A, B, IA, JB, N, K, D, M1, M2, Cnt: Integer;
+ O, V, Dim, I, J, A, B, IA, JB, N, K, D, M1, Cnt: Integer;
  AM, XM: PBig; W: Array[1..CIS_MAX] Of Real;
  DipMO: Array[1..3, 1..CIS_MAX] Of Real;
  TD: TVec3; Mo, X2: Real; PM: PMat;
 Begin
  CISOK := False; CISN := 0; CISMsg := '';
+ If Meth = M_DFT Then Begin CISMsg := 'CIS : non disponible avec une fonctionnelle DFT (utilisez HF)'; Exit; End;
  If NOccA <> NOccB Then Begin CISMsg := 'CIS : reference a couche fermee requise'; Exit; End;
  O := NOccA; V := NBF - O;
  Dim := O * V;
@@ -2883,11 +2894,8 @@ Var
  SymNum    : Integer;
  ThMass    : Real;
  RotConst  : TVec3;
- GradNorm  : Real;
  LastGrad  : TCartVec;
  NumHStep  : Real;
- SpaceMsg  : String;
- WorkDir   : String;
 
 { --------------------------------------------------------------------- }
 { Evaluation de l'energie pour la geometrie courante                     }
@@ -3175,8 +3183,8 @@ End;
 
 Procedure ModelHessian(H: PCartMat);
 Var
- N3, I, J, K, A, B, C, D1, D2: Integer;
- Rij, Rref, Rho, Rho2, R2: Real;
+ N3, I, A, B, C, D1: Integer;
+ Rij, Rref, Rho, Rho2: Real;
  V: TCartVec; U, W: TVec3; Lu, Lv, Cs, Sn: Real;
  Procedure AddOuter(Wt: Real);
  Var P, Q: Integer;
@@ -3331,6 +3339,8 @@ Begin
  OptE[0] := E; OptN := 1;
  EOld := E;
  Conv := False; Fail := False;
+ FillChar(XOld, SizeOf(XOld), 0);
+ FillChar(GOld, SizeOf(GOld), 0);
  Cyc := 0;
  While Not Conv Do Begin
   Inc(Cyc);
@@ -3469,10 +3479,10 @@ Var
  R: Array[1..MAX_AT] Of TVec3;
  Ax: Array[1..400] Of TVec3; NAx: Integer;
  Rots: Array[1..120] Of TRot; NR: Integer;
- A, B, I, J, N, K: Integer; V: TVec3; L: Real;
+ A, B, I: Integer;
 
  Procedure AddAxis(X, Y, Z: Real);
- Var Q, T: Integer; Ln2, D: Real;
+ Var Q: Integer; Ln2, D: Real;
  Begin
   Ln2 := Sqrt(X * X + Y * Y + Z * Z);
   If Ln2 < 1E-4 Then Exit;
@@ -3488,7 +3498,7 @@ Var
  End;
 
  Function MapsOnto(Const Rm: TRot): Boolean;
- Var P, Q, T: Integer; X, Y, Z: Real; Found: Boolean;
+ Var P, Q: Integer; X, Y, Z: Real; Found: Boolean;
  Begin
   MapsOnto := False;
   For P := 1 To NAt Do Begin
@@ -3590,6 +3600,7 @@ Begin
  New(H); New(HW); New(HV); New(PM); New(HC);
  FillChar(H^, SizeOf(TCartMat), 0);
  For A := 1 To NAt Do Mass[A] := ElMass[AtZ[A]];
+ FillChar(TV, SizeOf(TV), 0);
  If Not EvalEnergy(Verbose, True, E0, Err) Then Begin Release; Exit; End;
  FreqE0 := E0;
  ComputeDipole;
@@ -3748,9 +3759,9 @@ End;
 Procedure RunThermo(T: Real);
 Var
  K, A, I, J: Integer; Mt, Mi, X, Th: Real;
- Cm: TVec3; Inert: TMat; IW: Array[1..3] Of Real; IV: TMat; I3: TMat;
- R: TVec3; Lam2, QT, QR, KT: Real; NI: Integer; Idg: Array[1..3] Of Real;
- NR: Integer;
+ Cm: TVec3; Inert: TMat; IW: Array[1..3] Of Real; IV: TMat;
+ R: TVec3; Lam2, QT, QR, KT: Real; Idg: Array[1..3] Of Real;
+ 
 Begin
  ThTemp := T;
  KT := KB_HARTREE * T;
@@ -3823,26 +3834,25 @@ End;
 
 Type
  TInpLine = String[100];
+ TInpArr  = Array[0..MAX_INP-1] Of TInpLine;
+ PInpArr  = ^TInpArr;
 
 Var
- InpLines    : Array[0..MAX_INP-1] Of TInpLine;
+ InpLines    : PInpArr;
  NInp        : Integer;
  InpName     : String;
  InpModified : Boolean;
  WarnList    : Array[1..12] Of String[78];
  NWarn       : Integer;
  DoCIS       : Boolean;
+ GridUser    : Boolean;       { grille DFT imposee par l'utilisateur }
  DoPrintBasis, DoPrintMOs : Boolean;
- NumTight    : Boolean;
  CalcTemp    : Real;
  CalcErr     : String;
  CalcDone    : Boolean;       { un calcul termine existe }
  CalcOK      : Boolean;
  CalcMs      : LongInt;
- KeyLine     : String;
- GeomFromFile : String;
  ZMat        : Boolean;
- GeomNeedsHdr : Boolean;
 
 Procedure AddWarn(Const S: String);
 Begin
@@ -3880,7 +3890,7 @@ End;
 
 Function ReadXYZFile(Const FN: String; Var Err: String): Boolean;
 Var
- F: Text; L, T: String; N, I, Z: Integer; X, Y, V: Real; Code: Integer;
+ F: Text; L, T: String; N, I, Z: Integer; V: Real; Code: Integer;
 Begin
  ReadXYZFile := False;
  {$I-}
@@ -3933,7 +3943,7 @@ End;
 { place l'atome A a partir de la matrice Z (reference NA, NB, NC) }
 Procedure ZPlace(A, NA, NB, NC: Integer; R, Ang, Dih: Real);
 Var
- U, V, Nv, Mv, Pa, Pb, Pc, Bc, Ab, Cr: TVec3;
+ U, V, Nv, Mv, Pa, Pb, Pc, Bc, Ab: TVec3;
  I: Integer; L, Ct, St, Cp, Sp, D1, D2, D3: Real;
 Begin
  If NA = 0 Then Begin
@@ -3991,7 +4001,7 @@ Begin
 End;
 
 Procedure ApplyKeyword(Const Kw: String);
-Var K: String; P: Integer; Bn: String;
+Var K: String;
 Begin
  K := UpStr(Kw);
  If K = '' Then Exit;
@@ -4049,8 +4059,8 @@ Begin
  Else If K = 'NOFROZENCORE' Then FrozenCore := False
  Else If (K = 'FROZENCORE') Or (K = 'FC') Then FrozenCore := True
  Else If K = 'CIS' Then DoCIS := True
- Else If (K = 'GRID1') Or (K = 'GRID2') Or (K = 'DEFGRID1') Or (K = 'DEFGRID2') Then GridScale := 1
- Else If (K = 'GRID3') Or (K = 'GRID4') Or (K = 'GRID5') Or (K = 'GRID6') Or (K = 'DEFGRID3') Then GridScale := 2
+ Else If (K = 'GRID1') Or (K = 'GRID2') Or (K = 'DEFGRID1') Or (K = 'DEFGRID2') Then Begin GridScale := 1; GridUser := True; End
+ Else If (K = 'GRID3') Or (K = 'GRID4') Or (K = 'GRID5') Or (K = 'GRID6') Or (K = 'DEFGRID3') Then Begin GridScale := 2; GridUser := True; End
  Else If (K = 'RI') Or (K = 'NORI') Or (K = 'RIJCOSX') Or (K = 'RIJK') Or (K = 'RIJDX') Or (K = 'AUTOAUX') Or
          (K = 'NOAUTOSTART') Or (K = 'MINIPRINT') Or (K = 'NORMALPRINT') Or (K = 'LARGEPRINT') Or
          (K = 'ENGRAD') Or (K = 'NUMGRAD') Or (K = 'MOREAD') Or (K = 'NOITER') Or (K = 'NOUSEQUALS') Or
@@ -4215,7 +4225,7 @@ Begin
  Else If N = 'GRID' Then Begin
   I := 1;
   While I <= NTok Do Begin
-   If TokU(I) = 'SCALE' Then Begin If TokNum(I + 1, V) Then GridScale := Round(V); Inc(I, 2); End
+   If TokU(I) = 'SCALE' Then Begin If TokNum(I + 1, V) Then Begin GridScale := Round(V); GridUser := True; End; Inc(I, 2); End
    Else Inc(I);
   End;
  End
@@ -4228,14 +4238,14 @@ End;
 { Interprete les lignes InpLines ; remplit parametres et geometrie }
 Function ParseInput(Var Err: String): Boolean;
 Var
- I, L, N, Z, Depth, GeomStart, Code: Integer;
- S, T, U, Bn, Rest: String;
- Mode: Integer;            { 0 normal, 1 bloc, 2 coordonnees xyz, 3 coordonnees int }
+ I, N, Z, Depth, Code: Integer;
+ S, T, Bn, Rest: String;
+ 
  BlkName: String;
  GotGeom: Boolean;
  V: Real;
  ZRec: Array[1..MAX_AT] Of Record NA, NB, NC: Integer; R, Ang, Dih: Real; End;
- Nested: Boolean;
+ 
  Function IsNested(Const Tk: String): Boolean;
  Begin
   IsNested := (Tk = 'SCAN') Or (Tk = 'CONSTRAINTS') Or (Tk = 'MODIFYINTERNAL') Or (Tk = 'INVOKE');
@@ -4251,11 +4261,11 @@ Begin
  DoPrintBasis := False; DoPrintMOs := True;
  NConstr := 0; ScanOn := False;
  OptMaxCyc := 60; SetOptTol('NormalOpt');
- CalcTemp := 298.15; GridScale := 1;
+ CalcTemp := 298.15; GridScale := 1; GridUser := False;
  ZMat := False;
- Mode := 0; I := 0;
+ I := 0;
  While I < NInp Do Begin
-  S := StripComment(InpLines[I]);
+  S := StripComment(InpLines^[I]);
   S := TrimStr(S);
   Inc(I);
   If S = '' Then Continue;
@@ -4285,7 +4295,7 @@ Begin
     End;
     If Depth > 0 Then Begin
      If I >= NInp Then Begin Err := 'Bloc %' + BlkName + ' non termine (end manquant)'; Exit; End;
-     Rest := TrimStr(StripComment(InpLines[I]));
+     Rest := TrimStr(StripComment(InpLines^[I]));
      Inc(I);
     End;
    Until Depth <= 0;
@@ -4323,7 +4333,7 @@ Begin
    ZMat := (T = 'INT') Or (T = 'GZMT');
    { lecture jusqu'a la ligne * ou END }
    While I < NInp Do Begin
-    S := TrimStr(StripComment(InpLines[I]));
+    S := TrimStr(StripComment(InpLines^[I]));
     Inc(I);
     If S = '' Then Continue;
     If (S[1] = '*') Or (UpStr(S) = 'END') Then Break;
@@ -4418,7 +4428,7 @@ Procedure PrintInputEcho;
 Var I: Integer;
 Begin
  If InpName = '' Then Emit('NAME = ORCA.INP') Else Emit('NAME = ' + InpName);
- For I := 0 To NInp - 1 Do Emit('|' + FmtR(I + 1, 3, 0) + '> ' + InpLines[I]);
+ For I := 0 To NInp - 1 Do Emit('|' + FmtR(I + 1, 3, 0) + '> ' + InpLines^[I]);
  Emit('                                 ****END OF INPUT****');
  Emit('================================================================================');
  If NWarn > 0 Then Begin
@@ -4428,7 +4438,7 @@ Begin
 End;
 
 Procedure PrintBoxed(Const T: String);
-Var L, Pad: String; I: Integer;
+Var L: String; I: Integer;
 Begin
  L := '';
  For I := 1 To Length(T) + 4 Do L := L + '*';
@@ -4438,7 +4448,7 @@ Begin
 End;
 
 Procedure PrintGeometry;
-Var A, I, Na, Nb, Nc: Integer; Tot, Bd, Rv, Av, Dv: Real; C: TConstr;
+Var A, I, Na, Nb, Nc: Integer; Bd, Rv, Av, Dv: Real; C: TConstr;
 Begin
  EmitBlank;
  Emit('---------------------------------');
@@ -4554,13 +4564,13 @@ Begin
  Emit(' Max. Iterations         MaxIter         .... ' + FmtR(ScfMaxIter, 6, 0));
  If Meth = M_DFT Then Begin
   EmitBlank;
-  Emit(' Grille d''integration : Becke (radiale Gauss-Chebyshev, angulaire ' + IStr(GRID_NTH * GridScale) + 'x' +
-       IStr(2 * GRID_NTH * GridScale) + ')');
+  Emit(' Grille d''integration : Becke, ' + IStr(GridNRad) + ' points radiaux (Gauss-Chebyshev), angulaire ' +
+       IStr(GridNTheta) + 'x' + IStr(2 * GridNTheta));
  End;
 End;
 
 Procedure PrintOrbitalEnergies;
-Var K: Integer; Occ: Real; Homo, Lumo: Real;
+Var K: Integer; Occ: Real;
 Begin
  EmitBlank;
  Emit('----------------');
@@ -4626,7 +4636,7 @@ Begin
 End;
 
 Procedure PrintSCFResults;
-Var Tk, Vir, Sum: Real; A, B: Integer; Line: String;
+Var Tk, Sum: Real; A, B: Integer; Line: String;
 Begin
  EmitBlank;
  Emit('----------------');
@@ -4779,7 +4789,7 @@ Begin
 End;
 
 Procedure PrintThermoResults;
-Var Rn: Real;
+
 Begin
  EmitBlank;
  Emit('--------------------------');
@@ -4838,7 +4848,7 @@ End;
 
 Function RunScan(Var Err: String): Boolean;
 Var
- K, I, SaveN: Integer; Tgt, V0, V1: Real; C: TConstr; OK: Boolean;
+ K, I, SaveN: Integer; Tgt, V0, V1: Real; C: TConstr;
  Unit_: String;
 Begin
  RunScan := False;
@@ -4915,7 +4925,7 @@ End;
 
 Function ExecuteJob(Var Err: String): Boolean;
 Var
- T0: LongInt; E: Real; Ok: Boolean; A: Integer;
+ T0: LongInt; E: Real; Ok: Boolean;
 Begin
  ExecuteJob := False;
  CalcOK := False; CalcDone := False; UserAbort := False;
@@ -4947,6 +4957,7 @@ Begin
  End;
  If (NOccA <> NOccB) And (Not UnrestrictedFlag) And (Meth = M_HF) Then
   AddWarn('Systeme a couche ouverte : calcul UHF (non restreint).');
+ If (Meth = M_DFT) And (JobType = J_SP) And Not GridUser And (GridScale < 2) Then GridScale := 2;
  If JobType <> J_SP Then Begin
   { derivees numeriques : seuils serres }
   If ScfTolE > 1E-9 Then ScfTolE := 1E-9;
@@ -4968,6 +4979,11 @@ Begin
   If NOccA <> NOccB Then Emit(' Reference determinant : Kohn-Sham non restreint (UKS)');
  End;
  Ok := True;
+ If (Meth = M_DFT) And (JobType = J_FREQ) And Not GridUser And (GridScale < 2) Then Begin
+  GridScale := 2;
+  EmitBlank;
+  Emit('Note : grille DFT fine utilisee pour les derivees secondes.');
+ End;
  Case JobType Of
   J_SP, J_FREQ: Begin
    Ok := EvalEnergy(True, False, E, Err);
@@ -4998,11 +5014,19 @@ Begin
     Emit('--------------------------------------------------------------------------------');
     Emit('                FINAL ENERGY EVALUATION AT THE STATIONARY POINT');
     Emit('--------------------------------------------------------------------------------');
+    If (Meth = M_DFT) And Not GridUser And (GridScale < 2) Then Begin
+     GridScale := 2;
+     Emit('Note : grille DFT fine pour l''evaluation finale (et les frequences).');
+     Ok := EvalEnergy(True, True, E, Err);
+    End;
+   End;
+   If Ok Then Begin
     FinishScf; PrintSCFResults;
     If Meth = M_MP2 Then PrintMP2Results;
     If DoCIS Then Begin RunCIS; PrintCISResults; End;
     PrintFinalEnergy;
-    SaveXYZ(ChangeExt(InpName, '.xyz'), 'Geometrie optimisee par ORCA Clone - E = ' + RStr(ETot, 8) + ' Eh');
+    If InpName = '' Then SaveXYZ('ORCA.XYZ', 'Geometrie optimisee par ORCA Clone - E = ' + RStr(ETot, 8) + ' Eh')
+    Else SaveXYZ(ChangeExt(InpName, '.xyz'), 'Geometrie optimisee par ORCA Clone - E = ' + RStr(ETot, 8) + ' Eh');
     If JobType = J_OPTFREQ Then Begin
      Ok := RunFreq(False, Err);
      If Ok Then Begin
@@ -5057,7 +5081,7 @@ Begin
   ReadLn(F, L);
   { enleve CR eventuel et tabulations }
   While (Length(L) > 0) And (L[Length(L)] < ' ') Do Delete(L, Length(L), 1);
-  InpLines[N] := Copy(L, 1, 100);
+  InpLines^[N] := Copy(L, 1, 100);
   Inc(N);
  End;
  Close(F);
@@ -5075,7 +5099,7 @@ Begin
  Assign(F, FN); Rewrite(F);
  {$I+}
  If IOResult <> 0 Then Exit;
- For I := 0 To NInp - 1 Do WriteLn(F, InpLines[I]);
+ For I := 0 To NInp - 1 Do WriteLn(F, InpLines^[I]);
  Close(F);
  InpName := FN;
  InpModified := False;
@@ -5113,9 +5137,13 @@ Const
  MAX_ROWS = 16;
  {$ENDIF}
 
+Type
+ PMenuArr = ^TMenuArr;
+ TMenuArr = Array[0..NUM_MENUS-1] Of TMenu;
+
 Var
  ScreenWidth, ScreenHeight : Integer;
- Menus       : Array[0..NUM_MENUS-1] Of TMenu;
+ Menus       : PMenuArr;
  MenuBarHeight : Integer;
  MenuActive  : Boolean;
  ActiveMenu, ActiveMenuItem : Integer;
@@ -5184,9 +5212,9 @@ Var I, X, W : Integer;
 Begin
  X := 6;
  For I := 0 To NUM_MENUS - 1 Do Begin
-  W := 8 * Length(Menus[I].Title);
-  Menus[I].X := X;
-  Menus[I].Y := 0;
+  W := 8 * Length(Menus^[I].Title);
+  Menus^[I].X := X;
+  Menus^[I].Y := 0;
   X := X + W + 14;
  End;
  MenuBarHeight := MENUBAR_H;
@@ -5203,14 +5231,14 @@ Begin
  SetColor(DarkGray);
  Line(0, MenuBarHeight - 1, ScreenWidth - 1, MenuBarHeight - 1);
  For I := 0 To NUM_MENUS - 1 Do Begin
-  W := 8 * Length(Menus[I].Title);
+  W := 8 * Length(Menus^[I].Title);
   If MenuActive And (ActiveMenu = I) Then Begin
    SetFillStyle(SolidFill, Blue);
-   Bar(Menus[I].X - 3, Menus[I].Y + 2, Menus[I].X + W + 3, Menus[I].Y + MENUBAR_H - 3);
+   Bar(Menus^[I].X - 3, Menus^[I].Y + 2, Menus^[I].X + W + 3, Menus^[I].Y + MENUBAR_H - 3);
    SetColor(White);
   End
   Else SetColor(Black);
-  OutTextXY(Menus[I].X, Menus[I].Y + 6, Menus[I].Title);
+  OutTextXY(Menus^[I].X, Menus^[I].Y + 6, Menus^[I].Title);
  End;
 End;
 
@@ -5223,18 +5251,18 @@ Begin
  SetTextStyle(DefaultFont, HorizDir, 1);
  ItemHeight := 16;
  Wmax := 0;
- For I := 0 To Menus[MenuIdx].ItemCount - 1 Do Begin
-  Cap := Menus[MenuIdx].Items[I].Caption;
-  Sc  := Menus[MenuIdx].Items[I].Shortcut;
+ For I := 0 To Menus^[MenuIdx].ItemCount - 1 Do Begin
+  Cap := Menus^[MenuIdx].Items[I].Caption;
+  Sc  := Menus^[MenuIdx].Items[I].Shortcut;
   W := TextWidth(Cap) + 30 + TextWidth(Sc) + 12;
   If W > Wmax Then Wmax := W;
  End;
  If Wmax < 180 Then Wmax := 180;
- Menus[MenuIdx].Width := Wmax;
- X := Menus[MenuIdx].X - 3;
- Y := Menus[MenuIdx].Y + MENUBAR_H;
+ Menus^[MenuIdx].Width := Wmax;
+ X := Menus^[MenuIdx].X - 3;
+ Y := Menus^[MenuIdx].Y + MENUBAR_H;
  W := Wmax;
- H := Menus[MenuIdx].ItemCount * ItemHeight + 4;
+ H := Menus^[MenuIdx].ItemCount * ItemHeight + 4;
  If X + W >= ScreenWidth Then X := ScreenWidth - W - 2;
  SetFillStyle(SolidFill, LightGray);
  Bar(X, Y, X + W, Y + H);
@@ -5245,8 +5273,8 @@ Begin
  SetColor(Black);
  Line(X + W + 1, Y + 1, X + W + 1, Y + H + 1);
  Line(X + 1, Y + H + 1, X + W + 1, Y + H + 1);
- For I := 0 To Menus[MenuIdx].ItemCount - 1 Do Begin
-  If Menus[MenuIdx].Items[I].Separator Then Begin
+ For I := 0 To Menus^[MenuIdx].ItemCount - 1 Do Begin
+  If Menus^[MenuIdx].Items[I].Separator Then Begin
    SetColor(DarkGray);
    Line(X + 4, Y + 2 + I * ItemHeight + ItemHeight Div 2,
         X + W - 4, Y + 2 + I * ItemHeight + ItemHeight Div 2);
@@ -5258,13 +5286,13 @@ Begin
     SetColor(White);
    End
    Else Begin
-    If Menus[MenuIdx].Items[I].Enabled Then SetColor(Black)
+    If Menus^[MenuIdx].Items[I].Enabled Then SetColor(Black)
     Else SetColor(DarkGray);
    End;
-   If Menus[MenuIdx].Items[I].Checked Then
+   If Menus^[MenuIdx].Items[I].Checked Then
     OutTextXY(X + 5, Y + 4 + I * ItemHeight, #251);
-   OutTextXY(X + 22, Y + 4 + I * ItemHeight, Menus[MenuIdx].Items[I].Caption);
-   Sc := Menus[MenuIdx].Items[I].Shortcut;
+   OutTextXY(X + 22, Y + 4 + I * ItemHeight, Menus^[MenuIdx].Items[I].Caption);
+   Sc := Menus^[MenuIdx].Items[I].Shortcut;
    If Sc <> '' Then Begin
     WSc := TextWidth(Sc);
     OutTextXY(X + W - WSc - 8, Y + 4 + I * ItemHeight, Sc);
@@ -5279,8 +5307,8 @@ Begin
  MenuBarHitTest := -1;
  If My >= MenuBarHeight Then Exit;
  For I := 0 To NUM_MENUS - 1 Do Begin
-  X1 := Menus[I].X - 3;
-  X2 := Menus[I].X + 8 * Length(Menus[I].Title) + 3;
+  X1 := Menus^[I].X - 3;
+  X2 := Menus^[I].X + 8 * Length(Menus^[I].Title) + 3;
   If (Mx >= X1) And (Mx <= X2) Then Begin
    MenuBarHitTest := I; Exit;
   End;
@@ -5292,14 +5320,14 @@ Var Idx, Top, Bot, X, W: Integer;
 Begin
  MenuItemHitTest := -1;
  If (MenuIdx < 0) Or (MenuIdx >= NUM_MENUS) Then Exit;
- Top := Menus[MenuIdx].Y + MENUBAR_H;
- Bot := Top + Menus[MenuIdx].ItemCount * 16 + 4;
- X := Menus[MenuIdx].X - 3;
- W := Menus[MenuIdx].Width;
+ Top := Menus^[MenuIdx].Y + MENUBAR_H;
+ Bot := Top + Menus^[MenuIdx].ItemCount * 16 + 4;
+ X := Menus^[MenuIdx].X - 3;
+ W := Menus^[MenuIdx].Width;
  If X + W >= ScreenWidth Then X := ScreenWidth - W - 2;
  If (Mx < X) Or (Mx > X + W) Or (My < Top) Or (My > Bot) Then Exit;
  Idx := (My - Top - 2) Div 16;
- If (Idx < 0) Or (Idx >= Menus[MenuIdx].ItemCount) Then Exit;
+ If (Idx < 0) Or (Idx >= Menus^[MenuIdx].ItemCount) Then Exit;
  MenuItemHitTest := Idx;
 End;
 
@@ -5307,7 +5335,7 @@ Procedure MenuNextItem(Step: Integer);
 Var N, I: Integer;
 Begin
  If (ActiveMenu < 0) Or (ActiveMenu >= NUM_MENUS) Then Exit;
- N := Menus[ActiveMenu].ItemCount;
+ N := Menus^[ActiveMenu].ItemCount;
  If N <= 0 Then Exit;
  If ActiveMenuItem < 0 Then Begin
   If Step > 0 Then ActiveMenuItem := -1 Else ActiveMenuItem := N;
@@ -5316,7 +5344,7 @@ Begin
   ActiveMenuItem := ActiveMenuItem + Step;
   If ActiveMenuItem < 0 Then ActiveMenuItem := N - 1;
   If ActiveMenuItem >= N Then ActiveMenuItem := 0;
-  If Not Menus[ActiveMenu].Items[ActiveMenuItem].Separator Then Exit;
+  If Not Menus^[ActiveMenu].Items[ActiveMenuItem].Separator Then Exit;
  End;
 End;
 
@@ -5331,10 +5359,15 @@ Const
  MAX_TL = 110;
  {$ENDIF}
 
+Type
+ TTLine = String[72];
+ TTLArr = Array[0..MAX_TL - 1] Of TTLine;
+ PTLArr = ^TTLArr;
+
 Var
  DlgOldLeft : Boolean;
  DlgHappened : Boolean;
- TLines     : Array[0..MAX_TL - 1] Of String[72];
+ TLines     : PTLArr;
  NTL        : Integer;
 
 Procedure DlgBegin;
@@ -5578,7 +5611,7 @@ Begin
      SetColor(White);
     End
     Else SetColor(Black);
-    OutTextXY(LX1 + 4, Y, TLines[Top + I]);
+    OutTextXY(LX1 + 4, Y, TLines^[Top + I]);
    End;
    ShowMouseCursor;
    Redraw := False;
@@ -6089,15 +6122,14 @@ End;
 Procedure TAdd(Const S: String);
 Begin
  If NTL < MAX_TL Then Begin
-  TLines[NTL] := Copy(S, 1, 72);
+  TLines^[NTL] := Copy(S, 1, 72);
   Inc(NTL);
  End;
 End;
 
 Procedure TView(Const Title: String);
-Var R: Integer;
 Begin
- R := ListDialog(Title, False);
+ If ListDialog(Title, False) < 0 Then ;
 End;
 
 { --------------------------------------------------------------------- }
@@ -6210,6 +6242,7 @@ Var
  End;
 
 Begin
+ XP0 := 0; YP0 := 0;
  X1 := 24; Y1 := 16; X2 := ScreenWidth - 24; Y2 := ScreenHeight - 16;
  PX1 := X1 + 62; PX2 := X2 - 18; PY1 := Y1 + 40; PY2 := Y2 - 100;
  BBY2 := Y2 - 8; BBY1 := BBY2 - BH;
@@ -6306,7 +6339,7 @@ Begin
  DrawButton(BOk1, BBY1, BOk1 + BW, BBY2, 'Fermer', True);
  ShowMouseCursor;
  DlgBegin;
- Done := False; OldMX := -1; OldMY := -1; Info := '';
+ Done := False; OldMX := -1; OldMY := -1; Info := ''; XP0 := 0; YP0 := 0;
  While Not Done Do Begin
   If DlgPoll(Key, MX, MY, Click) Then Begin
    If (Key = 13) Or (Key = 27) Or (Key = 32) Then Done := True;
@@ -6412,7 +6445,7 @@ Var
 
 Procedure EnsureOneLine;
 Begin
- If NInp < 1 Then Begin NInp := 1; InpLines[0] := ''; End;
+ If NInp < 1 Then Begin NInp := 1; InpLines^[0] := ''; End;
 End;
 
 Procedure MarkModified;
@@ -6437,15 +6470,15 @@ Begin
  If CurLn < 0 Then CurLn := 0;
  If CurLn >= NInp Then CurLn := NInp - 1;
  If CurCol < 0 Then CurCol := 0;
- If CurCol > Length(InpLines[CurLn]) Then CurCol := Length(InpLines[CurLn]);
+ If CurCol > Length(InpLines^[CurLn]) Then CurCol := Length(InpLines^[CurLn]);
 End;
 
 Procedure EdInsertLine(At: Integer; Const S: String);
 Var I: Integer;
 Begin
  If NInp >= MAX_INP Then Exit;
- For I := NInp DownTo At + 1 Do InpLines[I] := InpLines[I - 1];
- InpLines[At] := Copy(S, 1, 100);
+ For I := NInp DownTo At + 1 Do InpLines^[I] := InpLines^[I - 1];
+ InpLines^[At] := Copy(S, 1, 100);
  Inc(NInp);
 End;
 
@@ -6453,7 +6486,7 @@ Procedure EdDeleteLine(At: Integer);
 Var I: Integer;
 Begin
  If (At < 0) Or (At >= NInp) Then Exit;
- For I := At To NInp - 2 Do InpLines[I] := InpLines[I + 1];
+ For I := At To NInp - 2 Do InpLines^[I] := InpLines^[I + 1];
  Dec(NInp);
  EnsureOneLine;
 End;
@@ -6462,11 +6495,11 @@ Procedure EdTypeChar(C: Char);
 Var L: String;
 Begin
  EdClamp;
- L := InpLines[CurLn];
+ L := InpLines^[CurLn];
  If Length(L) >= 100 Then Exit;
  If InsertMode Or (CurCol >= Length(L)) Then Insert(C, L, CurCol + 1)
  Else L[CurCol + 1] := C;
- InpLines[CurLn] := L;
+ InpLines^[CurLn] := L;
  Inc(CurCol);
  MarkModified;
 End;
@@ -6475,12 +6508,12 @@ Procedure EdEnter;
 Var L, Rest: String; Ind: Integer;
 Begin
  EdClamp;
- L := InpLines[CurLn];
+ L := InpLines^[CurLn];
  Rest := Copy(L, CurCol + 1, 100);
  Ind := 0;
  While (Ind < Length(L)) And (L[Ind + 1] = ' ') And (Ind < CurCol) Do Inc(Ind);
  Rest := Copy('                                        ', 1, Ind) + Rest;
- InpLines[CurLn] := Copy(L, 1, CurCol);
+ InpLines^[CurLn] := Copy(L, 1, CurCol);
  EdInsertLine(CurLn + 1, Rest);
  Inc(CurLn); CurCol := Ind;
  MarkModified;
@@ -6491,15 +6524,15 @@ Var L: String;
 Begin
  EdClamp;
  If CurCol > 0 Then Begin
-  L := InpLines[CurLn];
+  L := InpLines^[CurLn];
   Delete(L, CurCol, 1);
-  InpLines[CurLn] := L;
+  InpLines^[CurLn] := L;
   Dec(CurCol);
   MarkModified;
  End
  Else If CurLn > 0 Then Begin
-  CurCol := Length(InpLines[CurLn - 1]);
-  InpLines[CurLn - 1] := Copy(InpLines[CurLn - 1] + InpLines[CurLn], 1, 100);
+  CurCol := Length(InpLines^[CurLn - 1]);
+  InpLines^[CurLn - 1] := Copy(InpLines^[CurLn - 1] + InpLines^[CurLn], 1, 100);
   EdDeleteLine(CurLn);
   Dec(CurLn);
   MarkModified;
@@ -6510,14 +6543,14 @@ Procedure EdDelete;
 Var L: String;
 Begin
  EdClamp;
- L := InpLines[CurLn];
+ L := InpLines^[CurLn];
  If CurCol < Length(L) Then Begin
   Delete(L, CurCol + 1, 1);
-  InpLines[CurLn] := L;
+  InpLines^[CurLn] := L;
   MarkModified;
  End
  Else If CurLn < NInp - 1 Then Begin
-  InpLines[CurLn] := Copy(L + InpLines[CurLn + 1], 1, 100);
+  InpLines^[CurLn] := Copy(L + InpLines^[CurLn + 1], 1, 100);
   EdDeleteLine(CurLn + 1);
   MarkModified;
  End;
@@ -6525,15 +6558,15 @@ End;
 
 Procedure EdClear;
 Begin
- NInp := 1; InpLines[0] := '';
+ NInp := 1; InpLines^[0] := '';
  CurLn := 0; CurCol := 0; TopLn := 0; LeftCol := 0;
  MarkModified;
 End;
 
 Procedure EdAppend(Const S: String);
 Begin
- If (NInp = 1) And (InpLines[0] = '') Then Begin InpLines[0] := Copy(S, 1, 100); End
- Else If NInp < MAX_INP Then Begin InpLines[NInp] := Copy(S, 1, 100); Inc(NInp); End;
+ If (NInp = 1) And (InpLines^[0] = '') Then Begin InpLines^[0] := Copy(S, 1, 100); End
+ Else If NInp < MAX_INP Then Begin InpLines^[NInp] := Copy(S, 1, 100); Inc(NInp); End;
 End;
 
 { --------------------------------------------------------------------- }
@@ -6731,13 +6764,13 @@ Var
  X: Array[1..MAX_AT, 1..3] Of Real;
  P: Array[1..MAX_AT, 1..3] Of Real;
  SX, SY: Array[1..MAX_AT] Of Integer;
- Cm: Array[1..3] Of Real; Rmax, Sc, D, Mx, DispAmp, Ph: Real;
+ Cm: Array[1..3] Of Real; Rmax, Sc, D: Real;
  BA, BB: Array[1..MAXB] Of Integer;
  ItK, ItA, ItB: Array[1..MAX_AT + MAXB] Of Integer;
  ItZ: Array[1..MAX_AT + MAXB] Of Real;
  Tz: Real; Tk, Ta, Tb: Integer; Msg, Lab: String;
  UseRes: Boolean; V: Array[1..3] Of Real; DV: Array[1..MAX_AT, 1..3] Of Real; MaxD, Fc: Real;
- RadF: Real; Thick: Integer;
+ Thick: Integer;
 Begin
  SetViewPort(VW_X1, VW_Y1, VW_X2, VW_Y2, True);
  SetFillStyle(SolidFill, Black);
@@ -6984,7 +7017,7 @@ Begin
   I := TopLn + Row;
   If I >= NInp Then Break;
   Y := 3 + Row * 10;
-  L := InpLines[I];
+  L := InpLines^[I];
   S := Copy(L, LeftCol + 1, ED_CHARS);
   T := TrimStr(L);
   If Length(T) > 0 Then Begin
@@ -7093,7 +7126,7 @@ End;
 { --------------------------------------------------------------------- }
 
 Procedure DrawStatusBar;
-Var Y, W, MaxC, K: Integer; S, R: String;
+Var Y, W, K: Integer; R: String;
 Begin
  Y := ScreenHeight - STATUS_H;
  SetFillStyle(SolidFill, LightGray);
@@ -7534,7 +7567,7 @@ Var
  Ext, Offs, Psi, Rho, Su, Sv, Dd: Real;
  Idx: TIdxArr; Phi, GX, GY, GZ: TAOVals; Cm2: PMat;
  Col: Integer; Lbl: String; Mx2: Array[1..3] Of TVec3;
- Rmax, Dist2: Real; CurOrb: Integer;
+ Rmax: Real; CurOrb: Integer;
  Function Level(V: Real): Integer;
  Begin
   V := Abs(V);
@@ -7689,8 +7722,8 @@ Const BW = 90; BH = 22;
 Var
  X1, Y1, X2, Y2, I, K, Sel, Key, MX, MY, BCl, BCu, BBY1, BBY2, YL, LY1, LY2, Top, MaxLn, Spin: Integer;
  Click, Done, Redraw: Boolean;
- Eo: TVecN; NO, LastLab: Integer; ELo, EHi, Sc, Y: Real; S: String; A: Integer;
- Cm2: PMat;
+ Eo: TVecN; NO, LastLab: Integer; ELo, EHi, Sc: Real; S: String; A: Integer;
+ 
 Begin
  If Not NeedResult Then Exit;
  If Not OrbsValid Then Begin ShowMessage('Orbitales', 'Orbitales indisponibles (calcul non converge).'); Exit; End;
@@ -7817,7 +7850,7 @@ Var I: Integer; T: String;
 Begin
  FindBangLine := -1;
  For I := 0 To NInp - 1 Do Begin
-  T := TrimStr(InpLines[I]);
+  T := TrimStr(InpLines^[I]);
   If (Length(T) > 0) And (T[1] = '!') Then Begin FindBangLine := I; Exit; End;
  End;
 End;
@@ -7827,7 +7860,7 @@ Var I: Integer; S, T: String;
 Begin
  FindCoordLine := -1;
  For I := 0 To NInp - 1 Do Begin
-  S := TrimStr(InpLines[I]);
+  S := TrimStr(InpLines^[I]);
   If (Length(S) > 0) And (S[1] = '*') Then Begin
    Delete(S, 1, 1); T := UpStr(NextTok(S));
    If (T = 'XYZ') Or (T = 'INT') Or (T = 'XYZFILE') Or (T = 'GZMT') Then Begin FindCoordLine := I; Exit; End;
@@ -7840,13 +7873,13 @@ Var B: Integer;
 Begin
  B := FindBangLine;
  If B < 0 Then Begin EdInsertLine(0, '! ' + Kw); CurLn := 0; End
- Else InpLines[B] := Copy(InpLines[B] + ' ' + Kw, 1, 100);
+ Else InpLines^[B] := Copy(InpLines^[B] + ' ' + Kw, 1, 100);
  MarkModified;
 End;
 
 Procedure AssistantDialog;
 Var
- Err: String; B, C, Mi, Ji, Si, I: Integer; Line, Rest, T, U: String; Kw: String;
+ Err: String; B, C, Mi, Ji, Si: Integer; Line, U, T: String; Kw: String;
 Begin
  PreviewInput;
  { valeurs actuelles }
@@ -7875,7 +7908,7 @@ Begin
  PAddI('Multiplicite (2S+1)', Mult, 1, 7);
  PAddH('Convergence');
  PAddE('Convergence SCF', Si, 'NormalSCF|TightSCF|VeryTightSCF');
- PAddE('Grille DFT', GridScale - 1, 'Normale|Fine (lente)');
+ PAddE('Grille DFT', Ord(GridUser And (GridScale > 1)), 'Automatique|Fine (lente)');
  If Not ParamDialog('Assistant de calcul ORCA', 'Met a jour la ligne "!" et la ligne "* xyz" du fichier.') Then Exit;
  Kw := '! ';
  Case PInt(1) Of
@@ -7901,17 +7934,17 @@ Begin
  If PBool(5) Then Kw := Kw + ' CIS';
  If PInt(11) = 1 Then Kw := Kw + ' Grid3';
  B := FindBangLine;
- If B >= 0 Then InpLines[B] := Copy(Kw, 1, 100)
+ If B >= 0 Then InpLines^[B] := Copy(Kw, 1, 100)
  Else Begin EdInsertLine(0, Kw); End;
  C := FindCoordLine;
  If C >= 0 Then Begin
-  Line := TrimStr(InpLines[C]); Delete(Line, 1, 1);
+  Line := TrimStr(InpLines^[C]); Delete(Line, 1, 1);
   U := NextTok(Line);
   If UpStr(U) = 'XYZFILE' Then Begin
    T := NextTok(Line); T := NextTok(Line);
-   InpLines[C] := '* xyzfile ' + IStr(PInt(7)) + ' ' + IStr(PInt(8)) + ' ' + TrimStr(Line);
+   InpLines^[C] := '* xyzfile ' + IStr(PInt(7)) + ' ' + IStr(PInt(8)) + ' ' + TrimStr(Line);
   End
-  Else InpLines[C] := '* ' + LoStr(U) + ' ' + IStr(PInt(7)) + ' ' + IStr(PInt(8));
+  Else InpLines^[C] := '* ' + LoStr(U) + ' ' + IStr(PInt(7)) + ' ' + IStr(PInt(8));
  End;
  MarkModified;
 End;
@@ -8219,7 +8252,7 @@ Begin
  TAdd('          Ctrl+N/O/S nouveau/ouvrir/enregistrer');
  TAdd('          Ctrl+Y supprimer la ligne   Ctrl+Q quitter');
  TAdd('Souris  : glisser dans la vue pour tourner la molecule');
- TAdd('          touches + et - pour le zoom, R pour reinitialiser');
+ TAdd('          F7/F8 : zoom   F9 : reinitialiser la vue');
  TAdd('Echap interrompt un calcul en cours.');
  TView('Aide - ORCA Clone');
 End;
@@ -8285,129 +8318,129 @@ End;
 Procedure InitMenus;
 Var I: Integer;
 Begin
- ZeroMenu(Menus[MENU_FILE]);
- Menus[MENU_FILE].Title := 'Fichier';
- Menus[MENU_FILE].ItemCount := 10;
- MI(Menus[MENU_FILE], 0, 'Nouveau', 'Ctrl+N');
- MI(Menus[MENU_FILE], 1, 'Ouvrir un fichier .inp...', 'Ctrl+O');
- MI(Menus[MENU_FILE], 2, 'Importer une geometrie XYZ...', '');
- MI(Menus[MENU_FILE], 3, 'Enregistrer', 'Ctrl+S');
- MI(Menus[MENU_FILE], 4, 'Enregistrer sous...', '');
- MSep(Menus[MENU_FILE], 5);
- MI(Menus[MENU_FILE], 6, 'Enregistrer la sortie (.out)...', '');
- MI(Menus[MENU_FILE], 7, 'Exporter la geometrie (.xyz)...', '');
- MSep(Menus[MENU_FILE], 8);
- MI(Menus[MENU_FILE], 9, 'Quitter', 'Ctrl+Q');
+ ZeroMenu(Menus^[MENU_FILE]);
+ Menus^[MENU_FILE].Title := 'Fichier';
+ Menus^[MENU_FILE].ItemCount := 10;
+ MI(Menus^[MENU_FILE], 0, 'Nouveau', 'Ctrl+N');
+ MI(Menus^[MENU_FILE], 1, 'Ouvrir un fichier .inp...', 'Ctrl+O');
+ MI(Menus^[MENU_FILE], 2, 'Importer une geometrie XYZ...', '');
+ MI(Menus^[MENU_FILE], 3, 'Enregistrer', 'Ctrl+S');
+ MI(Menus^[MENU_FILE], 4, 'Enregistrer sous...', '');
+ MSep(Menus^[MENU_FILE], 5);
+ MI(Menus^[MENU_FILE], 6, 'Enregistrer la sortie (.out)...', '');
+ MI(Menus^[MENU_FILE], 7, 'Exporter la geometrie (.xyz)...', '');
+ MSep(Menus^[MENU_FILE], 8);
+ MI(Menus^[MENU_FILE], 9, 'Quitter', 'Ctrl+Q');
 
- ZeroMenu(Menus[MENU_EDIT]);
- Menus[MENU_EDIT].Title := 'Edition';
- Menus[MENU_EDIT].ItemCount := 9;
- MI(Menus[MENU_EDIT], 0, 'Assistant de calcul...', 'F2');
- MI(Menus[MENU_EDIT], 1, 'Inserer un mot-cle...', '');
- MI(Menus[MENU_EDIT], 2, 'Geometrie finale -> entree', '');
- MSep(Menus[MENU_EDIT], 3);
- MI(Menus[MENU_EDIT], 4, 'Supprimer la ligne', 'Ctrl+Y');
- MI(Menus[MENU_EDIT], 5, 'Tout effacer', '');
- MI(Menus[MENU_EDIT], 6, 'Aller a la ligne...', 'Ctrl+G');
- MI(Menus[MENU_EDIT], 7, 'Mode insertion / ecrasement', 'Inser');
- MI(Menus[MENU_EDIT], 8, 'Commenter / decommenter', 'Ctrl+K');
+ ZeroMenu(Menus^[MENU_EDIT]);
+ Menus^[MENU_EDIT].Title := 'Edition';
+ Menus^[MENU_EDIT].ItemCount := 9;
+ MI(Menus^[MENU_EDIT], 0, 'Assistant de calcul...', 'F2');
+ MI(Menus^[MENU_EDIT], 1, 'Inserer un mot-cle...', '');
+ MI(Menus^[MENU_EDIT], 2, 'Geometrie finale -> entree', '');
+ MSep(Menus^[MENU_EDIT], 3);
+ MI(Menus^[MENU_EDIT], 4, 'Supprimer la ligne', 'Ctrl+Y');
+ MI(Menus^[MENU_EDIT], 5, 'Tout effacer', '');
+ MI(Menus^[MENU_EDIT], 6, 'Aller a la ligne...', 'Ctrl+G');
+ MI(Menus^[MENU_EDIT], 7, 'Mode insertion / ecrasement', 'Inser');
+ MI(Menus^[MENU_EDIT], 8, 'Commenter / decommenter', 'Ctrl+K');
 
- ZeroMenu(Menus[MENU_CALC]);
- Menus[MENU_CALC].Title := 'Calcul';
- Menus[MENU_CALC].ItemCount := 6;
- MI(Menus[MENU_CALC], 0, 'Executer', 'F5');
- MSep(Menus[MENU_CALC], 1);
- MI(Menus[MENU_CALC], 2, 'Options SCF et DFT...', '');
- MI(Menus[MENU_CALC], 3, 'Options d''optimisation...', '');
- MI(Menus[MENU_CALC], 4, 'Etats excites (CIS)...', '');
- MI(Menus[MENU_CALC], 5, 'Temperature thermochimie...', '');
+ ZeroMenu(Menus^[MENU_CALC]);
+ Menus^[MENU_CALC].Title := 'Calcul';
+ Menus^[MENU_CALC].ItemCount := 6;
+ MI(Menus^[MENU_CALC], 0, 'Executer', 'F5');
+ MSep(Menus^[MENU_CALC], 1);
+ MI(Menus^[MENU_CALC], 2, 'Options SCF et DFT...', '');
+ MI(Menus^[MENU_CALC], 3, 'Options d''optimisation...', '');
+ MI(Menus^[MENU_CALC], 4, 'Etats excites (CIS)...', '');
+ MI(Menus^[MENU_CALC], 5, 'Temperature thermochimie...', '');
 
- ZeroMenu(Menus[MENU_RES]);
- Menus[MENU_RES].Title := 'Resultats';
- Menus[MENU_RES].ItemCount := 17;
- MI(Menus[MENU_RES], 0, 'Sortie ORCA (.out)', 'F3');
- MI(Menus[MENU_RES], 1, 'Resume des energies', '');
- MI(Menus[MENU_RES], 2, 'Orbitales moleculaires', 'F6');
- MI(Menus[MENU_RES], 3, 'Coupe d''orbitale / densite', '');
- MI(Menus[MENU_RES], 4, 'Charges, populations et dipole', '');
- MSep(Menus[MENU_RES], 5);
- MI(Menus[MENU_RES], 6, 'Frequences (animation)', '');
- MI(Menus[MENU_RES], 7, 'Spectre infrarouge', 'F4');
- MI(Menus[MENU_RES], 8, 'Thermochimie', '');
- MSep(Menus[MENU_RES], 9);
- MI(Menus[MENU_RES], 10, 'Etats excites CIS', '');
- MI(Menus[MENU_RES], 11, 'Spectre UV-visible', '');
- MSep(Menus[MENU_RES], 12);
- MI(Menus[MENU_RES], 13, 'Convergence du SCF', '');
- MI(Menus[MENU_RES], 14, 'Courbe d''optimisation', '');
- MI(Menus[MENU_RES], 15, 'Surface d''energie (scan)', '');
- MI(Menus[MENU_RES], 16, 'Resume du calcul', '');
+ ZeroMenu(Menus^[MENU_RES]);
+ Menus^[MENU_RES].Title := 'Resultats';
+ Menus^[MENU_RES].ItemCount := 17;
+ MI(Menus^[MENU_RES], 0, 'Sortie ORCA (.out)', 'F3');
+ MI(Menus^[MENU_RES], 1, 'Resume des energies', '');
+ MI(Menus^[MENU_RES], 2, 'Orbitales moleculaires', 'F6');
+ MI(Menus^[MENU_RES], 3, 'Coupe d''orbitale / densite', '');
+ MI(Menus^[MENU_RES], 4, 'Charges, populations et dipole', '');
+ MSep(Menus^[MENU_RES], 5);
+ MI(Menus^[MENU_RES], 6, 'Frequences (animation)', '');
+ MI(Menus^[MENU_RES], 7, 'Spectre infrarouge', 'F4');
+ MI(Menus^[MENU_RES], 8, 'Thermochimie', '');
+ MSep(Menus^[MENU_RES], 9);
+ MI(Menus^[MENU_RES], 10, 'Etats excites CIS', '');
+ MI(Menus^[MENU_RES], 11, 'Spectre UV-visible', '');
+ MSep(Menus^[MENU_RES], 12);
+ MI(Menus^[MENU_RES], 13, 'Convergence du SCF', '');
+ MI(Menus^[MENU_RES], 14, 'Courbe d''optimisation', '');
+ MI(Menus^[MENU_RES], 15, 'Surface d''energie (scan)', '');
+ MI(Menus^[MENU_RES], 16, 'Resume du calcul', '');
 
- ZeroMenu(Menus[MENU_VIEW]);
- Menus[MENU_VIEW].Title := 'Affichage';
- Menus[MENU_VIEW].ItemCount := 16;
- MI(Menus[MENU_VIEW], 0, 'Fil de fer', '');
- MI(Menus[MENU_VIEW], 1, 'Batonnets', '');
- MI(Menus[MENU_VIEW], 2, 'Boules et batons', '');
- MI(Menus[MENU_VIEW], 3, 'Spheres (CPK)', '');
- MSep(Menus[MENU_VIEW], 4);
- MI(Menus[MENU_VIEW], 5, 'Symboles des atomes', '');
- MI(Menus[MENU_VIEW], 6, 'Numeros des atomes', '');
- MI(Menus[MENU_VIEW], 7, 'Charges de Mulliken', '');
- MI(Menus[MENU_VIEW], 8, 'Axes', '');
- MSep(Menus[MENU_VIEW], 9);
- MI(Menus[MENU_VIEW], 10, 'Reinitialiser la vue', 'F9');
- MI(Menus[MENU_VIEW], 11, 'Agrandir', 'F7');
- MI(Menus[MENU_VIEW], 12, 'Reduire', 'F8');
- MSep(Menus[MENU_VIEW], 13);
- MI(Menus[MENU_VIEW], 14, 'Animer un mode de vibration', '');
- MI(Menus[MENU_VIEW], 15, 'Arreter l''animation', '');
+ ZeroMenu(Menus^[MENU_VIEW]);
+ Menus^[MENU_VIEW].Title := 'Affichage';
+ Menus^[MENU_VIEW].ItemCount := 16;
+ MI(Menus^[MENU_VIEW], 0, 'Fil de fer', '');
+ MI(Menus^[MENU_VIEW], 1, 'Batonnets', '');
+ MI(Menus^[MENU_VIEW], 2, 'Boules et batons', '');
+ MI(Menus^[MENU_VIEW], 3, 'Spheres (CPK)', '');
+ MSep(Menus^[MENU_VIEW], 4);
+ MI(Menus^[MENU_VIEW], 5, 'Symboles des atomes', '');
+ MI(Menus^[MENU_VIEW], 6, 'Numeros des atomes', '');
+ MI(Menus^[MENU_VIEW], 7, 'Charges de Mulliken', '');
+ MI(Menus^[MENU_VIEW], 8, 'Axes', '');
+ MSep(Menus^[MENU_VIEW], 9);
+ MI(Menus^[MENU_VIEW], 10, 'Reinitialiser la vue', 'F9');
+ MI(Menus^[MENU_VIEW], 11, 'Agrandir', 'F7');
+ MI(Menus^[MENU_VIEW], 12, 'Reduire', 'F8');
+ MSep(Menus^[MENU_VIEW], 13);
+ MI(Menus^[MENU_VIEW], 14, 'Animer un mode de vibration', '');
+ MI(Menus^[MENU_VIEW], 15, 'Arreter l''animation', '');
 
- ZeroMenu(Menus[MENU_EXAMPLE]);
- Menus[MENU_EXAMPLE].Title := 'Exemples';
- Menus[MENU_EXAMPLE].ItemCount := NUM_EX;
- For I := 0 To NUM_EX - 1 Do MI(Menus[MENU_EXAMPLE], I, ExTitle[I], '');
+ ZeroMenu(Menus^[MENU_EXAMPLE]);
+ Menus^[MENU_EXAMPLE].Title := 'Exemples';
+ Menus^[MENU_EXAMPLE].ItemCount := NUM_EX;
+ For I := 0 To NUM_EX - 1 Do MI(Menus^[MENU_EXAMPLE], I, ExTitle[I], '');
 
- ZeroMenu(Menus[MENU_TOOLS]);
- Menus[MENU_TOOLS].Title := 'Outils';
- Menus[MENU_TOOLS].ItemCount := 5;
- MI(Menus[MENU_TOOLS], 0, 'Informations moleculaires', '');
- MI(Menus[MENU_TOOLS], 1, 'Mesures geometriques...', '');
- MI(Menus[MENU_TOOLS], 2, 'Convertisseur d''energie...', '');
- MI(Menus[MENU_TOOLS], 3, 'Elements supportes', '');
- MI(Menus[MENU_TOOLS], 4, 'Mots-cles ORCA supportes', '');
+ ZeroMenu(Menus^[MENU_TOOLS]);
+ Menus^[MENU_TOOLS].Title := 'Outils';
+ Menus^[MENU_TOOLS].ItemCount := 5;
+ MI(Menus^[MENU_TOOLS], 0, 'Informations moleculaires', '');
+ MI(Menus^[MENU_TOOLS], 1, 'Mesures geometriques...', '');
+ MI(Menus^[MENU_TOOLS], 2, 'Convertisseur d''energie...', '');
+ MI(Menus^[MENU_TOOLS], 3, 'Elements supportes', '');
+ MI(Menus^[MENU_TOOLS], 4, 'Mots-cles ORCA supportes', '');
 
- ZeroMenu(Menus[MENU_HELP]);
- Menus[MENU_HELP].Title := 'Aide';
- Menus[MENU_HELP].ItemCount := 3;
- MI(Menus[MENU_HELP], 0, 'Aide', 'F1');
- MI(Menus[MENU_HELP], 1, 'Mots-cles', '');
- MI(Menus[MENU_HELP], 2, 'A propos...', '');
+ ZeroMenu(Menus^[MENU_HELP]);
+ Menus^[MENU_HELP].Title := 'Aide';
+ Menus^[MENU_HELP].ItemCount := 3;
+ MI(Menus^[MENU_HELP], 0, 'Aide', 'F1');
+ MI(Menus^[MENU_HELP], 1, 'Mots-cles', '');
+ MI(Menus^[MENU_HELP], 2, 'A propos...', '');
 End;
 
 Procedure UpdateMenuChecks;
 Var I: Integer;
 Begin
- For I := 0 To 3 Do Menus[MENU_VIEW].Items[I].Checked := (ViewStyle = I);
- Menus[MENU_VIEW].Items[5].Checked := ShowSym;
- Menus[MENU_VIEW].Items[6].Checked := ShowNum;
- Menus[MENU_VIEW].Items[7].Checked := ShowChg;
- Menus[MENU_VIEW].Items[8].Checked := ShowAxes;
- Menus[MENU_EDIT].Items[7].Checked := InsertMode;
- Menus[MENU_RES].Items[1].Enabled := HaveResult;
- Menus[MENU_RES].Items[2].Enabled := HaveResult;
- Menus[MENU_RES].Items[3].Enabled := HaveResult;
- Menus[MENU_RES].Items[4].Enabled := HaveResult;
- Menus[MENU_RES].Items[6].Enabled := FreqOK;
- Menus[MENU_RES].Items[7].Enabled := FreqOK;
- Menus[MENU_RES].Items[8].Enabled := ThermoOK;
- Menus[MENU_RES].Items[10].Enabled := CISOK;
- Menus[MENU_RES].Items[11].Enabled := CISOK;
- Menus[MENU_RES].Items[13].Enabled := HistN > 1;
- Menus[MENU_RES].Items[14].Enabled := OptN > 1;
- Menus[MENU_RES].Items[15].Enabled := ScanN > 1;
- Menus[MENU_VIEW].Items[14].Enabled := FreqOK;
- Menus[MENU_VIEW].Items[15].Enabled := VibMode > 0;
+ For I := 0 To 3 Do Menus^[MENU_VIEW].Items[I].Checked := (ViewStyle = I);
+ Menus^[MENU_VIEW].Items[5].Checked := ShowSym;
+ Menus^[MENU_VIEW].Items[6].Checked := ShowNum;
+ Menus^[MENU_VIEW].Items[7].Checked := ShowChg;
+ Menus^[MENU_VIEW].Items[8].Checked := ShowAxes;
+ Menus^[MENU_EDIT].Items[7].Checked := InsertMode;
+ Menus^[MENU_RES].Items[1].Enabled := HaveResult;
+ Menus^[MENU_RES].Items[2].Enabled := HaveResult;
+ Menus^[MENU_RES].Items[3].Enabled := HaveResult;
+ Menus^[MENU_RES].Items[4].Enabled := HaveResult;
+ Menus^[MENU_RES].Items[6].Enabled := FreqOK;
+ Menus^[MENU_RES].Items[7].Enabled := FreqOK;
+ Menus^[MENU_RES].Items[8].Enabled := ThermoOK;
+ Menus^[MENU_RES].Items[10].Enabled := CISOK;
+ Menus^[MENU_RES].Items[11].Enabled := CISOK;
+ Menus^[MENU_RES].Items[13].Enabled := HistN > 1;
+ Menus^[MENU_RES].Items[14].Enabled := OptN > 1;
+ Menus^[MENU_RES].Items[15].Enabled := ScanN > 1;
+ Menus^[MENU_VIEW].Items[14].Enabled := FreqOK;
+ Menus^[MENU_VIEW].Items[15].Enabled := VibMode > 0;
 End;
 
 { --------------------------------------------------------------------- }
@@ -8501,9 +8534,9 @@ Begin
  C := FindCoordLine;
  If C >= 0 Then Begin
   { supprime l'ancien bloc jusqu'a la ligne * de fin }
-  Hdr := TrimStr(InpLines[C]);
+  Hdr := TrimStr(InpLines^[C]);
   I := C + 1;
-  While (I < NInp) And (Copy(TrimStr(InpLines[I]), 1, 1) <> '*') And (UpStr(TrimStr(InpLines[I])) <> 'END') Do Inc(I);
+  While (I < NInp) And (Copy(TrimStr(InpLines^[I]), 1, 1) <> '*') And (UpStr(TrimStr(InpLines^[I])) <> 'END') Do Inc(I);
   If I < NInp Then Inc(I);
   For J := C To I - 1 Do EdDeleteLine(C);
  End;
@@ -8627,7 +8660,7 @@ Begin
  PAddI('Nombre maximal d''iterations', ScfMaxIter, 10, 500);
  PAddE('Seuils de convergence', 0, 'NormalSCF|TightSCF|VeryTightSCF|LooseSCF');
  PAddH('Integration DFT');
- PAddE('Grille de Becke', GridScale - 1, 'Normale|Fine (lente)');
+ PAddE('Grille de Becke', Ord(GridUser And (GridScale > 1)), 'Automatique|Fine (lente)');
  If Not ParamDialog('Options SCF et DFT', 'Ajoute un bloc %scf au fichier d''entree.') Then Exit;
  Line := '%scf MaxIter ' + IStr(PInt(1));
  Case PInt(2) Of
@@ -8686,10 +8719,10 @@ Procedure CommentLine;
 Var L: String;
 Begin
  EdClamp;
- L := InpLines[CurLn];
+ L := InpLines^[CurLn];
  If (Length(L) > 0) And (L[1] = '#') Then Delete(L, 1, 1)
  Else L := Copy('#' + L, 1, 100);
- InpLines[CurLn] := L;
+ InpLines^[CurLn] := L;
  MarkModified; AfterEdit;
 End;
 
@@ -8839,7 +8872,7 @@ Begin
 End;
 
 Procedure HandleKey;
-Var K: Char; MZ, MN, P: Integer; Edited: Boolean;
+Var K: Char; MZ, MN: Integer; Edited: Boolean;
 Begin
  K := ReadKey;
  Edited := False;
@@ -8878,12 +8911,12 @@ Begin
    #80: Begin Inc(CurLn); EdClamp; End;
    #75: Begin If CurCol > 0 Then Dec(CurCol) Else If CurLn > 0 Then Begin Dec(CurLn); CurCol := 100; End; EdClamp; End;
    #77: Begin
-    If CurCol < Length(InpLines[CurLn]) Then Inc(CurCol)
+    If CurCol < Length(InpLines^[CurLn]) Then Inc(CurCol)
     Else If CurLn < NInp - 1 Then Begin Inc(CurLn); CurCol := 0; End;
     EdClamp;
    End;
    #71: CurCol := 0;
-   #79: CurCol := Length(InpLines[CurLn]);
+   #79: CurCol := Length(InpLines^[CurLn]);
    #73: Begin Dec(CurLn, ED_ROWS - 1); EdClamp; End;
    #81: Begin Inc(CurLn, ED_ROWS - 1); EdClamp; End;
    #83: Begin EdDelete; Edited := True; End;
@@ -8898,7 +8931,7 @@ Begin
   Case K Of
    #27: Begin MenuActive := False; ActiveMenu := -1; End;
    #13: Begin
-    If (ActiveMenuItem >= 0) And Not Menus[ActiveMenu].Items[ActiveMenuItem].Separator Then Begin
+    If (ActiveMenuItem >= 0) And Not Menus^[ActiveMenu].Items[ActiveMenuItem].Separator Then Begin
      MZ := ActiveMenu; MN := ActiveMenuItem;
      MenuActive := False; ActiveMenu := -1;
      DispatchMenu(MZ, MN);
@@ -8951,7 +8984,7 @@ Begin
   Else Begin
    ItemHit := MenuItemHitTest(MouseX, MouseY, ActiveMenu);
    If (ItemHit >= 0) And (ItemHit <> ActiveMenuItem) And
-      (Not Menus[ActiveMenu].Items[ItemHit].Separator) Then Begin
+      (Not Menus^[ActiveMenu].Items[ItemHit].Separator) Then Begin
     ActiveMenuItem := ItemHit; NeedRedraw := True;
    End;
   End;
@@ -8983,7 +9016,7 @@ Begin
   End
   Else If MenuActive Then Begin
    ItemHit := MenuItemHitTest(MouseX, MouseY, ActiveMenu);
-   If (ItemHit >= 0) And Not Menus[ActiveMenu].Items[ItemHit].Separator Then Begin
+   If (ItemHit >= 0) And Not Menus^[ActiveMenu].Items[ItemHit].Separator Then Begin
     MZ := ActiveMenu;
     MenuActive := False; ActiveMenu := -1;
     DispatchMenu(MZ, ItemHit);
@@ -9117,6 +9150,9 @@ End;
 
 Var Arg1: String;
 BEGIN
+ New(InpLines); FillChar(InpLines^, SizeOf(InpLines^), 0);
+ New(TLines); FillChar(TLines^, SizeOf(TLines^), 0);
+ New(Menus); FillChar(Menus^, SizeOf(Menus^), 0);
  NOut := 0; OutFileOpen := False; NInp := 0; InpName := ''; InpModified := False;
  DefaultParams;
  GridScale := 1;
