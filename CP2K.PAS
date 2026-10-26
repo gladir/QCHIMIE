@@ -494,7 +494,7 @@ End;
 Function FR(V: Real; W, Nd: Integer): String;
 Var S: String;
 Begin
- If Abs(V) >= 1E15 Then V := 0;
+ If Abs(V) >= 1E15 Then Begin FR := PadL(EStr(V, 6), W); Exit; End;
  S := RStr(V, Nd);
  If S = '-0' Then S := '0';
  If (Nd > 0) And (Copy(S, 1, 2) = '-0') Then Begin
@@ -2908,8 +2908,8 @@ Begin
   If Q <> #0 Then Begin
    If S[I] = Q Then Q := #0;
   End
-  Else If (S[I] = '"') Or (S[I] = '''') Then Q := S[I]
-  Else If (S[I] = '#') Or (S[I] = '!') Then Begin
+  Else If ((S[I] = '"') Or (S[I] = '''')) And ((I = 1) Or (S[I - 1] <= ' ')) Then Q := S[I]
+  Else If (S[I] = '#') Or ((S[I] = '!') And Not ((I < Length(S)) And (S[I + 1] = '='))) Then Begin
    StripComment := TrimStr(Copy(S, 1, I - 1));
    Exit;
   End;
@@ -2931,8 +2931,10 @@ Begin
  If (T[1] = '.') Then T := '0' + T;
  If (Length(T) > 1) And (T[1] = '-') And (T[2] = '.') Then T := '-0' + Copy(T, 2, 255);
  If (Length(T) > 1) And (T[1] = '+') Then T := Copy(T, 2, 255);
+ { refuse nan, inf et les valeurs hors limites }
+ If Not ((T[1] In ['0'..'9', '.']) Or ((Length(T) > 1) And (T[1] = '-') And (T[2] In ['0'..'9', '.']))) Then Exit;
  Val(T, R, Code);
- If Code = 0 Then Begin V := R; ReadReal := True; End;
+ If (Code = 0) And (R = R) And (Abs(R) < 1E300) Then Begin V := R; ReadReal := True; End;
 End;
 
 Function ReadInt(Const S: String; Var V: LongInt): Boolean;
@@ -2944,7 +2946,7 @@ Begin
  Val(T, R, Code);
  If Code = 0 Then Begin V := R; ReadInt := True; Exit; End;
  If ReadReal(T, X) Then Begin
-  If Abs(X - Round(X)) < 1E-9 Then Begin V := Round(X); ReadInt := True; End;
+  If (Abs(X) < 2E9) And (Abs(X - Round(X)) < 1E-9) Then Begin V := Round(X); ReadInt := True; End;
  End;
 End;
 
@@ -2958,15 +2960,18 @@ Const
 Var
  PVName  : Array[1..MAX_PVAR] Of String[40];
  PVVal   : Array[1..MAX_PVAR] Of String[120];
+ PVLock  : Array[1..MAX_PVAR] Of Boolean;
  NPV     : Integer;
  LnP     : Array[1..MAX_LINES] Of PStr;
  LnNo    : Array[1..MAX_LINES] Of Integer;
  NLn     : Integer;
  NInErr  : Integer;
  CheckMode : Boolean;
+ RunPhase : Boolean;
 
 Procedure InErr(Line: Integer; Const Msg: String);
 Begin
+ If RunPhase Then Abort(Msg);
  Inc(NInErr);
  If Line > 0 Then ConMsg('ERREUR (ligne ' + IStr(Line) + ') : ' + Msg)
  Else ConMsg('ERREUR : ' + Msg);
@@ -2981,12 +2986,23 @@ Var I: Integer; U: String;
 Begin
  U := UpStr(N);
  For I := 1 To NPV Do
-  If PVName[I] = U Then Begin PVVal[I] := V; Exit; End;
+  If PVName[I] = U Then Begin
+   If Not PVLock[I] Then PVVal[I] := V;
+   Exit;
+  End;
  If NPV < MAX_PVAR Then Begin
   Inc(NPV);
   PVName[NPV] := U;
   PVVal[NPV] := V;
+  PVLock[NPV] := False;
  End;
+End;
+
+{ Variable fixee par la ligne de commande (-E) : les @SET ne la modifient pas }
+Procedure SetPVarLocked(Const N, V: String);
+Begin
+ SetPVar(N, V);
+ PVLock[NPV] := True;
 End;
 
 Function GetPVar(Const N: String; Var V: String): Boolean;
@@ -3108,7 +3124,7 @@ Procedure ReadSource(Const FN: String; Depth: Integer);
 Var
  Fi: Text;
  Raw, Pend, T, Kw, Rest: String;
- LNo, PendNo, IORes: Integer;
+ LNo, PendNo, StartNo, IORes: Integer;
  Cond: Array[0..30] Of Boolean;     { etat de chaque niveau @IF }
  Taken: Array[0..30] Of Boolean;
  Top: Integer;
@@ -3183,6 +3199,10 @@ Begin
  Top := 0;
  Cond[0] := True;
  Taken[0] := True;
+ If FN = '' Then Begin
+  InErr(0, 'Nom de fichier vide');
+  Exit;
+ End;
  {$I-}
  If FN = '-' Then Assign(Fi, '') Else Assign(Fi, FN);
  Reset(Fi);
@@ -3198,20 +3218,24 @@ Begin
  While Not Eof(Fi) Do Begin
   ReadLn(Fi, Raw);
   Inc(LNo);
+  If Length(Raw) >= 255 Then InErr(LNo, 'Ligne trop longue (255 caracteres au plus)');
   Raw := StripComment(Raw);
   If Pend <> '' Then Begin
-   Raw := Pend + ' ' + Raw;
-   LNo := PendNo;
-  End;
+   If Length(Pend) + Length(Raw) > 245 Then InErr(PendNo, 'Ligne logique trop longue (245 caracteres au plus)');
+   Raw := Copy(Pend + ' ' + Raw, 1, 250);
+   StartNo := PendNo;
+  End
+  Else StartNo := LNo;
   If (Raw <> '') And (Raw[Length(Raw)] = '\') Then Begin
    Pend := TrimStr(Copy(Raw, 1, Length(Raw) - 1));
    If Pend = '' Then Pend := ' ';
-   PendNo := LNo;
+   PendNo := StartNo;
    Continue;
   End;
   Pend := '';
-  Process(Raw, LNo);
+  Process(Raw, StartNo);
  End;
+ If Pend <> '' Then Process(Pend, PendNo);
  Close(Fi);
  If Top <> 0 Then InErr(LNo, '@IF sans @ENDIF dans ' + FN);
 End;
@@ -3435,8 +3459,14 @@ Begin
  V := UpStr(GetTok(W));
  If Not Fd Then KwBool := Def
  Else If V = '' Then KwBool := True
- Else KwBool := (V = 'T') Or (V = '.TRUE.') Or (V = 'TRUE') Or (V = 'YES') Or
-                (V = 'ON') Or (V = '1') Or (V = '.T.');
+ Else If (V = 'T') Or (V = '.TRUE.') Or (V = 'TRUE') Or (V = 'YES') Or
+         (V = 'ON') Or (V = '1') Or (V = '.T.') Then KwBool := True
+ Else Begin
+  If Not ((V = 'F') Or (V = '.FALSE.') Or (V = 'FALSE') Or (V = 'NO') Or
+          (V = 'OFF') Or (V = '0') Or (V = '.F.')) Then
+   InErr(KwTab[KwIdx(Sec, Nm)]^.Line, 'Valeur logique invalide pour ' + UpStr(Nm) + ' : ' + V);
+  KwBool := False;
+ End;
 End;
 
 Function KwInt(Sec: Integer; Const Nm: String; Def: LongInt): LongInt;
@@ -3444,7 +3474,11 @@ Var Un, V, W: String; Fd: Boolean; R: LongInt;
 Begin
  W := KwRaw(Sec, Nm, Un, Fd);
  V := GetTok(W);
- If Fd And ReadInt(V, R) Then KwInt := R Else KwInt := Def;
+ If Fd And ReadInt(V, R) Then KwInt := R
+ Else Begin
+  If Fd Then InErr(KwTab[KwIdx(Sec, Nm)]^.Line, 'Entier invalide pour ' + UpStr(Nm) + ' : ' + V);
+  KwInt := Def;
+ End;
 End;
 
 { Reel avec unite : Def est exprime dans l'unite DU ; le resultat est en
@@ -3504,6 +3538,8 @@ Var
  ResTime : Real;
 
 Procedure DumpCoordSections(Ind: Integer); Forward;
+Function RestartCellKnown: Boolean; Forward;
+Procedure DumpCellVectors(Const Pad: String); Forward;
 
 Procedure DumpSec(S, Ind: Integer);
 Var I: Integer; Pad: String; Skip: Boolean;
@@ -3523,12 +3559,15 @@ Begin
        (KwTab[I]^.U = 'TIME_START_VAL')) Then Skip := True;
     If (SecName[S] = 'GEO_OPT') And (KwTab[I]^.U = 'STEP_START_VAL') Then Skip := True;
     If SecName[S] = 'COORD' Then Skip := True;
+    If (SecName[S] = 'CELL') And ((KwTab[I]^.U = 'ABC') Or (KwTab[I]^.U = 'ALPHA_BETA_GAMMA') Or
+       (KwTab[I]^.U = 'A') Or (KwTab[I]^.U = 'B') Or (KwTab[I]^.U = 'C')) And RestartCellKnown Then Skip := True;
    End;
    If Not Skip Then Begin
     If KwTab[I]^.V <> '' Then Emit(Pad + '   ' + KwTab[I]^.O + ' ' + KwTab[I]^.V)
     Else Emit(Pad + '   ' + KwTab[I]^.O);
    End;
   End;
+ If RestartMode And RestartCellKnown And (SecName[S] = 'CELL') Then DumpCellVectors(Pad + '   ');
  If RestartMode And (SecName[S] = 'MD') Then Begin
   Emit(Pad + '   STEP_START_VAL ' + IStr(RestartStep));
   Emit(Pad + '   TIME_START_VAL ' + RStr(RestartTime / FS_AU, 8));
@@ -3752,9 +3791,9 @@ Begin
 End;
 
 { Construit la cellule a partir de la section &CELL }
-Procedure BuildCell;
+Procedure BuildCell(Sub: Integer);
 Var
- Sc, I, J: Integer;
+ Sc, I, J, NAbg: Integer;
  A, B, C, Al, Be, Ga, V: Real;
  CosA, CosB, CosG, SinG, Cx, Cy, Cz: Real;
  P: String;
@@ -3764,13 +3803,18 @@ Begin
  HasCell := False;
  Per[1] := True; Per[2] := True; Per[3] := True;
  PerStr := 'XYZ';
- Sc := FindSec(SecSub, 'CELL', 1);
+ Sc := FindSec(Sub, 'CELL', 1);
  If Sc = 0 Then Begin
   Per[1] := False; Per[2] := False; Per[3] := False;
   PerStr := 'NONE';
   Exit;
  End;
  P := KwWord(Sc, 'PERIODIC', 'XYZ');
+ If Not ((P = 'XYZ') Or (P = 'XY') Or (P = 'XZ') Or (P = 'YZ') Or (P = 'X') Or (P = 'Y') Or
+         (P = 'Z') Or (P = 'NONE')) Then Begin
+  InErr(SecLine[Sc], 'PERIODIC invalide : ' + P);
+  P := 'NONE';
+ End;
  Per[1] := Pos('X', P) > 0; Per[2] := Pos('Y', P) > 0; Per[3] := Pos('Z', P) > 0;
  If P = 'NONE' Then Begin Per[1] := False; Per[2] := False; Per[3] := False; End;
  PerStr := P;
@@ -3792,6 +3836,20 @@ Begin
    Exit;
   End;
   Al := 90; Be := 90; Ga := 90;
+  If KwHas(Sc, 'ALPHA_BETA_GAMMA') Then Begin
+   NAbg := 0;
+   If KwRealN(Sc, 'ALPHA_BETA_GAMMA', 1, 'deg', Al) Then Inc(NAbg);
+   If KwRealN(Sc, 'ALPHA_BETA_GAMMA', 2, 'deg', Be) Then Inc(NAbg);
+   If KwRealN(Sc, 'ALPHA_BETA_GAMMA', 3, 'deg', Ga) Then Inc(NAbg);
+   If NAbg < 3 Then Begin
+    InErr(SecLine[Sc], 'ALPHA_BETA_GAMMA doit contenir trois angles');
+    Exit;
+   End;
+   If (Al < 0.01) Or (Al > Pi - 0.01) Or (Be < 0.01) Or (Be > Pi - 0.01) Or (Ga < 0.01) Or (Ga > Pi - 0.01) Then Begin
+    InErr(SecLine[Sc], 'Les angles de la cellule doivent etre compris entre 0 et 180 degres');
+    Exit;
+   End;
+  End;
   KwRealN(Sc, 'ALPHA_BETA_GAMMA', 1, 'deg', Al);
   KwRealN(Sc, 'ALPHA_BETA_GAMMA', 2, 'deg', Be);
   KwRealN(Sc, 'ALPHA_BETA_GAMMA', 3, 'deg', Ga);
@@ -3802,13 +3860,14 @@ Begin
    Al := Pi / 2; Be := Pi / 2; Ga := Pi / 2;
   End;
   CosA := Cos(Al); CosB := Cos(Be); CosG := Cos(Ga); SinG := Sin(Ga);
+  If SinG < 1E-6 Then Begin InErr(SecLine[Sc], 'Cellule degeneree (gamma)'); Exit; End;
   CellH[1,1] := A;
   CellH[2,1] := B * CosG;
   CellH[2,2] := B * SinG;
   Cx := C * CosB;
   Cy := C * (CosA - CosB * CosG) / SinG;
   Cz := C * C - Cx * Cx - Cy * Cy;
-  If Cz < 0 Then Cz := 0;
+  If Cz < 1E-12 * C * C Then Begin InErr(SecLine[Sc], 'Cellule degeneree (angles incompatibles)'); Exit; End;
   CellH[3,1] := Cx;
   CellH[3,2] := Cy;
   CellH[3,3] := Sqrt(Cz);
@@ -3896,6 +3955,7 @@ Var
  Fi: Text; Ln, T, Lbl: String; N, I, IORes: Integer; X, Y, Z: Real; NN: LongInt;
 Begin
  ReadXYZCoords := False;
+ If FN = '' Then Begin InErr(0, 'COORD_FILE_NAME vide'); Exit; End;
  {$I-}
  Assign(Fi, FN);
  Reset(Fi);
@@ -3908,6 +3968,11 @@ Begin
  ReadLn(Fi, Ln);
  If Not ReadInt(Ln, NN) Then Begin
   InErr(0, 'Fichier XYZ invalide (nombre d''atomes) : ' + FN);
+  Close(Fi);
+  Exit;
+ End;
+ If (NN < 1) Or (NN > MAX_ATOM) Then Begin
+  InErr(0, 'Nombre d''atomes invalide dans ' + FN + ' (1 a ' + IStr(MAX_ATOM) + ')');
   Close(Fi);
   Exit;
  End;
@@ -3935,6 +4000,7 @@ Var
  Fi: Text; Ln, Lbl, El: String; IORes: Integer; X, Y, Z: Real;
 Begin
  ReadPDBCoords := False;
+ If FN = '' Then Begin InErr(0, 'COORD_FILE_NAME vide'); Exit; End;
  {$I-}
  Assign(Fi, FN);
  Reset(Fi);
@@ -4043,6 +4109,19 @@ Begin
 End;
 
 { Sorties : sections &COORD et &VELOCITY des fichiers de redemarrage }
+Function RestartCellKnown: Boolean;
+Begin
+ RestartCellKnown := HasCell;
+End;
+
+Procedure DumpCellVectors(Const Pad: String);
+Var K: Integer;
+Begin
+ For K := 1 To 3 Do
+  Emit(Pad + Chr(Ord('A') + K - 1) + ' [angstrom] ' + FR(CellH[K,1] * BOHR_ANG, 18, 10) +
+       FR(CellH[K,2] * BOHR_ANG, 18, 10) + FR(CellH[K,3] * BOHR_ANG, 18, 10));
+End;
+
 Procedure DumpCoordSections(Ind: Integer);
 Var I: Integer; P1, P2: String;
 Begin
@@ -4136,7 +4215,7 @@ Var
  I, J, K, N, Sc, Sk, P, A: Integer;
  Comp, T, W: String;
  Cx, Cy, Cz: Boolean;
- LA, LB: LongInt;
+ LA, LB, AA: LongInt;
 Begin
  For I := 1 To NAtoms Do
   For K := 1 To 3 Do FixM[I, K] := False;
@@ -4168,14 +4247,14 @@ Begin
       Continue;
      End
      Else LB := LA;
-     For A := LA To LB Do Begin
-      If (A < 1) Or (A > NAtoms) Then Begin
-       InErr(KwTab[I]^.Line, 'Atome ' + IStr(A) + ' hors de la plage 1..' + IStr(NAtoms));
-       Break;
-      End;
-      If Cx Then FixM[A, 1] := True;
-      If Cy Then FixM[A, 2] := True;
-      If Cz Then FixM[A, 3] := True;
+     If (LA < 1) Or (LB > NAtoms) Or (LA > LB) Then Begin
+      InErr(KwTab[I]^.Line, 'Intervalle ' + IStr(LA) + '..' + IStr(LB) + ' hors de la plage 1..' + IStr(NAtoms));
+      Continue;
+     End;
+     For AA := LA To LB Do Begin
+      If Cx Then FixM[AA, 1] := True;
+      If Cy Then FixM[AA, 2] := True;
+      If Cz Then FixM[AA, 3] := True;
      End;
     End;
    End;
@@ -4200,13 +4279,19 @@ End;
 { Connectivite                                                          }
 { --------------------------------------------------------------------- }
 
+Var NbWarned: Boolean;
+
 Procedure AddBond(A, B: Integer);
 Begin
  If NBond >= MAX_BONDS Then Begin
   InErr(0, 'Trop de liaisons (maximum ' + IStr(MAX_BONDS) + ')');
   Exit;
  End;
- If (AdjN[A] >= MAX_NB) Or (AdjN[B] >= MAX_NB) Then Exit;
+ If (AdjN[A] >= MAX_NB) Or (AdjN[B] >= MAX_NB) Then Begin
+  If Not NbWarned Then Warn('Plus de ' + IStr(MAX_NB) + ' liaisons pour un atome : liaisons en trop ignorees');
+  NbWarned := True;
+  Exit;
+ End;
  Inc(NBond);
  BondA[NBond] := A; BondB[NBond] := B;
  Inc(AdjN[A]); Adj[A, AdjN[A]] := B;
@@ -4253,6 +4338,8 @@ Begin
 End;
 
 { Liste des paires a exclure ou a ponderer (profondeur 1 a 3) }
+Var ExWarned: Boolean;
+
 Procedure BuildExclusions;
 Var
  I, J, K, D, H, Cur, NQ: Integer;
@@ -4283,7 +4370,11 @@ Begin
    End;
   End;
   For J := I + 1 To NAtoms Do
-   If (Dist[J] > 0) And (ExN[I] < MAX_EXCL) Then Begin
+   If (Dist[J] > 0) And (ExN[I] >= MAX_EXCL) Then Begin
+    If Not ExWarned Then Warn('Liste d''exclusions trop longue pour un atome : paires en trop ignorees');
+    ExWarned := True;
+   End
+   Else If Dist[J] > 0 Then Begin
     Inc(ExN[I]);
     ExJ[I, ExN[I]] := J;
     ExD[I, ExN[I]] := Dist[J];
@@ -4546,6 +4637,7 @@ End;
 
 Procedure MMSetup;
 Var
+ MmL: LongInt;
  Sff, Sp, Sc, Sn, I, J, N, A, B, C, D, Ka, Kb, Kc, Kd, Cnt, Sw, Se: Integer;
  Nm, Kd2, Wrd: String;
  Eps, Sig, Rc, V: Real;
@@ -4683,7 +4775,7 @@ Begin
   BPA[NBP] := Ka; BPB[NBP] := Kb;
   Kd2 := KwWord(Sc, 'KIND', 'HARMONIC');
   If Kd2 = 'HARMONIC' Then BPKind[NBP] := 0
-  Else If (Kd2 = 'CHARMM') Or (Kd2 = 'AMBER') Or (Kd2 = 'G87') Or (Kd2 = 'G96') Then BPKind[NBP] := 1
+  Else If (Kd2 = 'CHARMM') Or (Kd2 = 'AMBER') Then BPKind[NBP] := 1
   Else Begin InErr(SecLine[Sc], 'KIND de liaison non pris en charge : ' + Kd2); BPKind[NBP] := 0; End;
   BPK[NBP] := KwReal(Sc, 'K', 0.0, 'hartree*bohr^-2');
   BPR0[NBP] := KwReal(Sc, 'R0', 0.0, 'bohr');
@@ -4700,7 +4792,7 @@ Begin
   APA[NAP] := Ka; APB[NAP] := Kb; APC[NAP] := Kc;
   Kd2 := KwWord(Sc, 'KIND', 'HARMONIC');
   If Kd2 = 'HARMONIC' Then APKind[NAP] := 0
-  Else If (Kd2 = 'CHARMM') Or (Kd2 = 'AMBER') Or (Kd2 = 'G87') Or (Kd2 = 'G96') Then APKind[NAP] := 1
+  Else If (Kd2 = 'CHARMM') Or (Kd2 = 'AMBER') Then APKind[NAP] := 1
   Else Begin InErr(SecLine[Sc], 'KIND d''angle non pris en charge : ' + Kd2); APKind[NAP] := 0; End;
   APK[NAP] := KwReal(Sc, 'K', 0.0, 'hartree*rad^-2');
   APT0[NAP] := KwReal(Sc, 'THETA0', 0.0, 'rad');
@@ -4718,7 +4810,14 @@ Begin
   TPA[NTP] := Ka; TPB[NTP] := Kb; TPC[NTP] := Kc; TPD[NTP] := Kd;
   TPK[NTP] := KwReal(Sc, 'K', 0.0, 'hartree');
   TPPhi[NTP] := KwReal(Sc, 'PHI0', 0.0, 'rad');
-  TPM[NTP] := KwInt(Sc, 'M', 1);
+  MmL := KwInt(Sc, 'M', 1);
+  If (MmL < 0) Or (MmL > 12) Then Begin
+   InErr(SecLine[Sc], 'M doit etre compris entre 0 et 12');
+   MmL := 1;
+  End;
+  TPM[NTP] := MmL;
+  Kd2 := KwWord(Sc, 'KIND', 'CHARMM');
+  If (Kd2 <> 'CHARMM') And (Kd2 <> 'AMBER') Then InErr(SecLine[Sc], 'KIND de torsion non pris en charge : ' + Kd2);
  End;
  { charges et Coulomb }
  MMCharged := False;
@@ -5639,6 +5738,22 @@ Begin
  ProjFile := ProjectName + Suffix;
 End;
 
+{ Ouvre un fichier de sortie (en ajout lors d'une reprise) ; Fresh vrai si le
+  fichier a ete (re)cree }
+Function OpenOut(Var F: Text; Const Nm: String; App: Boolean; Var Fresh: Boolean): Boolean;
+Begin
+ Assign(F, Nm);
+ Fresh := True;
+ {$I-}
+ If App Then Begin
+  Append(F);
+  If IOResult = 0 Then Fresh := False Else Rewrite(F);
+ End
+ Else Rewrite(F);
+ {$I+}
+ OpenOut := IOResult = 0;
+End;
+
 { Ecrit le fichier de redemarrage : l'entree avec coordonnees et vitesses }
 Procedure WriteRestart(Step: LongInt; Time: Real);
 Var Ok: Integer;
@@ -5939,15 +6054,22 @@ Begin
    EvalAll(True, False);
    En := ECur;
    If CellToo Then En := En + Pext * CellVol;
-   If (En <= E + 1E-9) Or (Tries >= 8) Then Break;
+   If En <= E + 1E-9 Then Break;
    { energie en hausse : on restaure et on reduit le pas }
    SPos := SavePos; CellH := SaveCell;
    If CellToo Then UpdateCell;
    Alpha := Alpha * 0.5;
    Inc(Tries);
    HN := 0;
+   If Tries >= 8 Then Break;
   Until False;
-  If Tries >= 8 Then Decr := False;
+  If Tries >= 8 Then Begin
+   { aucun pas ne fait baisser l'energie : on revient au point precedent }
+   EvalAll(True, False);
+   Emit(' *** WARNING :: la recherche de pas n''a pas reduit l''energie : optimisation arretee ***');
+   Warn('Optimisation arretee : aucun pas ne reduit l''energie');
+   Break;
+  End;
   OptGradient(Gn, CellToo, Ls, Pext);
   For I := 0 To Nv - 1 Do Begin
    Sv^[I] := Alpha * D^[I];
@@ -5995,11 +6117,6 @@ Begin
    WriteXYZFrame(Fx, ' i =' + ISt(Step0 + It, 9) + ', E =' + FR(ECur, 20, 10));
   E := En;
   For I := 0 To Nv - 1 Do G^[I] := Gn^[I];
-  If (Tries >= 8) And Not Conv Then Begin
-   Emit(' *** WARNING :: la recherche de pas n''a pas reduit l''energie ***');
-   Inc(NWarn);
-   Break;
-  End;
  End;
  If Ok = 0 Then Close(Fx);
  EmitBlank;
@@ -6131,6 +6248,8 @@ Var
  SumPot, SumKin, SumTmp, SumPres, SumCpu, DriftAt: Real;
  NVT, NPT, DoCsvr, HaveVel: Boolean;
  I, K, J: Integer;
+ Jn, NhL: LongInt;
+ FrE, FrP, FrC, FrV, FrF: Boolean;
  Fe, Fp, Fc, Fv, Ff: Text;
  OkE, OkP, OkC, OkV, OkF: Boolean;
  WantVel, WantFrc: Boolean;
@@ -6154,6 +6273,9 @@ Begin
  If NPT And (FEMethod <> FE_FIST) Then Abort('L''ensemble NPT exige METHOD FIST');
  If NPT And Not (HasCell And Per[1] And Per[2] And Per[3]) Then Abort('L''ensemble NPT exige une cellule periodique (PERIODIC XYZ)');
  If Dt <= 0 Then Abort('TIMESTEP doit etre positif');
+ If NSteps < 0 Then Abort('STEPS doit etre positif ou nul');
+ If Temp0 < 0 Then Abort('TEMPERATURE doit etre positive');
+ If (NVT Or NPT) And (Temp0 <= 0) Then Abort('TEMPERATURE doit etre strictement positive pour un thermostat');
  If NFixComp > 0 Then MDDof := 3 * NAtoms - NFixComp
  Else If NAtoms > 1 Then MDDof := 3 * NAtoms - 3
  Else MDDof := 3;
@@ -6168,7 +6290,9 @@ Begin
    ThType := KwWord(Sth, 'TYPE', 'NOSE');
    Sn := FindSec(Sth, 'NOSE', 1);
    If Sn > 0 Then Begin
-    NhM := KwInt(Sn, 'LENGTH', 3);
+    NhL := KwInt(Sn, 'LENGTH', 3);
+    If (NhL < 1) Or (NhL > 10) Then Abort('LENGTH du thermostat de Nose doit etre compris entre 1 et 10');
+    NhM := NhL;
     TauT := KwReal(Sn, 'TIMECON', 1000.0, 'fs');
    End;
    Sn := FindSec(Sth, 'CSVR', 1);
@@ -6177,8 +6301,7 @@ Begin
   If (ThType <> 'NOSE') And (ThType <> 'CSVR') And (ThType <> 'NONE') Then
    Abort('Thermostat ' + ThType + ' non pris en charge (NOSE, CSVR)');
  End;
- If NhM < 1 Then NhM := 1;
- If NhM > 10 Then NhM := 10;
+ If TauT <= 0 Then Abort('TIMECON du thermostat doit etre positif');
  DoCsvr := (ThType = 'CSVR');
  NhOn := (ThType = 'NOSE');
  NhTemp := Temp0;
@@ -6190,6 +6313,7 @@ Begin
    PrefP := KwReal(Sbar, 'PRESSURE', 1.0, 'bar');
    TauP := KwReal(Sbar, 'TIMECON', 1000.0, 'fs');
   End;
+  If TauP <= 0 Then Abort('TIMECON du barostat doit etre positif');
  End;
  BetaP := 4.5E-5 / BAR_AU;
  Sp := 0;
@@ -6233,25 +6357,18 @@ Begin
   EmitBlank;
  End;
  { fichiers }
- Assign(Fe, ProjFile('-1.ener'));
- Assign(Fp, ProjFile('-pos-1.xyz'));
- Assign(Fc, ProjFile('-1.cell'));
- Assign(Fv, ProjFile('-vel-1.xyz'));
- Assign(Ff, ProjFile('-frc-1.xyz'));
- {$I-}
- Rewrite(Fe); OkE := IOResult = 0;
- Rewrite(Fp); OkP := IOResult = 0;
- OkC := False; OkV := False; OkF := False;
- If NPT Then Begin Rewrite(Fc); OkC := IOResult = 0; End;
- If WantVel Then Begin Rewrite(Fv); OkV := IOResult = 0; End;
- If WantFrc Then Begin Rewrite(Ff); OkF := IOResult = 0; End;
- {$I+}
- If OkE Then WriteLn(Fe, '#     Step Nr.          Time[fs]        Kin.[a.u.]          Temp[K]            Pot.[a.u.]        Cons Qty[a.u.]        UsedTime[s]');
- If OkC Then WriteLn(Fc, '#   Step Nr.   Time[fs]           Ax [Angstrom]      Ay [Angstrom]      Az [Angstrom]      Bx [Angstrom]      By [Angstrom]      Bz [Angstrom]      Cx [Angstrom]      Cy [Angstrom]      Cz [Angstrom]   Volume [Angstrom^3]');
+ OkE := OpenOut(Fe, ProjFile('-1.ener'), Step0 > 0, FrE);
+ OkP := OpenOut(Fp, ProjFile('-pos-1.xyz'), Step0 > 0, FrP);
+ OkC := False; OkV := False; OkF := False; FrC := True; FrV := True; FrF := True;
+ If NPT Then OkC := OpenOut(Fc, ProjFile('-1.cell'), Step0 > 0, FrC);
+ If WantVel Then OkV := OpenOut(Fv, ProjFile('-vel-1.xyz'), Step0 > 0, FrV);
+ If WantFrc Then OkF := OpenOut(Ff, ProjFile('-frc-1.xyz'), Step0 > 0, FrF);
+ If OkE And FrE Then WriteLn(Fe, '#     Step Nr.          Time[fs]        Kin.[a.u.]          Temp[K]            Pot.[a.u.]        Cons Qty[a.u.]        UsedTime[s]');
+ If OkC And FrC Then WriteLn(Fc, '#   Step Nr.   Time[fs]           Ax [Angstrom]      Ay [Angstrom]      Az [Angstrom]      Bx [Angstrom]      By [Angstrom]      Bz [Angstrom]      Cx [Angstrom]      Cy [Angstrom]      Cz [Angstrom]   Volume [Angstrom^3]');
  { image initiale }
- If OkE Then WriteLn(Fe, Step0:10, FR(TimeNow / FS_AU, 18, 6), FR(KinE, 20, 9), FR(InstTemp, 20, 9),
+ If OkE And FrE Then WriteLn(Fe, Step0:10, FR(TimeNow / FS_AU, 18, 6), FR(KinE, 20, 9), FR(InstTemp, 20, 9),
                       FR(PotE, 20, 9), FR(Cons0, 20, 9), FR(0, 20, 9));
- If OkP Then WriteXYZFrame(Fp, ' i =' + ISt(Step0, 9) + ', time =' + FR(TimeNow / FS_AU, 13, 3) + ', E =' + FR(PotE, 20, 10));
+ If OkP And FrP Then WriteXYZFrame(Fp, ' i =' + ISt(Step0, 9) + ', time =' + FR(TimeNow / FS_AU, 13, 3) + ', E =' + FR(PotE, 20, 10));
  SumPot := 0; SumKin := 0; SumTmp := 0; SumPres := 0; SumCpu := 0;
  LastStep := Step0;
  For Step := Step0 + 1 To Step0 + NSteps Do Begin
@@ -6282,14 +6399,15 @@ Begin
    If Mu > 1.1 Then Mu := 1.1;
    Mu := Exp(Ln(Mu) / 3);
    For I := 1 To NAtoms Do
-    For K := 1 To 3 Do SPos[I, K] := SPos[I, K] * Mu;
+    For K := 1 To 3 Do
+     If Not (FixActive And FixM[I, K]) Then SPos[I, K] := SPos[I, K] * Mu;
    For I := 1 To 3 Do
     For K := 1 To 3 Do CellH[I, K] := CellH[I, K] * Mu;
    UpdateCell;
    For I := 1 To NAtoms Do
     For K := 1 To 3 Do SVel[I, K] := SVel[I, K] / Mu;
-   PotE := MMEval(True);
-   ECur := PotE;
+   EvalAll(True, False);
+   PotE := ECur;
   End;
   TimeNow := TimeNow + Dt;
   KinE := KinEnergy;
@@ -6301,7 +6419,7 @@ Begin
   If DoCsvr Then Cons := Cons + CsvrE;
   SumPot := SumPot + PotE; SumKin := SumKin + KinE; SumTmp := SumTmp + Tmp; SumPres := SumPres + Pres;
   SumCpu := SumCpu + (RunSec - T1);
-  J := Step - Step0;
+  Jn := Step - Step0;
   DriftAt := (Cons - Cons0) / (NAtoms * KB_AU);
   If PrintLevel >= PL_MEDIUM Then Begin
    Emit(' ' + Rep('*', 79));
@@ -6311,39 +6429,39 @@ Begin
    Emit(' CONSERVED QUANTITY [hartree] =' + FR(Cons, 38, 9));
    EmitBlank;
    Emit(Rep(' ', 47) + 'INSTANTANEOUS             AVERAGES');
-   Emit(' CPU TIME [s]                 =' + FR(RunSec - T1, 22, 2) + FR(SumCpu / J, 22, 2));
+   Emit(' CPU TIME [s]                 =' + FR(RunSec - T1, 22, 2) + FR(SumCpu / Jn, 22, 2));
    Emit(' ENERGY DRIFT PER ATOM [K]    =' + PadL(EStr(DriftAt, 9), 22) + PadL(EStr(DriftAt, 9), 22));
-   Emit(' POTENTIAL ENERGY[hartree]    =' + PadL(EStr(PotE, 9), 22) + PadL(EStr(SumPot / J, 9), 22));
-   Emit(' KINETIC ENERGY [hartree]     =' + PadL(EStr(KinE, 9), 22) + PadL(EStr(SumKin / J, 9), 22));
-   Emit(' TEMPERATURE [K]              =' + FR(Tmp, 22, 2) + FR(SumTmp / J, 22, 2));
+   Emit(' POTENTIAL ENERGY[hartree]    =' + PadL(EStr(PotE, 9), 22) + PadL(EStr(SumPot / Jn, 9), 22));
+   Emit(' KINETIC ENERGY [hartree]     =' + PadL(EStr(KinE, 9), 22) + PadL(EStr(SumKin / Jn, 9), 22));
+   Emit(' TEMPERATURE [K]              =' + FR(Tmp, 22, 2) + FR(SumTmp / Jn, 22, 2));
    If FEMethod = FE_FIST Then
-    Emit(' PRESSURE [bar]               =' + FR(Pres / BAR_AU, 22, 3) + FR(SumPres / J / BAR_AU, 22, 3));
+    Emit(' PRESSURE [bar]               =' + FR(Pres / BAR_AU, 22, 3) + FR(SumPres / Jn / BAR_AU, 22, 3));
    If NPT Then Emit(' VOLUME [angstrom^3]          =' + FR(CellVol * Cu(BOHR_ANG), 38, 4));
    Emit(' ' + Rep('*', 79));
    EmitBlank;
   End;
   If OkE Then WriteLn(Fe, Step:10, FR(TimeNow / FS_AU, 18, 6), FR(KinE, 20, 9), FR(Tmp, 20, 9),
                        FR(PotE, 20, 9), FR(Cons, 20, 9), FR(SumCpu, 20, 9));
-  If OkP And (J Mod EachTraj = 0) Then
+  If OkP And (Jn Mod EachTraj = 0) Then
    WriteXYZFrame(Fp, ' i =' + ISt(Step, 9) + ', time =' + FR(TimeNow / FS_AU, 13, 3) + ', E =' + FR(PotE, 20, 10));
   If OkC Then Begin
    Write(Fc, Step:8, FR(TimeNow / FS_AU, 12, 3));
    For I := 1 To 3 Do For K := 1 To 3 Do Write(Fc, FR(CellH[I, K] * BOHR_ANG, 19, 9));
    WriteLn(Fc, FR(CellVol * Cu(BOHR_ANG), 20, 9));
   End;
-  If OkV And (J Mod EachVelo = 0) Then Begin
+  If OkV And (Jn Mod EachVelo = 0) Then Begin
    WriteLn(Fv, NAtoms:7);
    WriteLn(Fv, ' i =' + ISt(Step, 9) + ', time =' + FR(TimeNow / FS_AU, 13, 3));
    For I := 1 To NAtoms Do
     WriteLn(Fv, ' ', PadR(PtSym[SZ[I]], 2), FR(SVel[I,1], 20, 10), FR(SVel[I,2], 20, 10), FR(SVel[I,3], 20, 10));
   End;
-  If OkF And (J Mod EachFrc = 0) Then Begin
+  If OkF And (Jn Mod EachFrc = 0) Then Begin
    WriteLn(Ff, NAtoms:7);
    WriteLn(Ff, ' i =' + ISt(Step, 9) + ', time =' + FR(TimeNow / FS_AU, 13, 3) + ', E =' + FR(PotE, 20, 10));
    For I := 1 To NAtoms Do
     WriteLn(Ff, ' ', PadR(PtSym[SZ[I]], 2), FR(SFrc[I,1], 20, 10), FR(SFrc[I,2], 20, 10), FR(SFrc[I,3], 20, 10));
   End;
-  If (J Mod EachRes = 0) Then WriteRestart(Step, TimeNow);
+  If (Jn Mod EachRes = 0) Then WriteRestart(Step, TimeNow);
  End;
  WriteRestart(LastStep, TimeNow);
  If OkE Then Close(Fe);
@@ -6721,21 +6839,38 @@ Begin
  InWordList := Pos(' ' + W + ' ', ' ' + List + ' ') > 0;
 End;
 
-{ Mots-cles admis pour un chemin de section ; Faux si le chemin est inconnu }
-Function SchemaFind(Const Path: String; Var Kws: String): Boolean;
-Var I, P: Integer; E: String; Found: Boolean;
+{ Vrai si le chemin figure dans le schema }
+Function SchemaHasPath(Const Path: String): Boolean;
+Var I, P: Integer;
 Begin
- Found := False;
- Kws := '';
+ SchemaHasPath := True;
  For I := 1 To NSCHEMA Do Begin
-  E := Schema[I];
-  P := Pos(':', E);
-  If Copy(E, 1, P - 1) = Path Then Begin
-   Found := True;
-   Kws := Kws + ' ' + Copy(E, P + 1, 255);
-  End;
+  P := Pos(':', Schema[I]);
+  If Copy(Schema[I], 1, P - 1) = Path Then Exit;
  End;
- SchemaFind := Found;
+ SchemaHasPath := False;
+End;
+
+{ Vrai si le mot-cle W (ou *) est admis pour ce chemin }
+Function SchemaAccepts(Const Path, W: String): Boolean;
+Var I, P: Integer;
+Begin
+ SchemaAccepts := True;
+ For I := 1 To NSCHEMA Do Begin
+  P := Pos(':', Schema[I]);
+  If Copy(Schema[I], 1, P - 1) = Path Then
+   If InWordList(Copy(Schema[I], P + 1, 255), W) Or InWordList(Copy(Schema[I], P + 1, 255), '*') Then Exit;
+ End;
+ SchemaAccepts := False;
+End;
+
+{ Chemin du parent }
+Function ParentPath(Const Path: String): String;
+Var I: Integer;
+Begin
+ I := Length(Path);
+ While (I > 0) And (Path[I] <> '/') Do Dec(I);
+ If I = 0 Then ParentPath := '' Else ParentPath := Copy(Path, 1, I - 1);
 End;
 
 Function PathUnderPrint(Const Path: String): Boolean;
@@ -6752,7 +6887,7 @@ Begin
 End;
 
 Procedure CheckTree;
-Var I, J, P: Integer; Path, Kws, Un: String; Ok: Boolean;
+Var I, J, P: Integer; Path, Un: String; Ok: Boolean;
 Begin
  NCheckWarn := 0;
  For I := 1 To NSec Do SecUnknown[I] := False;
@@ -6763,15 +6898,15 @@ Begin
    SecUnknown[I] := True;
    Continue;
   End;
-  If Not SchemaFind(Path, Kws) Then Begin
+  If Not SchemaHasPath(Path) Then Begin
    SecUnknown[I] := True;
-   CheckWarn(SecLine[I], 'Section &' + SecName[I] + ' (' + Path + ') non prise en charge : ignoree');
+   If Not SchemaAccepts(ParentPath(Path), '*') Then
+    CheckWarn(SecLine[I], 'Section &' + SecName[I] + ' (' + Path + ') non prise en charge : ignoree');
    Continue;
   End;
-  If Pos('*', Kws) > 0 Then Continue;
   For J := 1 To NKw Do
    If KwTab[J]^.Sec = I Then
-    If Not InWordList(Kws, KwTab[J]^.U) Then
+    If Not SchemaAccepts(Path, KwTab[J]^.U) Then
      CheckWarn(KwTab[J]^.Line, 'Mot-cle ' + KwTab[J]^.U + ' inconnu dans la section &' + SecName[I] + ' : ignore');
  End;
  { unites entre crochets }
@@ -7017,6 +7152,20 @@ Begin
   InErr(SecLine[SecGlobal], 'RUN_TYPE ' + RunName + ' n''est pas pris en charge par ce clone');
 End;
 
+{ Avertit des mots-cles acceptes par CP2K mais non pris en charge ici }
+Procedure WarnUnused(Sec: Integer; Const Names: String);
+Var L, W: String; P: Integer;
+Begin
+ If Sec <= 0 Then Exit;
+ L := Names;
+ While L <> '' Do Begin
+  P := Pos(' ', L);
+  If P = 0 Then Begin W := L; L := ''; End
+  Else Begin W := Copy(L, 1, P - 1); L := Copy(L, P + 1, 255); End;
+  If KwHas(Sec, W) Then Warn('Mot-cle ' + W + ' de &' + SecName[Sec] + ' non pris en charge : ignore');
+ End;
+End;
+
 { Construit tout le systeme a partir de l'arbre d'entree }
 Procedure SetupSystem;
 Var
@@ -7049,6 +7198,10 @@ Begin
  If (FEMethod = FE_FIST) And (SecMM = 0) Then InErr(SecLine[SecFE], 'METHOD FIST exige une section &MM');
  If (FEMethod = FE_QS) And (SecDFT = 0) Then InErr(SecLine[SecFE], 'METHOD QS exige une section &DFT');
  If NInErr > 0 Then Exit;
+ WarnUnused(FindSec(SecSub, 'CELL', 1), 'MULTIPLE_UNIT_CELL SYMMETRY CELL_FILE_NAME CELL_FILE_FORMAT');
+ WarnUnused(FindSec(SecSub, 'TOPOLOGY', 1), 'MULTIPLE_UNIT_CELL CONN_FILE_NAME');
+ If SecMM > 0 Then
+  WarnUnused(FindSec(SecMM, 'FORCEFIELD', 1), 'PARMTYPE PARM_FILE_NAME DO_ELECTROSTATICS');
  { redemarrage externe }
  UseRPos := False; UseRVel := False; UseRCnt := False;
  Src := SecSub;
@@ -7076,7 +7229,7 @@ Begin
   If UseRPos And (Rsub > 0) Then Src := Rsub;
   If NInErr > 0 Then Exit;
  End;
- BuildCell;
+ BuildCell(Src);
  NKinds := 0;
  SetupKinds;
  LoadCoords(Src);
@@ -7195,7 +7348,7 @@ Var
 
 Begin
  NWarn := 0; NInErr := 0; NLn := 0; NSec := 0; NKw := 0; NPV := 0;
- CheckMode := False; EchoMode := False; DoXml := False;
+ CheckMode := False; EchoMode := False; DoXml := False; RunPhase := False;
  OutOpen := False; RedirOn := False; RestartMode := False;
  InputName := ''; OutputName := '';
  NEval := 0; TEval := 0; QSNumScf := 0;
@@ -7234,7 +7387,7 @@ Begin
    Vl := ParamStr(ArgI);
    P := Pos('=', Vl);
    If P = 0 Then Begin ConMsg('ERREUR : -E exige nom=valeur'); Halt(1); End;
-   SetPVar(Copy(Vl, 1, P - 1), Copy(Vl, P + 1, 255));
+   SetPVarLocked(Copy(Vl, 1, P - 1), Copy(Vl, P + 1, 255));
   End
   Else If (Arg <> '') And (Arg <> '-') And (Arg[1] = '-') Then Begin
    ConMsg('ERREUR : option inconnue : ' + Arg);
@@ -7252,6 +7405,10 @@ Begin
  If InputName = '' Then Begin
   ConMsg('ERREUR : aucun fichier d''entree specifie');
   ShowHelp;
+  Halt(1);
+ End;
+ If (OutputName <> '') And (FExpand(OutputName) = FExpand(InputName)) And (InputName <> '-') Then Begin
+  ConMsg('ERREUR : le fichier de sortie ne doit pas etre le fichier d''entree');
   Halt(1);
  End;
  { sortie }
@@ -7301,6 +7458,7 @@ Begin
   EmitBlank;
  End;
  PrintSystemInfo;
+ RunPhase := True;
  Case RunType Of
   RT_NONE: ;
   RT_ENERGY: RunEnergy(False);
