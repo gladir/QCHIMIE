@@ -78,7 +78,7 @@ Const
  MAX_TEXTS       = 100;
  MAX_SHAPES      = 200;
  MAX_RINGS       = 80;
- MAX_RING_SZ     = 24;
+ MAX_RING_SZ     = 40;
  UNDO_MAX        = 12;
 
  { Outils }
@@ -4367,7 +4367,7 @@ Var
  P, Prev, NewA, Pend, Z, Num, K, Hn, Chg, Iso, B2 : Integer;
  Stack : Array[0..63] Of Integer;
  SP : Integer;
- RcAtom, RcOrd : Array[0..99] Of Integer;
+ RcAtom, RcOrd, RcDir : Array[0..99] Of Integer;
  C, C2 : Char;
  Arom, Bracket : Boolean;
  Sym : String;
@@ -4379,7 +4379,7 @@ Begin
  If SmNb = Nil Then New(SmNb);
  First := NAt; Last := NAt - 1;
  OK := True;
- For K := 0 To 99 Do Begin RcAtom[K] := -1; RcOrd[K] := 0; End;
+ For K := 0 To 99 Do Begin RcAtom[K] := -1; RcOrd[K] := 0; RcDir[K] := 0; End;
  SP := 0; Prev := -1; Pend := 0; P := 1;
  While (P <= Length(S)) And OK Do Begin
   C := S[P];
@@ -4404,7 +4404,7 @@ Begin
     Else Begin Num := Ord(C) - 48; Inc(P); End;
     If (Num < 0) Or (Num > 99) Or (Prev < 0) Then OK := False
     Else If RcAtom[Num] < 0 Then Begin
-     RcAtom[Num] := Prev; RcOrd[Num] := Pend; Pend := 0;
+     RcAtom[Num] := Prev; RcOrd[Num] := Pend; RcDir[Num] := Dir; Pend := 0;
      SmPush(Prev, -(100 + Num));
     End
     Else Begin
@@ -4414,7 +4414,13 @@ Begin
       If ((At^[Prev].Mark And 4) <> 0) And ((At^[RcAtom[Num]].Mark And 4) <> 0) Then B2 := 4 Else B2 := 1;
      End;
      BJ := NewBond(RcAtom[Num], Prev, B2, ST_NORMAL);
-     If BJ >= 0 Then SmDir[BJ] := 0;
+     If BJ >= 0 Then Begin
+      { symbole / ou \ : celui de l'ouverture, sinon celui de la fermeture inverse }
+      If RcDir[Num] <> 0 Then SmDir[BJ] := RcDir[Num]
+      Else If Dir = 1 Then SmDir[BJ] := 2
+      Else If Dir = 2 Then SmDir[BJ] := 1
+      Else SmDir[BJ] := 0;
+     End;
      Dir := 0;
      SmResolve(RcAtom[Num], -(100 + Num), Prev);
      SmPush(Prev, RcAtom[Num]);
@@ -7670,6 +7676,327 @@ Begin
  MirrorBSide := True;
 End;
 
+{ --- grands cycles : mise en page imposant les doubles liaisons E / Z --- }
+
+Var
+ RqJ : Array[0..MAX_BONDS - 1] Of Byte;   { 1 = cis, 2 = trans (voisins de cycle) }
+
+Function InRingR(R, A: Integer): Boolean;
+Var K: Integer;
+Begin
+ InRingR := True;
+ For K := 0 To RingN[R] - 1 Do If RingA[R, K] = A Then Exit;
+ InRingR := False;
+End;
+
+{ Relation cis (vrai) des voisins de cycle de la liaison J d'apres celle de
+  deux substituants XA et XB (un substituant hors cycle est du cote oppose) }
+Function RingRelation(J, XA, XB: Integer; Cis: Boolean): Boolean;
+Var R: Integer; Res: Boolean;
+Begin
+ Res := Cis;
+ R := RingOfBond(Bd^[J].A, Bd^[J].B);
+ If R >= 0 Then Begin
+  If Not InRingR(R, XA) Then Res := Not Res;
+  If Not InRingR(R, XB) Then Res := Not Res;
+ End;
+ RingRelation := Res;
+End;
+
+{ Resout les angles de virage T (signes S) pour qu'un polygone de pas BL se
+  referme ; faux si la resolution echoue }
+Function SolveTurns(N: Integer; Const S: Array Of Integer; Beta: Real; Var T: Array Of Real): Boolean;
+Var
+ P, Q, J, K, It, Tries : Integer;
+ Alpha, Dir, Fx, Fy, G, Sc, Sx, Sy, L0, L1, L2, Det : Real;
+ Jx, Jy, Dl, DirA : Array[0..MAX_RING_SZ - 1] Of Real;
+ M : Array[0..2, 0..3] Of Real;
+ Ok : Boolean;
+ R2, C2, T2 : Integer;
+ Fct, Tmp : Real;
+Begin
+ SolveTurns := False;
+ P := 0;
+ For J := 0 To N - 1 Do If S[J] > 0 Then Inc(P);
+ Q := N - P;
+ If P < 1 Then Exit;
+ Alpha := (2 * Pi + Q * Beta) / P;
+ If Alpha > 2.4 Then Exit;
+ For J := 0 To N - 1 Do If S[J] > 0 Then T[J] := Alpha Else T[J] := -Beta;
+ For It := 1 To 300 Do Begin
+  Dir := 0; Fx := 0; Fy := 0; G := -2 * Pi;
+  For J := 0 To N - 1 Do Begin
+   Dir := Dir + T[J]; DirA[J] := Dir; G := G + T[J];
+   Fx := Fx + Cos(Dir); Fy := Fy + Sin(Dir);
+  End;
+  If (Abs(Fx) < 1E-7) And (Abs(Fy) < 1E-7) And (Abs(G) < 1E-7) Then Begin SolveTurns := True; Exit; End;
+  Sx := 0; Sy := 0;
+  For J := N - 1 Downto 0 Do Begin
+   Sx := Sx - Sin(DirA[J]); Sy := Sy + Cos(DirA[J]);
+   Jx[J] := Sx; Jy[J] := Sy;
+  End;
+  For R2 := 0 To 2 Do For C2 := 0 To 3 Do M[R2, C2] := 0;
+  For J := 0 To N - 1 Do Begin
+   M[0, 0] := M[0, 0] + Jx[J] * Jx[J]; M[0, 1] := M[0, 1] + Jx[J] * Jy[J]; M[0, 2] := M[0, 2] + Jx[J];
+   M[1, 1] := M[1, 1] + Jy[J] * Jy[J]; M[1, 2] := M[1, 2] + Jy[J];
+   M[2, 2] := M[2, 2] + 1;
+  End;
+  M[1, 0] := M[0, 1]; M[2, 0] := M[0, 2]; M[2, 1] := M[1, 2];
+  M[0, 3] := -Fx; M[1, 3] := -Fy; M[2, 3] := -G;
+  { elimination de Gauss }
+  Ok := True;
+  For K := 0 To 2 Do Begin
+   T2 := K;
+   For R2 := K + 1 To 2 Do If Abs(M[R2, K]) > Abs(M[T2, K]) Then T2 := R2;
+   If Abs(M[T2, K]) < 1E-12 Then Begin Ok := False; Break; End;
+   For C2 := 0 To 3 Do Begin Tmp := M[K, C2]; M[K, C2] := M[T2, C2]; M[T2, C2] := Tmp; End;
+   For R2 := K + 1 To 2 Do Begin
+    Fct := M[R2, K] / M[K, K];
+    For C2 := K To 3 Do M[R2, C2] := M[R2, C2] - Fct * M[K, C2];
+   End;
+  End;
+  If Not Ok Then Exit;
+  L2 := M[2, 3] / M[2, 2];
+  L1 := (M[1, 3] - M[1, 2] * L2) / M[1, 1];
+  L0 := (M[0, 3] - M[0, 1] * L1 - M[0, 2] * L2) / M[0, 0];
+  For J := 0 To N - 1 Do Dl[J] := Jx[J] * L0 + Jy[J] * L1 + L2;
+  Sc := 1;
+  For Tries := 1 To 10 Do Begin
+   Ok := True;
+   For J := 0 To N - 1 Do Begin
+    Dir := T[J] + Sc * Dl[J];
+    If (S[J] > 0) And (Dir < 0.03) Then Ok := False;
+    If (S[J] < 0) And (Dir > -0.03) Then Ok := False;
+   End;
+   If Ok Then Break;
+   Sc := Sc / 2;
+  End;
+  If Not Ok Then Exit;
+  For J := 0 To N - 1 Do T[J] := T[J] + Sc * Dl[J];
+ End;
+End;
+
+{ Le polygone de sommets (X, Y) est-il simple et sans sommets trop proches ? }
+Function PolygonOK(N: Integer; Const X, Y: Array Of Real): Boolean;
+Var I, J : Integer;
+ D1, D2, D3, D4 : Real;
+ Function Orn(AX, AY, BX, BY, CX, CY: Real): Real;
+ Begin
+  Orn := (BX - AX) * (CY - AY) - (BY - AY) * (CX - AX);
+ End;
+Begin
+ PolygonOK := False;
+ For I := 0 To N - 1 Do
+  For J := I + 2 To N - 1 Do Begin
+   If (I = 0) And (J = N - 1) Then Continue;
+   If Dist(X[I], Y[I], X[J], Y[J]) < 0.6 * BOND_LEN Then Exit;
+   D1 := Orn(X[I], Y[I], X[(I + 1) Mod N], Y[(I + 1) Mod N], X[J], Y[J]);
+   D2 := Orn(X[I], Y[I], X[(I + 1) Mod N], Y[(I + 1) Mod N], X[(J + 1) Mod N], Y[(J + 1) Mod N]);
+   D3 := Orn(X[J], Y[J], X[(J + 1) Mod N], Y[(J + 1) Mod N], X[I], Y[I]);
+   D4 := Orn(X[J], Y[J], X[(J + 1) Mod N], Y[(J + 1) Mod N], X[(I + 1) Mod N], Y[(I + 1) Mod N]);
+   If (D1 * D2 < 0) And (D3 * D4 < 0) Then Exit;
+  End;
+ PolygonOK := True;
+End;
+
+{ Redessine le cycle R pour respecter les relations cis / trans imposees
+  (RqJ) ; les fragments portes par les atomes du cycle suivent. }
+Procedure FixMacro(R: Integer);
+Var
+ N, K, J, P, Q, Bi, NFree, BestFree, BestDist, Dd, Sum, Tr, M, Head, Tail, Cur, Nx, I : Integer;
+ Rg : Array[0..MAX_RING_SZ - 1] Of Integer;
+ Rb : Array[0..MAX_RING_SZ - 1] Of Integer;
+ Dflip : Array[0..MAX_RING_SZ - 1] Of Integer;
+ Forced : Array[0..MAX_RING_SZ - 1] Of Boolean;
+ Sg : Array[0..MAX_RING_SZ - 1] Of Integer;
+ T : Array[0..MAX_RING_SZ - 1] Of Real;
+ NPX, NPY, OPX, OPY : Array[0..MAX_RING_SZ - 1] Of Real;
+ Frag : Array[0..MAX_ATOMS - 1] Of ShortInt;   { numero du cycle + 1 }
+ Betas : Array[0..4] Of Real;
+ BI2, CI, NCand : Integer;
+ Dfix : Array[0..MAX_RING_SZ - 1] Of Integer;
+ Cand, CandD, DfL2 : Array[0..MAX_RING_SZ - 1] Of Integer;
+ S1, S2, S : Integer;
+ Cur2 : Boolean;
+ Mismatch, Okk : Boolean;
+ CX0, CY0, CX1, CY1, A0, A1, Beta, Ux, Uy, Vx, Vy, L, Rho, CsR, SnR, PX, PY, Ang0, Ang1 : Real;
+Begin
+ N := RingN[R];
+ If (N < 8) Or (N > MAX_RING_SZ) Then Exit;
+ For K := 0 To N - 1 Do Rg[K] := RingA[R, K];
+ For K := 0 To N - 1 Do Begin
+  Rb[K] := FindBond(Rg[K], Rg[(K + 1) Mod N]);
+  If Rb[K] < 0 Then Exit;
+ End;
+ { relations imposees ou courantes pour chaque liaison double du cycle }
+ Mismatch := False;
+ For K := 0 To N - 1 Do Begin
+  Forced[K] := False; Dflip[K] := 0;
+  If Bd^[Rb[K]].Order <> 2 Then Continue;
+  S1 := SideOf(Rg[K], Rg[(K + 1) Mod N], At^[Rg[(K + N - 1) Mod N]].X, At^[Rg[(K + N - 1) Mod N]].Y);
+  S2 := SideOf(Rg[K], Rg[(K + 1) Mod N], At^[Rg[(K + 2) Mod N]].X, At^[Rg[(K + 2) Mod N]].Y);
+  Cur2 := S1 = S2;
+  If (S1 = 0) Or (S2 = 0) Then Cur2 := True;
+  Forced[K] := True;
+  If RqJ[Rb[K]] = 1 Then Begin
+   If Not Cur2 Then Mismatch := True;
+   Dflip[K] := 0;
+  End
+  Else If RqJ[Rb[K]] = 2 Then Begin
+   If Cur2 Then Mismatch := True;
+   Dflip[K] := 1;
+  End
+  Else If Cur2 Then Dflip[K] := 0 Else Dflip[K] := 1;
+ End;
+ If Not Mismatch Then Exit;
+ { fragments portes par les atomes du cycle : disjoints et sans retour au cycle }
+ For I := 0 To NAt - 1 Do Frag[I] := 0;
+ For K := 0 To N - 1 Do Frag[Rg[K]] := -1;
+ For K := 0 To N - 1 Do Begin
+  For J := 0 To AdjN^[Rg[K]] - 1 Do Begin
+   Nx := Adj^[Rg[K], J];
+   If Frag[Nx] <> 0 Then Begin
+    If (Frag[Nx] = -1) And ((Nx = Rg[(K + 1) Mod N]) Or (Nx = Rg[(K + N - 1) Mod N])) Then Continue;
+    Exit;     { pont ou cycle fusionne }
+   End;
+   Head := 0; Tail := 1; Tmp2^[0] := Nx; Frag[Nx] := K + 1;
+   While Head < Tail Do Begin
+    Cur := Tmp2^[Head]; Inc(Head);
+    For M := 0 To AdjN^[Cur] - 1 Do Begin
+     I := Adj^[Cur, M];
+     If I = Rg[K] Then Continue;
+     If Frag[I] = -1 Then Exit;
+     If (Frag[I] <> 0) And (Frag[I] <> K + 1) Then Exit;
+     If Frag[I] = 0 Then Begin Frag[I] := K + 1; Tmp2^[Tail] := I; Inc(Tail); End;
+    End;
+   End;
+  End;
+ End;
+ { parite des inversions de virage : un cycle ferme en exige un nombre pair ;
+   si besoin on ajoute une inversion sur une liaison libre (essais par
+   proximite d'une liaison trans) }
+ { chaque liaison trans recoit une inversion compensatrice voisine (liaison
+   libre) : le virage inverse reste isole, comme un coude du cycle }
+ For K := 0 To N - 1 Do Dfix[K] := 0;
+ For K := 0 To N - 1 Do
+  If Forced[K] And (Dflip[K] = 1) Then Begin
+   J := (K + 1) Mod N;
+   If (Not Forced[J]) And (Dfix[J] = 0) And (Dfix[(K + N - 1) Mod N] = 0) Then Dfix[J] := 1
+   Else Begin
+    J := (K + N - 1) Mod N;
+    If (Not Forced[J]) And (Dfix[J] = 0) Then Dfix[J] := 1;
+   End;
+  End;
+ For K := 0 To N - 1 Do If Dfix[K] = 1 Then Dflip[K] := 1;
+ Sum := 0;
+ For K := 0 To N - 1 Do Sum := Sum + Dflip[K];
+ NCand := 0;
+ If Odd(Sum) Then Begin
+  For K := 0 To N - 1 Do
+   If Not Forced[K] Then Begin
+    Dd := N;
+    For J := 0 To N - 1 Do
+     If Forced[J] And (Dflip[J] = 1) Then Begin
+      Tr := Abs(K - J); If N - Tr < Tr Then Tr := N - Tr;
+      If Tr < Dd Then Dd := Tr;
+     End;
+    Cand[NCand] := K; CandD[NCand] := Dd; Inc(NCand);
+   End;
+  If NCand = 0 Then Exit;
+  For K := 1 To NCand - 1 Do Begin
+   J := Cand[K]; Dd := CandD[K]; Tr := K - 1;
+   While (Tr >= 0) And (CandD[Tr] > Dd) Do Begin Cand[Tr + 1] := Cand[Tr]; CandD[Tr + 1] := CandD[Tr]; Dec(Tr); End;
+   Cand[Tr + 1] := J; CandD[Tr + 1] := Dd;
+  End;
+ End
+ Else Begin Cand[0] := -1; NCand := 1; End;
+ Betas[0] := 0.45; Betas[1] := 0.7; Betas[2] := 0.25; Betas[3] := 1.0; Betas[4] := 0.12;
+ Okk := False;
+ For CI := 0 To NCand - 1 Do Begin
+  For K := 0 To N - 1 Do DfL2[K] := Dflip[K];
+  If Cand[CI] >= 0 Then DfL2[Cand[CI]] := 1;
+  Sg[0] := 1;
+  For K := 0 To N - 2 Do If DfL2[K] = 1 Then Sg[K + 1] := -Sg[K] Else Sg[K + 1] := Sg[K];
+  P := 0;
+  For K := 0 To N - 1 Do If Sg[K] > 0 Then Inc(P);
+  Q := N - P;
+  If P < Q Then Begin
+   For K := 0 To N - 1 Do Sg[K] := -Sg[K];
+  End;
+  For BI2 := 0 To 4 Do Begin
+   Beta := Betas[BI2];
+   If Not SolveTurns(N, Sg, Beta, T) Then Continue;
+   L := 0;
+   NPX[0] := 0; NPY[0] := 0;
+   For K := 0 To N - 2 Do Begin
+    L := L + T[K];
+    NPX[K + 1] := NPX[K] + BOND_LEN * Cos(L);
+    NPY[K + 1] := NPY[K] + BOND_LEN * Sin(L);
+   End;
+   If PolygonOK(N, NPX, NPY) Then Begin Okk := True; Break; End;
+  End;
+  If Okk Then Break;
+ End;
+ If Not Okk Then Exit;
+ { centre et orientation de l'ancien et du nouveau cycle }
+ CX0 := 0; CY0 := 0; CX1 := 0; CY1 := 0; A0 := 0; A1 := 0;
+ For K := 0 To N - 1 Do Begin
+  CX0 := CX0 + At^[Rg[K]].X; CY0 := CY0 + At^[Rg[K]].Y;
+  CX1 := CX1 + NPX[K]; CY1 := CY1 + NPY[K];
+  J := (K + 1) Mod N;
+  A0 := A0 + At^[Rg[K]].X * At^[Rg[J]].Y - At^[Rg[J]].X * At^[Rg[K]].Y;
+  A1 := A1 + NPX[K] * NPY[J] - NPX[J] * NPY[K];
+ End;
+ CX0 := CX0 / N; CY0 := CY0 / N; CX1 := CX1 / N; CY1 := CY1 / N;
+ For K := 0 To N - 1 Do Begin
+  NPX[K] := NPX[K] - CX1; NPY[K] := NPY[K] - CY1;
+  If (A0 > 0) <> (A1 > 0) Then NPX[K] := -NPX[K];
+  NPX[K] := NPX[K] + CX0; NPY[K] := NPY[K] + CY0;
+ End;
+ { fragments : meme sortie du cycle (direction opposee a la bissectrice) }
+ For K := 0 To N - 1 Do Begin
+  OPX[K] := At^[Rg[K]].X; OPY[K] := At^[Rg[K]].Y;
+ End;
+ For K := 0 To N - 1 Do Begin
+  J := (K + 1) Mod N; I := (K + N - 1) Mod N;
+  Ux := OPX[I] - OPX[K]; Uy := OPY[I] - OPY[K]; L := Sqrt(Ux * Ux + Uy * Uy); If L < 0.001 Then L := 1;
+  Ux := Ux / L; Uy := Uy / L;
+  Vx := OPX[J] - OPX[K]; Vy := OPY[J] - OPY[K]; L := Sqrt(Vx * Vx + Vy * Vy); If L < 0.001 Then L := 1;
+  Vx := Vx / L; Vy := Vy / L;
+  Ang0 := Atan2(-(Uy + Vy), -(Ux + Vx));
+  Ux := NPX[I] - NPX[K]; Uy := NPY[I] - NPY[K]; L := Sqrt(Ux * Ux + Uy * Uy); If L < 0.001 Then L := 1;
+  Ux := Ux / L; Uy := Uy / L;
+  Vx := NPX[J] - NPX[K]; Vy := NPY[J] - NPY[K]; L := Sqrt(Vx * Vx + Vy * Vy); If L < 0.001 Then L := 1;
+  Vx := Vx / L; Vy := Vy / L;
+  Ang1 := Atan2(-(Uy + Vy), -(Ux + Vx));
+  Rho := Ang1 - Ang0;
+  CsR := Cos(Rho); SnR := Sin(Rho);
+  For I := 0 To NAt - 1 Do
+   If Frag[I] = K + 1 Then Begin
+    PX := At^[I].X - OPX[K]; PY := At^[I].Y - OPY[K];
+    At^[I].X := NPX[K] + CsR * PX - SnR * PY;
+    At^[I].Y := NPY[K] + SnR * PX + CsR * PY;
+   End;
+ End;
+ For K := 0 To N - 1 Do Begin At^[Rg[K]].X := NPX[K]; At^[Rg[K]].Y := NPY[K]; End;
+End;
+
+Procedure FixMacroRings;
+Var R, K, J : Integer; Any : Boolean;
+Begin
+ EnsureRings;
+ For R := 0 To NRings - 1 Do Begin
+  If RingN[R] < 8 Then Continue;
+  Any := False;
+  For K := 0 To RingN[R] - 1 Do Begin
+   J := FindBond(RingA[R, K], RingA[R, (K + 1) Mod RingN[R]]);
+   If (J >= 0) And (RqJ[J] <> 0) Then Any := True;
+  End;
+  If Any Then FixMacro(R);
+ End;
+ For J := 0 To NBd - 1 Do RqJ[J] := 0;
+End;
+
 { Retourne le fragment cote B des liaisons doubles dont la geometrie
   cis/trans ne correspond pas aux symboles / et \ du SMILES }
 Procedure ApplySmilesDoubleBonds(F, L: Integer);
@@ -7687,8 +8014,10 @@ Begin
   If (S1 = 0) Or (S2 = 0) Then Continue;
   { cis (memes cotes) si les deux substituants sont du meme cote vertical }
   If ((S1 = S2) = (VA = VB)) Then Continue;
-  If MirrorBSide(J) Then;
+  If Not MirrorBSide(J) Then
+   If RingRelation(J, XA, XB, VA = VB) Then RqJ[J] := 1 Else RqJ[J] := 2;
  End;
+ FixMacroRings;
 End;
 
 { Pose un coin plein ou hachure sur une liaison de K (extremite fine en K)
@@ -7848,8 +8177,11 @@ Begin
   S1 := SideOf(A, B, At^[CapXA[K]].X, At^[CapXA[K]].Y);
   S2 := SideOf(A, B, At^[CapXB[K]].X, At^[CapXB[K]].Y);
   If (S1 = 0) Or (S2 = 0) Then Continue;
-  If (S1 = S2) <> CapCis[K] Then If MirrorBSide(J) Then;
+  If (S1 = S2) <> CapCis[K] Then
+   If Not MirrorBSide(J) Then
+    If RingRelation(J, CapXA[K], CapXB[K], CapCis[K]) Then RqJ[J] := 1 Else RqJ[J] := 2;
  End;
+ FixMacroRings;
  For K := 0 To CapN - 1 Do
   If SetChirality(CapAt[K], CapSl[K], CapNeg[K], CapPref[K]) Then;
  Touch;
