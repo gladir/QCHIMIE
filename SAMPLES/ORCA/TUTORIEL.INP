@@ -1,0 +1,13 @@
+# Entree typique d'un tutoriel ORCA (certains mots-cles sont adaptes)
+! B3LYP def2-SVP TightSCF
+%maxcore 2000
+%pal nprocs 4 end
+%scf
+  MaxIter 150
+  Convergence Tight
+end
+* xyz 0 1
+  O   0.000000    0.000000    0.000000
+  H   0.757160    0.586260    0.000000
+  H  -0.757160    0.586260    0.000000
+*

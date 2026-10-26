@@ -1,0 +1,6 @@
+# Radical hydroxyle : couche ouverte (doublet), UHF
+! UHF 6-31G TightSCF
+* xyz 0 2
+O   0.000000   0.000000   0.000000
+H   0.000000   0.000000   0.970000
+*

@@ -1,0 +1,10 @@
+# H2 : balayage relaxe de la distance H-H
+! HF 6-31G Opt
+%geom Scan
+  B 0 1 = 0.50, 2.00, 12
+  end
+end
+* xyz 0 1
+H   0.000000   0.000000   0.000000
+H   0.000000   0.000000   0.740000
+*

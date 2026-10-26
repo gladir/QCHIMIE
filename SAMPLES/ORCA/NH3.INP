@@ -1,0 +1,8 @@
+# Ammoniac : geometrie et vibrations
+! HF STO-3G TightSCF Opt Freq
+* xyz 0 1
+N   0.000000   0.000000   0.120000
+H   0.000000   0.940000  -0.280000
+H   0.814000  -0.470000  -0.280000
+H  -0.814000  -0.470000  -0.280000
+*
