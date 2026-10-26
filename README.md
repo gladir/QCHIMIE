@@ -8,6 +8,10 @@ Aperçu de la commande PyMOL :
 <img width="638" height="477" alt="image" src="https://github.com/user-attachments/assets/1b5824e1-6cc2-4585-bce9-04c317f3e912" />
 
 
+Aperçu de la commande ChemDraw :
+
+<img width="640" height="480" alt="ChemDraw" src="SAMPLES/CHEMDRAW/APERCU.PNG" />
+
 <h2>Liste des fichiers</h3>
 
 Voici la liste des différents fichiers proposés dans QChimie :
@@ -33,7 +37,11 @@ Voici la liste des différents fichiers proposés dans QChimie :
 	  <td><b>PYMOL.PAS</b></td>
 	  <td>Cette commande permet de visualiser, manipuler et analyser des structures moléculaires tridimensionnelles, not amment des protéines, des acides nucléiques et des composés chimiques, à l'aide du logiciel PyMOL.</td>
   </tr>
- </table>
+  <tr>
+	  <td><b>CHEMDRAW.PAS</b></td>
+	  <td>Cette commande permet de dessiner des structures chimiques en deux dimensions (molécules, réactions, flèches, cycles, groupes d'atomes), de les analyser (formule, poids moléculaire, masse exacte, spectre de masse, prédiction RMN ¹H et ¹³C, nom du composé) et de les importer ou exporter aux formats CDT, MOL, SMILES, SVG et BMP, à la manière du logiciel ChemDraw.</td>
+  </tr>
+</table>
 
 <h2>Compilation</h2>
 	
@@ -52,6 +60,7 @@ Par exemple, si vous voulez compiler ELEMENTS.PAS, vous devrez tapez la commande
 <h2>Remarque</h2>
 
 <ul>
+	<li>La commande CHEMDRAW accepte en ligne de commande un fichier à ouvrir (CDT, MOL, SDF ou SMI) ou une structure SMILES avec le paramètre -s (par exemple : <i>CHEMDRAW -s CC(=O)Oc1ccccc1C(O)=O</i>). Des exemples sont fournis dans le dossier SAMPLES/CHEMDRAW. Le format CDT est le format texte natif de la commande.</li>
 	<li>La commande FORMULA a été bonifié du paramètre /FORMAT:HTML à partir de sa version 1.1.</li>
 </ul>
 
