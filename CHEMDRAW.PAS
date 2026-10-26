@@ -3607,7 +3607,7 @@ Begin
  { Fichier }
  ZeroMenu(Menus[MENU_FILE]);
  Menus[MENU_FILE].Title := 'Fichier';
- Menus[MENU_FILE].ItemCount := 13;
+ Menus[MENU_FILE].ItemCount := 14;
  MI(Menus[MENU_FILE], 0, 'Nouveau', 'Ctrl+N');
  MI(Menus[MENU_FILE], 1, 'Ouvrir...', 'Ctrl+O');
  MI(Menus[MENU_FILE], 2, 'Enregistrer', 'Ctrl+S');
@@ -3617,10 +3617,11 @@ Begin
  MI(Menus[MENU_FILE], 6, 'Importer MOL...', '');
  MI(Menus[MENU_FILE], 7, 'Exporter MOL...', '');
  MI(Menus[MENU_FILE], 8, 'Exporter SMILES...', '');
- MI(Menus[MENU_FILE], 9, 'Exporter SVG...', '');
- MI(Menus[MENU_FILE], 10, 'Exporter BMP...', '');
- MS(Menus[MENU_FILE], 11);
- MI(Menus[MENU_FILE], 12, 'Quitter', 'Alt+X');
+ MI(Menus[MENU_FILE], 9, 'Exporter InChI...', '');
+ MI(Menus[MENU_FILE], 10, 'Exporter SVG...', '');
+ MI(Menus[MENU_FILE], 11, 'Exporter BMP...', '');
+ MS(Menus[MENU_FILE], 12);
+ MI(Menus[MENU_FILE], 13, 'Quitter', 'Alt+X');
  { Edition }
  ZeroMenu(Menus[MENU_EDIT]);
  Menus[MENU_EDIT].Title := 'Edition';
@@ -3737,7 +3738,7 @@ Begin
  { Analyse }
  ZeroMenu(Menus[MENU_TOOLS]);
  Menus[MENU_TOOLS].Title := 'Analyse';
- Menus[MENU_TOOLS].ItemCount := 11;
+ Menus[MENU_TOOLS].ItemCount := 12;
  MI(Menus[MENU_TOOLS], 0, 'Analyse detaillee...', 'F3');
  MI(Menus[MENU_TOOLS], 1, 'Spectre de masse...', '');
  MI(Menus[MENU_TOOLS], 2, 'Prediction RMN 13C...', '');
@@ -3746,9 +3747,10 @@ Begin
  MI(Menus[MENU_TOOLS], 5, 'Structure -> Nom', '');
  MI(Menus[MENU_TOOLS], 6, 'Nom -> Structure...', '');
  MI(Menus[MENU_TOOLS], 7, 'Afficher le SMILES', '');
- MS(Menus[MENU_TOOLS], 8);
- MI(Menus[MENU_TOOLS], 9, 'Verifier la structure', '');
- MI(Menus[MENU_TOOLS], 10, 'Proprietes chimiques', 'F2');
+ MI(Menus[MENU_TOOLS], 8, 'Afficher l''InChI', '');
+ MS(Menus[MENU_TOOLS], 9);
+ MI(Menus[MENU_TOOLS], 10, 'Verifier la structure', '');
+ MI(Menus[MENU_TOOLS], 11, 'Proprietes chimiques', 'F2');
  { Aide }
  ZeroMenu(Menus[MENU_HELP]);
  Menus[MENU_HELP].Title := 'Aide';
@@ -3773,7 +3775,7 @@ Begin
  Menus[MENU_VIEW].Items[14].Checked := OptDark;
  Menus[MENU_VIEW].Items[16].Checked := OptAnalysis;
  Menus[MENU_COLOR].Items[17].Checked := OptColorEl;
- Menus[MENU_TOOLS].Items[10].Checked := OptAnalysis;
+ Menus[MENU_TOOLS].Items[11].Checked := OptAnalysis;
  Menus[MENU_TEXT].Items[3].Checked := TextSize = 1;
  Menus[MENU_TEXT].Items[4].Checked := TextSize = 2;
  Menus[MENU_EDIT].Items[0].Enabled := UndoN > 0;
@@ -6020,24 +6022,29 @@ Begin
  CountBondsOf := N;
 End;
 
-{ Perception d'aromaticite simple (anneaux de 5 ou 6 atomes) }
-Procedure FindAromatic;
+{ Perception d'aromaticite simple (anneaux de 5 ou 6 atomes) ; RingAro[R] = cycle aromatique }
+Var
+ RingAro : Array[0..MAX_RINGS - 1] Of Boolean;
+
+Procedure MarkAromRings;
 Var
  R, K, N, I, J, Nb, Q, W, Sp2, Hetero : Integer;
- Ok, Found : Boolean;
+ Found, AllSingle : Boolean;
 Begin
  EnsureRings;
  BuildAdj;
  ComputeRingSystems;
- For I := 0 To NAt - 1 Do Begin ArA[I] := False; ArRing[I] := -1; End;
  For R := 0 To NRings - 1 Do Begin
+  RingAro[R] := False;
   N := RingN[R];
   If (N <> 5) And (N <> 6) Then Continue;
   Sp2 := 0; Hetero := 0;
   For K := 0 To N - 1 Do Begin
    I := RingA[R, K];
    Found := False;
-   For J := 0 To AdjN^[I] - 1 Do
+   AllSingle := True;
+   For J := 0 To AdjN^[I] - 1 Do Begin
+    If Bd^[AdjB^[I, J]].Order <> 1 Then AllSingle := False;
     If Bd^[AdjB^[I, J]].Order = 2 Then Begin
      Nb := Adj^[I, J];
      For Q := 0 To NRings - 1 Do
@@ -6045,17 +6052,26 @@ Begin
        For W := 0 To RingN[Q] - 1 Do
         If RingA[Q, W] = Nb Then Found := True;
     End;
+   End;
    If Found Then Inc(Sp2);
-   If At^[I].Z In [7, 8, 16] Then Inc(Hetero);
+   If (At^[I].Z In [7, 8, 16]) And AllSingle Then Inc(Hetero);
   End;
-  Ok := ((N = 6) And (Sp2 = 6)) Or ((N = 5) And (Sp2 = 4) And (Hetero >= 1));
-  If Ok Then
-   For K := 0 To N - 1 Do Begin
+  RingAro[R] := ((N = 6) And (Sp2 = 6)) Or ((N = 5) And (Sp2 = 4) And (Hetero >= 1));
+ End;
+End;
+
+Procedure FindAromatic;
+Var R, K, I: Integer;
+Begin
+ MarkAromRings;
+ For I := 0 To NAt - 1 Do Begin ArA[I] := False; ArRing[I] := -1; End;
+ For R := 0 To NRings - 1 Do
+  If RingAro[R] Then
+   For K := 0 To RingN[R] - 1 Do Begin
     I := RingA[R, K];
     ArA[I] := True;
     If (ArRing[I] < 0) Or (RingN[R] < RingN[ArRing[I]]) Then ArRing[I] := R;
    End;
- End;
 End;
 
 { Type du groupe forme par l'atome X rattache a l'atome From }
@@ -6869,6 +6885,683 @@ Begin
   End;
  If N = 0 Then ShowMessage('Verification', 'Aucun probleme detecte (' + IntToStr(NAt) + ' atomes, ' + IntToStr(NBd) + ' liaisons).')
  Else ListDialog('Verification de la structure : ' + IntToStr(N) + ' probleme(s)', False);
+End;
+
+{ --------------------------------------------------------------------- }
+{ InChI standard (couches formule, connectivite, hydrogenes, charge)    }
+{ Sans stereochimie ni isotopes. Une seule molecule connexe.            }
+{ --------------------------------------------------------------------- }
+
+Const
+ IN_MAX    = 200;
+ IN_DEPTH  = 70;
+ IN_CTMAX  = 1500;
+
+Type
+ TIRk = Array[0..IN_MAX - 1] Of Integer;
+ PIRk = ^TIRk;
+ TICt = Array[0..IN_CTMAX - 1] Of Integer;
+ PICt = ^TICt;
+
+Var
+ InMsg     : String;
+ InBuf     : ^TBuf;
+ InLen     : Integer;
+ IGone     : Array[0..MAX_ATOMS - 1] Of Boolean;
+ IHs, IChg : Array[0..MAX_ATOMS - 1] Of Integer;
+ IBo       : Array[0..MAX_BONDS - 1] Of Byte;
+ BAro      : Array[0..MAX_BONDS - 1] Of Boolean;
+ TgPar     : Array[0..MAX_ATOMS - 1] Of Integer;
+ TgIn      : Array[0..MAX_ATOMS - 1] Of Boolean;
+ TgPath    : Array[0..8] Of Integer;
+ TgDonor   : Integer;
+ ICN       : Integer;
+ ICDoc     : TIRk;
+ ICPos     : Array[0..MAX_ATOMS - 1] Of Integer;
+ ICEl      : TIRk;
+ ICNb      : Array[0..IN_MAX - 1, 0..7] Of Integer;
+ ICNbN     : TIRk;
+ ICH2      : TIRk;
+ IBestR    : TIRk;
+ ICtBest, ICtCur   : PICt;
+ IHBest, IHCur     : PICt;
+ ICtBestN, ICtCurN, IHBestN, IHCurN : Integer;
+ IHave     : Boolean;
+ INodes    : LongInt;
+ Lv, LvM   : Array[0..IN_DEPTH] Of PIRk;
+ ICnt      : Array[0..IN_MAX] Of Integer;
+ { serialisation }
+ SAdj      : Array[1..IN_MAX, 0..7] Of Integer;
+ SDeg      : Array[1..IN_MAX] Of Integer;
+ SIdx, SSize : Array[1..IN_MAX] Of Integer;
+ SCh       : Array[1..IN_MAX, 0..7] Of Integer;
+ SChN      : Array[1..IN_MAX] Of Integer;
+ SCl       : Array[1..IN_MAX, 0..7] Of Integer;
+ SClN      : Array[1..IN_MAX] Of Integer;
+ SCnt      : Integer;
+
+Procedure InAdd(Const S: String);
+Var I: Integer;
+Begin
+ For I := 1 To Length(S) Do
+  If InLen < 4095 Then Begin InBuf^[InLen] := S[I]; Inc(InLen); End;
+End;
+
+Function InStr: String;
+Var I, N: Integer; S: String;
+Begin
+ N := InLen; If N > 255 Then N := 255;
+ S := '';
+ For I := 0 To N - 1 Do S := S + InBuf^[I];
+ InStr := S;
+End;
+
+Function IsEndp(I: Integer): Boolean;
+Begin
+ IsEndp := (At^[I].Z In [7, 8, 16, 34, 52]) And (IChg[I] = 0) And Not IGone[I];
+End;
+
+Function HasDblI(I: Integer): Boolean;
+Var K: Integer;
+Begin
+ HasDblI := True;
+ For K := 0 To AdjN^[I] - 1 Do
+  If IBo[AdjB^[I, K]] = 2 Then Exit;
+ HasDblI := False;
+End;
+
+Function HeavyDeg(I: Integer): Integer;
+Var K, N: Integer;
+Begin
+ N := 0;
+ For K := 0 To AdjN^[I] - 1 Do If Not IGone[Adj^[I, K]] Then Inc(N);
+ HeavyDeg := N;
+End;
+
+Function TgFind(X: Integer): Integer;
+Begin
+ While TgPar[X] <> X Do Begin TgPar[X] := TgPar[TgPar[X]]; X := TgPar[X]; End;
+ TgFind := X;
+End;
+
+Function InRingAtom(R, A: Integer): Boolean;
+Var K: Integer;
+Begin
+ InRingAtom := True;
+ For K := 0 To RingN[R] - 1 Do If RingA[R, K] = A Then Exit;
+ InRingAtom := False;
+End;
+
+{ Parcours des chemins alternes a partir du donneur TgDonor }
+Procedure TgDFS(A, Need, Len: Integer);
+Var
+ K, B, J, T, R, Z : Integer;
+ InPath, Ok, AllIn : Boolean;
+Begin
+ For K := 0 To AdjN^[A] - 1 Do Begin
+  B := Adj^[A, K]; J := AdjB^[A, K];
+  If IGone[B] Then Continue;
+  InPath := False;
+  For T := 0 To Len Do If TgPath[T] = B Then InPath := True;
+  If InPath Then Continue;
+  If Not ((IBo[J] = Need) Or BAro[J]) Then Continue;
+  TgPath[Len + 1] := B;
+  If (Need = 2) And IsEndp(B) And (B <> TgDonor) And HasDblI(B) Then Begin
+   Ok := True;
+   If Len + 1 > 2 Then Begin
+    Ok := False;
+    For R := 0 To NRings - 1 Do Begin
+     AllIn := True;
+     For T := 1 To Len Do If Not InRingAtom(R, TgPath[T]) Then AllIn := False;
+     If AllIn And (InRingAtom(R, TgDonor) Or InRingAtom(R, B)) Then Ok := True;
+    End;
+   End
+   Else Begin
+    Z := At^[TgPath[1]].Z;
+    If Not (Z In [6, 7, 15]) Then
+     If (HeavyDeg(TgDonor) <> 1) Or (HeavyDeg(B) <> 1) Then Ok := False;
+   End;
+   If Ok Then Begin
+    TgPar[TgFind(TgDonor)] := TgFind(B);
+    TgIn[TgDonor] := True; TgIn[B] := True;
+   End;
+  End;
+  If Len + 1 < 6 Then Begin
+   Z := At^[B].Z;
+   If ((Need = 1) And (Z In [6, 7, 15, 16, 33, 34, 51, 52])) Or
+      ((Need = 2) And (Z In [6, 7])) Then TgDFS(B, 3 - Need, Len + 1);
+  End;
+ End;
+End;
+
+{ --- raffinement et recherche du numerotage canonique --- }
+
+Function IKeyLE(Var R: TIRk; Var NS: Array Of Integer; J, I: Integer): Boolean;
+Var K: Integer;
+Begin
+ IKeyLE := False;
+ If R[J] < R[I] Then Begin IKeyLE := True; Exit; End;
+ If R[J] > R[I] Then Exit;
+ For K := 0 To ICNbN[I] - 1 Do Begin
+  If NS[J * 8 + K] < NS[I * 8 + K] Then Begin IKeyLE := True; Exit; End;
+  If NS[J * 8 + K] > NS[I * 8 + K] Then Exit;
+ End;
+ IKeyLE := True;
+End;
+
+Procedure IRefine(Var R: TIRk);
+Var
+ NS : Array[0..IN_MAX * 8 - 1] Of Integer;
+ NewR : TIRk;
+ I, J, K, T, C : Integer;
+ Changed : Boolean;
+Begin
+ Repeat
+  For I := 0 To ICN - 1 Do Begin
+   For K := 0 To ICNbN[I] - 1 Do NS[I * 8 + K] := R[ICNb[I, K]];
+   For K := 1 To ICNbN[I] - 1 Do Begin
+    T := NS[I * 8 + K]; J := K - 1;
+    While (J >= 0) And (NS[I * 8 + J] > T) Do Begin NS[I * 8 + J + 1] := NS[I * 8 + J]; Dec(J); End;
+    NS[I * 8 + J + 1] := T;
+   End;
+  End;
+  Changed := False;
+  For I := 0 To ICN - 1 Do Begin
+   C := 0;
+   For J := 0 To ICN - 1 Do If IKeyLE(R, NS, J, I) Then Inc(C);
+   NewR[I] := C;
+  End;
+  For I := 0 To ICN - 1 Do
+   If NewR[I] <> R[I] Then Changed := True;
+  R := NewR;
+ Until Not Changed;
+End;
+
+Procedure IAddCt(Var A: TICt; Var N: Integer; V: Integer);
+Begin
+ If N < IN_CTMAX Then Begin A[N] := V; Inc(N); End;
+End;
+
+Function ICmpArr(Var A: TICt; NA: Integer; Var B: TICt; NB: Integer): Integer;
+Var K, M: Integer;
+Begin
+ If NA < NB Then M := NA Else M := NB;
+ For K := 0 To M - 1 Do Begin
+  If A[K] < B[K] Then Begin ICmpArr := -1; Exit; End;
+  If A[K] > B[K] Then Begin ICmpArr := 1; Exit; End;
+ End;
+ If NA < NB Then ICmpArr := -1 Else If NA > NB Then ICmpArr := 1 Else ICmpArr := 0;
+End;
+
+Procedure ILeaf(Var R: TIRk);
+Var
+ Ord2 : TIRk;
+ P, I, K, J, T, H, C1 : Integer;
+ Tmp : Array[0..7] Of Integer;
+ NT : Integer;
+Begin
+ For I := 0 To ICN - 1 Do Ord2[R[I] - 1] := I;
+ ICtCurN := 0;
+ For P := 1 To ICN Do Begin
+  I := Ord2[P - 1];
+  IAddCt(ICtCur^, ICtCurN, P);
+  NT := 0;
+  For K := 0 To ICNbN[I] - 1 Do
+   If R[ICNb[I, K]] < P Then Begin Tmp[NT] := R[ICNb[I, K]]; Inc(NT); End;
+  For K := 1 To NT - 1 Do Begin
+   T := Tmp[K]; J := K - 1;
+   While (J >= 0) And (Tmp[J] > T) Do Begin Tmp[J + 1] := Tmp[J]; Dec(J); End;
+   Tmp[J + 1] := T;
+  End;
+  For K := 0 To NT - 1 Do IAddCt(ICtCur^, ICtCurN, Tmp[K]);
+ End;
+ IHCurN := 0;
+ For H := 1 To 9 Do Begin
+  IAddCt(IHCur^, IHCurN, 1000 + H);
+  For P := 1 To ICN Do
+   If ICH2[Ord2[P - 1]] = H Then IAddCt(IHCur^, IHCurN, P);
+ End;
+ If Not IHave Then C1 := -1
+ Else Begin
+  C1 := ICmpArr(ICtCur^, ICtCurN, ICtBest^, ICtBestN);
+  If C1 = 0 Then C1 := ICmpArr(IHCur^, IHCurN, IHBest^, IHBestN);
+ End;
+ If C1 < 0 Then Begin
+  Move(ICtCur^, ICtBest^, SizeOf(TICt)); ICtBestN := ICtCurN;
+  Move(IHCur^, IHBest^, SizeOf(TICt)); IHBestN := IHCurN;
+  IBestR := R;
+  IHave := True;
+ End;
+ 
+End;
+
+Function SameNbI(A, B: Integer): Boolean;
+Var K, J: Integer; F: Boolean;
+Begin
+ SameNbI := False;
+ If ICNbN[A] <> ICNbN[B] Then Exit;
+ For K := 0 To ICNbN[A] - 1 Do Begin
+  F := False;
+  For J := 0 To ICNbN[B] - 1 Do If ICNb[A, K] = ICNb[B, J] Then F := True;
+  If Not F Then Exit;
+ End;
+ SameNbI := True;
+End;
+
+Procedure ISearch(D: Integer);
+Var
+ R, M : PIRk;
+ I, V, Cell, Size, T, U, NM : Integer;
+ Skip : Boolean;
+Begin
+ Inc(INodes);
+ R := Lv[D]; M := LvM[D];
+ For V := 0 To ICN Do ICnt[V] := 0;
+ For I := 0 To ICN - 1 Do Inc(ICnt[R^[I]]);
+ Cell := 0;
+ For V := 1 To ICN Do If ICnt[V] > 1 Then Begin Cell := V; Break; End;
+ If Cell = 0 Then Begin ILeaf(R^); Exit; End;
+ Size := ICnt[Cell];
+ NM := 0;
+ For I := 0 To ICN - 1 Do If R^[I] = Cell Then Begin M^[NM] := I; Inc(NM); End;
+ If (D >= IN_DEPTH - 1) Or (INodes > 40000) Then Begin
+  { arret : departage arbitraire par l'ordre des indices }
+  Lv[D + 1]^ := R^;
+  For T := 0 To NM - 1 Do Lv[D + 1]^[M^[T]] := Cell - Size + 1 + T;
+  ILeaf(Lv[D + 1]^);
+  Exit;
+ End;
+ For T := 0 To NM - 1 Do Begin
+  Skip := False;
+  For U := 0 To T - 1 Do
+   If (ICH2[M^[U]] = ICH2[M^[T]]) And SameNbI(M^[U], M^[T]) Then Skip := True;
+  If Skip Then Continue;
+  Lv[D + 1]^ := R^;
+  Lv[D + 1]^[M^[T]] := Cell - Size + 1;
+  IRefine(Lv[D + 1]^);
+  ISearch(D + 1);
+ End;
+End;
+
+{ --- serialisation de la couche connectivite --- }
+
+Procedure SDfs(A, P: Integer);
+Var K, B: Integer;
+Begin
+ SIdx[A] := SCnt; Inc(SCnt);
+ For K := 0 To SDeg[A] - 1 Do Begin
+  B := SAdj[A, K];
+  If B = P Then Continue;
+  If SIdx[B] < 0 Then Begin
+   SCh[A, SChN[A]] := B; Inc(SChN[A]);
+   SDfs(B, A);
+  End
+  Else If SIdx[B] < SIdx[A] Then Begin
+   SCl[A, SClN[A]] := B; Inc(SClN[A]);
+  End;
+ End;
+End;
+
+Function SSz(A: Integer): Integer;
+Var K, S: Integer;
+Begin
+ S := 1 + SClN[A];
+ For K := 0 To SChN[A] - 1 Do S := S + SSz(SCh[A, K]);
+ SSize[A] := S;
+ SSz := S;
+End;
+
+Procedure SEmit(A: Integer);
+Var
+ Items : Array[0..15] Of Integer;     { > 0 : enfant, < 0 : fermeture de cycle }
+ M, K, J, T, X, Y : Integer;
+ Procedure Item(V: Integer);
+ Begin
+  If V < 0 Then InAdd(IntToStr(-V)) Else SEmit(V);
+ End;
+Begin
+ M := 0;
+ For K := 0 To SClN[A] - 1 Do Begin Items[M] := -SCl[A, K]; Inc(M); End;
+ For K := 0 To SChN[A] - 1 Do Begin Items[M] := SCh[A, K]; Inc(M); End;
+ { tri des enfants : taille puis numero }
+ For K := SClN[A] + 1 To M - 1 Do Begin
+  T := Items[K]; J := K - 1;
+  While J >= SClN[A] Do Begin
+   X := Items[J]; Y := T;
+   If (SSize[X] > SSize[Y]) Or ((SSize[X] = SSize[Y]) And (X > Y)) Then Begin
+    Items[J + 1] := Items[J]; Dec(J);
+   End
+   Else Break;
+  End;
+  Items[J + 1] := T;
+ End;
+ InAdd(IntToStr(A));
+ If M = 0 Then Exit;
+ If M = 1 Then Begin
+  InAdd('-'); Item(Items[0]);
+ End
+ Else Begin
+  InAdd('(');
+  For K := 0 To M - 2 Do Begin
+   If K > 0 Then InAdd(',');
+   Item(Items[K]);
+  End;
+  InAdd(')');
+  Item(Items[M - 1]);
+ End;
+End;
+
+{ Calcule l'InChI du document ; resultat dans InBuf ; message d'erreur dans InMsg }
+Function ComputeInChI: Boolean;
+Var
+ Snap : TSnap;
+ Mod0 : Boolean;
+ I, J, K, N, Z, P, Q, Pn, NG, Seed, Cur, Head, Tail : Integer;
+ Cnts : TCounts;
+ ElOrd : Array[0..103] Of Integer;
+ Present : Array[0..103] Of Boolean;
+ Vis : Array[0..MAX_ATOMS - 1] Of Boolean;
+ Key : TIRk;
+ R0 : TIRk;
+ GRoot : Array[0..IN_MAX - 1] Of Integer;
+ GHs   : Array[0..IN_MAX - 1] Of Integer;
+ GCnt  : Array[0..IN_MAX - 1] Of Integer;
+ GOf   : Array[0..MAX_ATOMS - 1] Of Integer;
+ Found, Any, Aromatic, AllIn : Boolean;
+ RkOf  : TIRk;
+ ARk   : Array[0..IN_MAX - 1] Of Integer;
+ Seg   : String;
+ FirstSeg, FirstGrp : Boolean;
+ Terms, Best : Integer;
+ ChgS  : String;
+ S1, S2 : String;
+ Bi, C1, C2, Lo, Hi, Cnt2, H : Integer;
+ GL : Array[0..IN_MAX - 1] Of Integer;
+ NGL : Integer;
+ Tmp : Integer;
+Begin
+ ComputeInChI := False;
+ InMsg := '';
+ InLen := 0;
+ If NAt = 0 Then Begin InMsg := 'Aucune structure.'; Exit; End;
+ Mod0 := Modified;
+ TakeSnap(Snap);
+ ExpandAllLabels;
+ UpdateInfo;
+ BuildAdj;
+ { atomes d'hydrogene terminaux : retires du graphe }
+ For I := 0 To NAt - 1 Do Begin
+  IGone[I] := False;
+  IHs[I] := Inf^[I].H;
+  IChg[I] := At^[I].Chg;
+ End;
+ For I := 0 To NAt - 1 Do
+  If (At^[I].Z = 1) And (AdjN^[I] = 1) And (At^[I].Chg = 0) And (NAt > 2) Then Begin
+   J := Adj^[I, 0];
+   If At^[J].Z <> 1 Then Begin IGone[I] := True; Inc(IHs[J]); End;
+  End;
+ N := 0;
+ For I := 0 To NAt - 1 Do If Not IGone[I] Then Inc(N);
+ If N > IN_MAX Then Begin InMsg := 'Structure trop grande (max ' + IntToStr(IN_MAX) + ' atomes).'; End;
+ For I := 0 To NAt - 1 Do
+  If Not IGone[I] Then Begin
+   If (At^[I].Z = 0) Or (At^[I].Lbl <> '') Then Begin InMsg := 'Etiquette generique (R, X ...) non prise en charge.'; End;
+   If Not (At^[I].Z In [1, 5, 6, 7, 8, 9, 14, 15, 16, 17, 33, 34, 35, 52, 53]) And (AdjN^[I] > 0) Then
+    InMsg := 'Metaux / elements non organiques lies non pris en charge.';
+  End;
+ If InMsg = '' Then Begin
+  { connexite }
+  For I := 0 To NAt - 1 Do Vis[I] := IGone[I];
+  Seed := -1;
+  For I := 0 To NAt - 1 Do If Not Vis[I] Then Begin Seed := I; Break; End;
+  If Seed >= 0 Then Begin
+   Head := 0; Tail := 1; Tmp2^[0] := Seed; Vis[Seed] := True;
+   While Head < Tail Do Begin
+    Cur := Tmp2^[Head]; Inc(Head);
+    For K := 0 To AdjN^[Cur] - 1 Do
+     If Not Vis[Adj^[Cur, K]] Then Begin Vis[Adj^[Cur, K]] := True; Tmp2^[Tail] := Adj^[Cur, K]; Inc(Tail); End;
+   End;
+   For I := 0 To NAt - 1 Do If Not Vis[I] Then InMsg := 'Plusieurs fragments : non pris en charge.';
+  End
+  Else InMsg := 'Aucun atome lourd.';
+ End;
+ If InMsg <> '' Then Begin RestoreSnap(Snap); FreeSnap(Snap); Modified := Mod0; Exit; End;
+ { ordres de liaison et neutralisation des charges }
+ For J := 0 To NBd - 1 Do IBo[J] := Bd^[J].Order;
+ Pn := 0;
+ For I := 0 To NAt - 1 Do Begin
+  If IGone[I] Then Continue;
+  For K := 0 To AdjN^[I] - 1 Do Begin
+   J := Adj^[I, K];
+   If (J > I) And Not IGone[J] And (IChg[I] * IChg[J] < 0) Then Begin
+    IChg[I] := 0; IChg[J] := 0;
+    Inc(IBo[AdjB^[I, K]]);
+   End;
+  End;
+ End;
+ For I := 0 To NAt - 1 Do Begin
+  If IGone[I] Then Continue;
+  If (IChg[I] > 0) And (IHs[I] > 0) And (At^[I].Z In [7, 8, 16, 15]) Then Begin
+   Dec(IHs[I]); Dec(IChg[I]); Inc(Pn);
+  End
+  Else If (IChg[I] < 0) And (At^[I].Z In [7, 8, 16, 34, 52, 9, 17, 35, 53]) Then Begin
+   Inc(IHs[I]); Inc(IChg[I]); Dec(Pn);
+  End;
+ End;
+ Q := 0;
+ For I := 0 To NAt - 1 Do If Not IGone[I] Then Q := Q + IChg[I];
+ { cycles aromatiques }
+ EnsureRings;
+ MarkAromRings;
+ For J := 0 To NBd - 1 Do BAro[J] := False;
+ For K := 0 To NRings - 1 Do
+  If RingAro[K] Then
+   For I := 0 To RingN[K] - 1 Do Begin
+    J := FindBond(RingA[K, I], RingA[K, (I + 1) Mod RingN[K]]);
+    If J >= 0 Then BAro[J] := True;
+   End;
+ { groupes tautomeres (H mobiles) }
+ For I := 0 To NAt - 1 Do Begin TgPar[I] := I; TgIn[I] := False; End;
+ For I := 0 To NAt - 1 Do
+  If IsEndp(I) And (IHs[I] > 0) Then Begin
+   TgDonor := I; TgPath[0] := I;
+   TgDFS(I, 1, 0);
+  End;
+ NG := 0;
+ For I := 0 To IN_MAX - 1 Do Begin GRoot[I] := 0; GCnt[I] := 0; GHs[I] := 0; End;
+ For I := 0 To NAt - 1 Do GOf[I] := -1;
+ For I := 0 To NAt - 1 Do
+  If TgIn[I] Then Begin
+   Z := TgFind(I);
+   Found := False;
+   For K := 0 To NG - 1 Do If GRoot[K] = Z Then Begin GOf[I] := K; Inc(GCnt[K]); Found := True; Break; End;
+   If Not Found And (NG < IN_MAX) Then Begin
+    GRoot[NG] := Z; GCnt[NG] := 1; GHs[NG] := 0; GOf[I] := NG; Inc(NG);
+   End;
+  End;
+ For I := 0 To NAt - 1 Do If GOf[I] >= 0 Then Inc(GHs[GOf[I]], IHs[I]);
+ { cation net : retrait de protons }
+ While Q > 0 Do Begin
+  K := -1;
+  For J := 0 To NG - 1 Do If GHs[J] > 0 Then Begin K := J; Break; End;
+  If K >= 0 Then Begin
+   Dec(GHs[K]); Inc(Pn); Dec(Q);
+   For I := 0 To NAt - 1 Do If (GOf[I] = K) And (IHs[I] > 0) Then Begin Dec(IHs[I]); Break; End;
+  End
+  Else Begin
+   Found := False;
+   For I := 0 To NAt - 1 Do
+    If Not Found And Not IGone[I] And (At^[I].Z = 8) And (IHs[I] > 0) And (IChg[I] = 0) Then Begin
+     Aromatic := False;
+     For K := 0 To AdjN^[I] - 1 Do Begin
+      J := Adj^[I, K];
+      If At^[J].Z = 7 Then Aromatic := True;
+      For H := 0 To AdjN^[J] - 1 Do
+       If (Adj^[J, H] <> I) And BAro[AdjB^[J, H]] Then Aromatic := True;
+     End;
+     If Aromatic Then Begin Dec(IHs[I]); Inc(Pn); Dec(Q); Found := True; End;
+    End;
+   If Not Found Then Break;
+  End;
+ End;
+ { graphe compact }
+ ICN := 0;
+ For I := 0 To NAt - 1 Do
+  If Not IGone[I] Then Begin ICDoc[ICN] := I; ICPos[I] := ICN; Inc(ICN); End
+  Else ICPos[I] := -1;
+ For I := 0 To 103 Do Present[I] := False;
+ For I := 0 To ICN - 1 Do Present[At^[ICDoc[I]].Z] := True;
+ { rang Hill des elements : C d'abord puis ordre alphabetique }
+ For Z := 1 To 103 Do
+  If Present[Z] Then Begin
+   ElOrd[Z] := 0;
+   For J := 1 To 103 Do
+    If Present[J] And (J <> Z) Then Begin
+     If J = 6 Then Inc(ElOrd[Z])
+     Else If (Z <> 6) And (ElSym[J] < ElSym[Z]) Then Inc(ElOrd[Z]);
+    End;
+  End;
+ For I := 0 To ICN - 1 Do Begin
+  J := ICDoc[I];
+  ICEl[I] := ElOrd[At^[J].Z];
+  ICNbN[I] := 0;
+  For K := 0 To AdjN^[J] - 1 Do
+   If Not IGone[Adj^[J, K]] Then Begin
+    ICNb[I, ICNbN[I]] := ICPos[Adj^[J, K]]; Inc(ICNbN[I]);
+   End;
+  ICH2[I] := IHs[J];
+  If GOf[J] >= 0 Then ICH2[I] := 0;
+ End;
+ { numerotage canonique }
+ If ICN = 1 Then IBestR[0] := 1
+ Else Begin
+  For I := 0 To ICN - 1 Do Key[I] := ICEl[I] * 16 + ICNbN[I];
+  For I := 0 To ICN - 1 Do Begin
+   Cnt2 := 0;
+   For J := 0 To ICN - 1 Do If Key[J] <= Key[I] Then Inc(Cnt2);
+   R0[I] := Cnt2;
+  End;
+  IRefine(R0);
+  Lv[0]^ := R0;
+  IHave := False; INodes := 0;
+  ISearch(0);
+ End;
+ For I := 0 To ICN - 1 Do RkOf[I] := IBestR[I];
+ { formule }
+ For Z := 0 To 103 Do Cnts[Z] := 0;
+ For I := 0 To ICN - 1 Do Begin
+  Inc(Cnts[At^[ICDoc[I]].Z]);
+  Inc(Cnts[1], IHs[ICDoc[I]]);
+ End;
+ InAdd('InChI=1S/');
+ InAdd(HillFormula(Cnts, 0));
+ { connectivite }
+ If ICN > 1 Then Begin
+  For I := 1 To ICN Do Begin SDeg[I] := 0; SIdx[I] := -1; SChN[I] := 0; SClN[I] := 0; End;
+  For I := 0 To ICN - 1 Do Begin
+   K := RkOf[I];
+   For J := 0 To ICNbN[I] - 1 Do Begin SAdj[K, SDeg[K]] := RkOf[ICNb[I, J]]; Inc(SDeg[K]); End;
+   { tri croissant }
+   For J := 1 To SDeg[K] - 1 Do Begin
+    Tmp := SAdj[K, J]; H := J - 1;
+    While (H >= 0) And (SAdj[K, H] > Tmp) Do Begin SAdj[K, H + 1] := SAdj[K, H]; Dec(H); End;
+    SAdj[K, H + 1] := Tmp;
+   End;
+  End;
+  Seed := 1;
+  For I := ICN Downto 1 Do If SDeg[I] = 1 Then Seed := I;
+  SCnt := 0;
+  SDfs(Seed, 0);
+  SSz(Seed);
+  InAdd('/c');
+  SEmit(Seed);
+ End;
+ { hydrogenes }
+ FirstSeg := True;
+ Any := False;
+ For H := 1 To 9 Do Begin
+  NGL := 0;
+  For P := 1 To ICN Do Begin
+   For I := 0 To ICN - 1 Do If (RkOf[I] = P) And (ICH2[I] = H) Then Begin GL[NGL] := P; Inc(NGL); End;
+  End;
+  If NGL = 0 Then Continue;
+  If Not Any Then InAdd('/h');
+  If Not FirstSeg Then InAdd(',');
+  FirstSeg := False; Any := True;
+  K := 0;
+  While K < NGL Do Begin
+   J := K;
+   While (J + 1 < NGL) And (GL[J + 1] = GL[J] + 1) Do Inc(J);
+   If K > 0 Then InAdd(',');
+   If J = K Then InAdd(IntToStr(GL[K])) Else InAdd(IntToStr(GL[K]) + '-' + IntToStr(GL[J]));
+   K := J + 1;
+  End;
+  InAdd('H');
+  If H > 1 Then InAdd(IntToStr(H));
+ End;
+ { groupes mobiles : tries par nombre d'atomes puis numeros }
+ For K := 0 To NG - 1 Do ARk[K] := K;
+ For K := 1 To NG - 1 Do Begin
+  Tmp := ARk[K]; J := K - 1;
+  While J >= 0 Do Begin
+   { comparer les groupes ARk[J] et Tmp }
+   C1 := 0;
+   If GCnt[ARk[J]] > GCnt[Tmp] Then C1 := 1
+   Else If GCnt[ARk[J]] < GCnt[Tmp] Then C1 := -1
+   Else Begin
+    { memes tailles : comparer les listes de rangs }
+    NGL := 0;
+    For I := 0 To ICN - 1 Do If GOf[ICDoc[I]] = ARk[J] Then Begin GL[NGL] := RkOf[I]; Inc(NGL); End;
+    For H := 1 To NGL - 1 Do Begin Bi := GL[H]; Lo := H - 1; While (Lo >= 0) And (GL[Lo] > Bi) Do Begin GL[Lo + 1] := GL[Lo]; Dec(Lo); End; GL[Lo + 1] := Bi; End;
+    S1 := '';
+    For H := 0 To NGL - 1 Do S1 := S1 + Chr(GL[H] Div 256 + 1) + Chr(GL[H] Mod 256 + 1);
+    NGL := 0;
+    For I := 0 To ICN - 1 Do If GOf[ICDoc[I]] = Tmp Then Begin GL[NGL] := RkOf[I]; Inc(NGL); End;
+    For H := 1 To NGL - 1 Do Begin Bi := GL[H]; Lo := H - 1; While (Lo >= 0) And (GL[Lo] > Bi) Do Begin GL[Lo + 1] := GL[Lo]; Dec(Lo); End; GL[Lo + 1] := Bi; End;
+    S2 := '';
+    For H := 0 To NGL - 1 Do S2 := S2 + Chr(GL[H] Div 256 + 1) + Chr(GL[H] Mod 256 + 1);
+    If S1 > S2 Then C1 := 1 Else C1 := -1;
+   End;
+   If C1 > 0 Then Begin ARk[J + 1] := ARk[J]; Dec(J); End
+   Else Break;
+  End;
+  ARk[J + 1] := Tmp;
+ End;
+ FirstGrp := True;
+ For K := 0 To NG - 1 Do Begin
+  If GHs[ARk[K]] <= 0 Then Continue;
+  If Not Any Then InAdd('/h');
+  If Not FirstSeg And FirstGrp Then InAdd(',');
+  FirstSeg := False; Any := True; FirstGrp := False;
+  NGL := 0;
+  For I := 0 To ICN - 1 Do If GOf[ICDoc[I]] = ARk[K] Then Begin GL[NGL] := RkOf[I]; Inc(NGL); End;
+  For H := 1 To NGL - 1 Do Begin Bi := GL[H]; Lo := H - 1; While (Lo >= 0) And (GL[Lo] > Bi) Do Begin GL[Lo + 1] := GL[Lo]; Dec(Lo); End; GL[Lo + 1] := Bi; End;
+  InAdd('(H');
+  If GHs[ARk[K]] > 1 Then InAdd(IntToStr(GHs[ARk[K]]));
+  For H := 0 To NGL - 1 Do InAdd(',' + IntToStr(GL[H]));
+  InAdd(')');
+ End;
+ If Q <> 0 Then Begin
+  If Q > 0 Then ChgS := '+' + IntToStr(Q) Else ChgS := '-' + IntToStr(-Q);
+  InAdd('/q' + ChgS);
+ End;
+ If Pn <> 0 Then Begin
+  If Pn > 0 Then ChgS := '+' + IntToStr(Pn) Else ChgS := '-' + IntToStr(-Pn);
+  InAdd('/p' + ChgS);
+ End;
+ RestoreSnap(Snap);
+ FreeSnap(Snap);
+ Modified := Mod0;
+ ComputeInChI := True;
+End;
+
+Procedure InitInChI;
+Var D: Integer;
+Begin
+ New(InBuf);
+ New(ICtBest); New(ICtCur); New(IHBest); New(IHCur);
+ For D := 0 To IN_DEPTH Do Begin New(Lv[D]); New(LvM[D]); End;
+ InLen := 0;
 End;
 
 { --------------------------------------------------------------------- }
@@ -7753,6 +8446,21 @@ Begin
  Else ShowMessage('Enregistrer', 'Echec de l''ecriture du fichier.');
 End;
 
+{ Ecrit l'InChI calcule (InBuf) dans un fichier texte }
+Function SaveInChI(Const FN: String): Boolean;
+Var F: Text; I: Integer; S: String;
+Begin
+ {$I-}
+ Assign(F, FN); Rewrite(F);
+ {$I+}
+ If IOResult <> 0 Then Begin SaveInChI := False; Exit; End;
+ S := '';
+ For I := 0 To InLen - 1 Do S := S + InBuf^[I];
+ WriteLn(F, S);
+ Close(F);
+ SaveInChI := True;
+End;
+
 Procedure DoExport(Kind: Integer);
 Var FN, Def: String;
 Begin
@@ -7760,6 +8468,7 @@ Begin
   0: Def := 'SORTIE.MOL';
   1: Def := 'SORTIE.SMI';
   2: Def := 'SORTIE.SVG';
+  4: Def := 'SORTIE.TXT';
  Else Def := 'SORTIE.BMP';
  End;
  FN := Def;
@@ -7771,6 +8480,11 @@ Begin
    If SaveSMILES(FN) Then StatusMsg := 'Exporte : ' + FN Else ShowMessage('Exporter', 'Echec de l''ecriture.');
   End;
   2: If SaveSVG(FN) Then StatusMsg := 'Exporte : ' + FN Else ShowMessage('Exporter', 'Echec de l''ecriture.');
+  4: Begin
+   If Not ComputeInChI Then ShowMessage('InChI', InMsg)
+   Else If SaveInChI(FN) Then StatusMsg := 'Exporte : ' + FN
+   Else ShowMessage('Exporter', 'Echec de l''ecriture.');
+  End;
   3: Begin
    ClearSelection; HovAtom := -1; HovBond := -1;
    RedrawAll;
@@ -7854,6 +8568,31 @@ Begin
  End;
 End;
 
+{ Affiche l'InChI de la structure }
+Procedure ShowInChI;
+Var I, J: Integer; Stereo, Isot: Boolean; S: String;
+Begin
+ If Not ComputeInChI Then Begin ShowMessage('InChI', InMsg); Exit; End;
+ NTL := 0;
+ AddTL('InChI standard (IUPAC) de la structure :');
+ AddTL('');
+ S := '';
+ For I := 0 To InLen - 1 Do Begin
+  S := S + InBuf^[I];
+  If Length(S) >= 58 Then Begin AddTL(S); S := ''; End;
+ End;
+ If S <> '' Then AddTL(S);
+ Stereo := False; Isot := False;
+ For J := 0 To NBd - 1 Do If Bd^[J].Sty In [ST_WEDGE, ST_HASH, ST_WAVY] Then Stereo := True;
+ For I := 0 To NAt - 1 Do If At^[I].Iso > 0 Then Isot := True;
+ AddTL('');
+ AddTL('Couches : formule, connectivite (/c), hydrogenes (/h),');
+ AddTL('charge (/q) et protons (/p). Voir Fichier > Exporter InChI.');
+ If Stereo Then AddTL('Attention : la stereochimie (coins) n''est pas encodee.');
+ If Isot Then AddTL('Attention : les isotopes ne sont pas encodes.');
+ ListDialog('InChI', False);
+End;
+
 Procedure InsertTextBelow(Const S: String);
 Var X1, Y1, X2, Y2: Real; Empty: Boolean; T: Integer;
 Begin
@@ -7895,9 +8634,10 @@ Begin
    AddTL('Suppr / Retour arriere : efface le survol ou la selection.');
    AddTL('');
    AddTL('Menu Analyse : formule, masse, spectre de masse, RMN 1H / 13C,');
+   AddTL('   InChI standard, SMILES,');
    AddTL('   structure -> nom, nom -> structure (dictionnaire de composes).');
    AddTL('Menu Structure > Nettoyer : remet la structure en forme (Ctrl+L).');
-   AddTL('Fichier : CDT (natif), MOL, SMILES, SVG, BMP.');
+   AddTL('Fichier : CDT (natif), MOL, SMILES, InChI, SVG, BMP.');
   End;
   1: Begin
    AddTL('RACCOURCIS CLAVIER');
@@ -8083,9 +8823,10 @@ Begin
    6: ImportMolDialog;
    7: DoExport(0);
    8: DoExport(1);
-   9: DoExport(2);
-   10: DoExport(3);
-   12: Running := False;
+   9: DoExport(4);
+   10: DoExport(2);
+   11: DoExport(3);
+   13: Running := False;
   End;
   MENU_EDIT: Case I Of
    0: DoUndo;
@@ -8231,8 +8972,9 @@ Begin
    5: StructureToName;
    6: InsertNameDialog;
    7: ShowSmiles;
-   9: CheckStructure;
-   10: OptAnalysis := Not OptAnalysis;
+   8: ShowInChI;
+   10: CheckStructure;
+   11: OptAnalysis := Not OptAnalysis;
   End;
   MENU_HELP: Case I Of
    0: ShowHelp(0);
@@ -8954,6 +9696,7 @@ Procedure InitializeAll;
 Var I: Integer;
 Begin
  InitDoc;
+ InitInChI;
  New(SmBuf);
  SmLen := 0;
  UndoN := 0; RedoN := 0; HasPending := False; ClipValid := False; ClipSmiles := '';

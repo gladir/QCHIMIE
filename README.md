@@ -39,7 +39,7 @@ Voici la liste des différents fichiers proposés dans QChimie :
   </tr>
   <tr>
 	  <td><b>CHEMDRAW.PAS</b></td>
-	  <td>Cette commande permet de dessiner des structures chimiques en deux dimensions (molécules, réactions, flèches, cycles, groupes d'atomes), de les analyser (formule, poids moléculaire, masse exacte, spectre de masse, prédiction RMN ¹H et ¹³C, nom du composé) et de les importer ou exporter aux formats CDT, MOL, SMILES, SVG et BMP, à la manière du logiciel ChemDraw.</td>
+	  <td>Cette commande permet de dessiner des structures chimiques en deux dimensions (molécules, réactions, flèches, cycles, groupes d'atomes), de les analyser (formule, poids moléculaire, masse exacte, spectre de masse, prédiction RMN ¹H et ¹³C, nom du composé, SMILES, InChI) et de les importer ou exporter aux formats CDT, MOL, SMILES, InChI, SVG et BMP, à la manière du logiciel ChemDraw.</td>
   </tr>
 </table>
 
@@ -61,6 +61,7 @@ Par exemple, si vous voulez compiler ELEMENTS.PAS, vous devrez tapez la commande
 
 <ul>
 	<li>La commande CHEMDRAW accepte en ligne de commande un fichier à ouvrir (CDT, MOL, SDF ou SMI) ou une structure SMILES avec le paramètre -s (par exemple : <i>CHEMDRAW -s CC(=O)Oc1ccccc1C(O)=O</i>). Des exemples sont fournis dans le dossier SAMPLES/CHEMDRAW. Le format CDT est le format texte natif de la commande.</li>
+	<li>L'InChI produit par la commande CHEMDRAW (menu Analyse) couvre la formule, la connectivité, les hydrogènes (y compris mobiles) et la charge d'une molécule connexe, sans stéréochimie ni isotopes. Sur un échantillon de 4 900 molécules, il est identique à celui de la bibliothèque InChI officielle dans 98,8 % des cas ; les fragments multiples et les organométalliques ne sont pas pris en charge.</li>
 	<li>La commande FORMULA a été bonifié du paramètre /FORMAT:HTML à partir de sa version 1.1.</li>
 </ul>
 
